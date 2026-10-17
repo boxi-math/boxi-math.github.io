@@ -1,0 +1,31 @@
+---
+import { type Episode, type Lang, t, pickText } from "../data/site";
+
+interface Props {
+  eps: Episode[];
+  lang: Lang;
+}
+const { eps, lang } = Astro.props;
+---
+
+<ul class="eps">
+  {
+    eps.map((e) => (
+      <li>
+        <a class="ep" href={`/${lang}/ep/${e.slug}/`}>
+          <span class="n">{e.id}</span>
+          <span>
+            <span class="title">{pickText(e.title, lang)}</span>
+            {pickText(e.aha, lang) && (
+              <>
+                <br />
+                <span class="sub">{pickText(e.aha, lang)}</span>
+              </>
+            )}
+          </span>
+          <span class={`badge ${e.phase}`}>{t(e.phase, lang)}</span>
+        </a>
+      </li>
+    ))
+  }
+</ul>

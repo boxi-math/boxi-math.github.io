@@ -1,0 +1,49 @@
+---
+import Base from "../../layouts/Base.astro";
+import { LANGS, type Lang, STAGES, SEEDS, episodes, t } from "../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+const count = (n: number) => episodes.filter((e) => e.stage === n).length;
+---
+
+<Base lang={lang}>
+  <section class="hero narrow">
+    <p class="eyebrow">K–12 · {lang === "en" ? "English & 中文" : "中文 & English"}</p>
+    <h1>{t("tagline", lang)}</h1>
+    <p class="lead">{t("heroLead", lang)}</p>
+    <p class="rule">{t("heroRule", lang)}</p>
+  </section>
+
+  <h2 id="stages">{t("stages", lang)}</h2>
+  <div class="stages">
+    {
+      STAGES.map((s) => (
+        <a class="card" href={`/${lang}/stages/${s.n}/`}>
+          <span class="stage-num">{s.n}</span>
+          <h3 style="margin-top:0.6rem">{s.name[lang]}</h3>
+          <p class="q">{s.question[lang]}</p>
+          <p class="meta">
+            {s.age[lang]} · {count(s.n)} {t("episodes", lang)}
+          </p>
+        </a>
+      ))
+    }
+  </div>
+
+  <h2 id="seeds">{t("seeds", lang)}</h2>
+  <p class="lead">{t("seedsLead", lang)}</p>
+  <div class="seeds">
+    {
+      SEEDS.map((s) => (
+        <a class="card" href={`/${lang}/seeds/${s.id}/`}>
+          <span class="seed-id">{s.id}</span>
+          <h3>{s.name[lang]}</h3>
+          <p class="meta">{s.what[lang]}</p>
+        </a>
+      ))
+    }
+  </div>
+</Base>

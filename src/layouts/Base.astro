@@ -1,0 +1,66 @@
+---
+import "../styles/global.css";
+import { type Lang, t, other } from "../data/site";
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  description?: string;
+  /** Path after /<lang>/, used for the language switch and hreflang. */
+  path?: string;
+}
+const { lang, title, description, path = "" } = Astro.props;
+const siteName = t("site", lang);
+const fullTitle = title ? `${title} · ${siteName}` : `${siteName} — ${t("tagline", lang)}`;
+const alt = other(lang);
+---
+
+<!doctype html>
+<html lang={lang === "zh" ? "zh-CN" : "en"}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description ?? t("heroLead", lang)} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" hreflang="en" href={new URL(`/en/${path}`, Astro.site)} />
+    <link rel="alternate" hreflang="zh" href={new URL(`/zh/${path}`, Astro.site)} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap">
+        <a class="brand" href={`/${lang}/`}>
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="2" y="2" width="28" height="28" rx="8" fill="var(--a)" />
+            <path d="M8 22 L16 10 L24 22" stroke="var(--surface)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="16" cy="22" r="2.4" fill="var(--hl)" />
+          </svg>
+          {siteName}
+        </a>
+        <nav class="main">
+          <a href={`/${lang}/#stages`}>{t("stages", lang)}</a>
+          <a href={`/${lang}/#seeds`}>{t("seeds", lang)}</a>
+          <a href={`/${lang}/about/`}>{t("about", lang)}</a>
+          <a class="lang" href={`/${alt}/${path}`} hreflang={alt} lang={alt === "zh" ? "zh-CN" : "en"}>{t("switchLang", lang)}</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="wrap">
+        <slot />
+      </div>
+    </main>
+    <footer class="bottom">
+      <div class="wrap">
+        <p>{t("license", lang)}</p>
+        <p><a href="https://github.com/boxi-math">github.com/boxi-math</a> · <a href="https://boxiyu.github.io">Boxi Yu</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

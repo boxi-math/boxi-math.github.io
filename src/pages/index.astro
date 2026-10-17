@@ -1,0 +1,22 @@
+---
+// Root: send Chinese browsers to /zh/, everyone else to /en/.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Boxi Math</title>
+    <link rel="alternate" hreflang="en" href="/en/" />
+    <link rel="alternate" hreflang="zh" href="/zh/" />
+    <noscript><meta http-equiv="refresh" content="0; url=/en/" /></noscript>
+    <script is:inline>
+      var l = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+      location.replace(/^zh/i.test(l) ? "/zh/" : "/en/");
+    </script>
+  </head>
+  <body style="font-family:system-ui;padding:2rem">
+    <a href="/en/">English</a> · <a href="/zh/">中文</a>
+  </body>
+</html>

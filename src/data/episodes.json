@@ -1,0 +1,1402 @@
+[
+ {
+  "id": 1,
+  "slug": "01-make-ten",
+  "title": {
+   "zh": "凑十：为什么 8+5 先拆 5？",
+   "en": "Make Ten: Why Split the 5 in 8+5?"
+  },
+  "aha": {
+   "zh": "为什么要\"凑成 10\"？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "八加五只能从八开始一个一个往上数；把五拆开，就会少掉几个。",
+   "en": "Eight plus five means counting up from eight one at a time; breaking the five apart loses some."
+  },
+  "insight": {
+   "zh": "把五拆成两个和三个，先填满一个十，十三就一眼看得出来，一个也没少。",
+   "en": "Split the five into two and three, fill up a ten first, and thirteen shows at a glance, with nothing lost."
+  },
+  "non_example": {
+   "zh": "三加四加起来不到十，十格框装不满，凑十帮不上忙，直接数就好。",
+   "en": "Three plus four is less than ten and doesn't fill the frame, so making ten doesn't help; just count."
+  },
+  "stage": 1,
+  "seeds": [
+   "S-1",
+   "S-2",
+   "S-3",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "1",
+   "us": "1",
+   "uk": "1–2",
+   "sg": "1"
+  },
+  "series": "numbers",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 2,
+  "slug": "02-commutative-array",
+  "title": {
+   "zh": "3×4 和 4×3 一样大？",
+   "en": "Is 3×4 the Same as 4×3?"
+  },
+  "aha": {
+   "zh": "换了顺序，为什么结果不变？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "三个四和四个三是两回事，所以不一定一样多。",
+   "en": "Three fours and four threes are different things, so they might not be the same amount."
+  },
+  "insight": {
+   "zh": "把点阵整个转一下，三排四个就成了四排三个，点一个没多、一个没少，所以三乘四等于四乘三。",
+   "en": "Turn the whole dot array and three rows of four become four rows of three, with not one dot gained or lost, so three times four equals four times three."
+  },
+  "non_example": {
+   "zh": "减法不能换顺序：五个拿走两个剩三个，两个要拿走五个根本不够拿。",
+   "en": "Subtraction can't swap: five take away two leaves three, but two take away five isn't possible."
+  },
+  "stage": 1,
+  "seeds": [
+   "S-1",
+   "S-4",
+   "S-5",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "2",
+   "us": "2–3",
+   "uk": "2",
+   "sg": "2"
+  },
+  "series": "numbers",
+  "callbacks": [
+   34
+  ],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 3,
+  "slug": "03-nines-pattern",
+  "title": {
+   "zh": "乘法口诀里藏着的\"斜线\"",
+   "en": "The Hidden Diagonal in the Nines Table"
+  },
+  "aha": {
+   "zh": "9 的口诀为什么十位加一、个位减一？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "口诀没什么道理，只能死记硬背。",
+   "en": "Times tables have no reason behind them; you just memorise them."
+  },
+  "insight": {
+   "zh": "九就是十少一：每多一排，多一个十、也多拿掉一个点，所以十位加一、个位减一。",
+   "en": "Nine is ten minus one: each extra row brings one more ten and takes away one more dot, so the tens go up by one and the ones go down by one."
+  },
+  "non_example": {
+   "zh": "八比十少二，个位每次少二，到八乘六就不够减了，规律断掉；十位加一、个位减一是九才有的。",
+   "en": "Eight is ten minus two, so the ones drop by two each time and run out at eight times six; up one, down one belongs to nine alone."
+  },
+  "stage": 1,
+  "seeds": [
+   "S-3",
+   "S-5",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "2–3",
+   "us": "3",
+   "uk": "3–4",
+   "sg": "2–3"
+  },
+  "series": "numbers",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 4,
+  "slug": "04-distributive-cut",
+  "title": {
+   "zh": "分配律就是切一刀",
+   "en": "The Distributive Law Is Just One Cut"
+  },
+  "aha": {
+   "zh": "(a+b)×c 为什么等于 a×c+b×c？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "五加三再乘四，就是五加上三乘四，得十七（只乘了一项）。",
+   "en": "Five plus three, times four, is five plus three times four, which is seventeen (only one part gets multiplied)."
+  },
+  "insight": {
+   "zh": "四排八格的长方形沿五和三中间切一刀，两块加起来还是整块，所以五加三的和乘四，等于五乘四加三乘四。",
+   "en": "Cut a rectangle of four rows of eight between the five and the three, and the two pieces still make the whole, so five plus three, times four, equals five times four plus three times four."
+  },
+  "non_example": {
+   "zh": "五乘三加四不能拆成五加四再乘三：五乘三是一块，四个格子是散的，拼不成一块长方形。",
+   "en": "Five times three plus four can't become five plus four, times three: five times three is one block and the four squares are loose, so they don't make one rectangle."
+  },
+  "stage": 1,
+  "seeds": [
+   "S-4",
+   "S-5",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "4",
+   "us": "3",
+   "uk": "4–5",
+   "sg": "3–4"
+  },
+  "series": "numbers",
+  "callbacks": [
+   17,
+   18,
+   23,
+   31
+  ],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 5,
+  "slug": "05-long-multiplication",
+  "title": {
+   "zh": "竖式乘法到底在干什么",
+   "en": "What Long Multiplication Is Really Doing"
+  },
+  "aha": {
+   "zh": "23×14 竖式中为什么要错一位？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "二十三乘十四就是二十乘十，加三乘四，得二百一十二（漏掉交叉的两块）。",
+   "en": "Twenty-three times fourteen is twenty times ten plus three times four, two hundred and twelve (the two crossing blocks get left out)."
+  },
+  "insight": {
+   "zh": "二十三乘十四的长方形切成四块：二百、三十、八十、十二；竖式的第二排是上面两块，那是十个二十三，所以要错一位。",
+   "en": "Cut the twenty-three by fourteen rectangle into four blocks: two hundred, thirty, eighty and twelve; the second row of the working is the top two blocks, ten twenty-threes, which is why it shifts over."
+  },
+  "non_example": {
+   "zh": "第二排不错位，就成了九十二加二十三，只有一百一十五，比十个二十三还少。",
+   "en": "Without the shift, it becomes ninety-two plus twenty-three, only one hundred and fifteen, less than ten twenty-threes."
+  },
+  "stage": 1,
+  "seeds": [
+   "S-3",
+   "S-4",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "3–4",
+   "us": "4",
+   "uk": "5",
+   "sg": "4"
+  },
+  "series": "numbers",
+  "callbacks": [
+   17,
+   18,
+   23,
+   31
+  ],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 6,
+  "slug": "06-equivalent-fractions",
+  "title": {
+   "zh": "1/2 和 2/4 在数轴上是同一个点",
+   "en": "1/2 and 2/4 Are the Same Point"
+  },
+  "aha": {
+   "zh": "分子分母同时乘以同一个数，大小为什么不变？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "四分之二的数字更大，所以四分之二比二分之一大。",
+   "en": "Two fourths has bigger numbers, so two fourths is bigger than one half."
+  },
+  "insight": {
+   "zh": "分子分母同乘一个数，只是把每一份切得更细、拿的份数跟着变多，点还停在原地。",
+   "en": "Multiplying the top and bottom by the same number just cuts every piece finer and makes us take more of them, so the point stays where it was."
+  },
+  "non_example": {
+   "zh": "分子和分母同时加一，二分之一会变成三分之二，点往右移，大小变了。",
+   "en": "Adding one to the top and the bottom turns one half into two thirds; the point moves right, so the size changes."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-1",
+   "S-3",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "3–5",
+   "us": "3–5",
+   "uk": "4–6",
+   "sg": "3–5"
+  },
+  "series": "fractions",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 7,
+  "slug": "07-common-denominator",
+  "title": {
+   "zh": "通分：为什么要找公分母？",
+   "en": "Why Do Fractions Need a Common Denominator?"
+  },
+  "aha": {
+   "zh": "1/2+1/3 为什么不等于 2/5？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "1/2 + 1/3 = 2/5（分子加分子，分母加分母）。",
+   "en": "1/2 + 1/3 = 2/5 (add the tops, add the bottoms)."
+  },
+  "insight": {
+   "zh": "两段长度要相加，得先用同一种小格去量；1/2 和 1/3 都能用 1/6 量完，所以 1/2 + 1/3 = 3/6 + 2/6 = 5/6。",
+   "en": "To add two lengths you first measure both with the same small step; 1/6 measures both 1/2 and 1/3 exactly, so 1/2 + 1/3 = 3/6 + 2/6 = 5/6."
+  },
+  "non_example": {
+   "zh": "位置矛盾：把 2/5 放上数轴，它比 1/2 还小，加了一段反而往回走了。",
+   "en": "The position doesn't work: on the number line 2/5 is smaller than 1/2, so adding something would have moved us backwards."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-1",
+   "S-3",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "5"
+  },
+  "series": "fractions",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 8,
+  "slug": "08-fraction-multiplication",
+  "title": {
+   "zh": "分数乘法：取\"一部分的一部分\"",
+   "en": "Multiplying Fractions: A Part of a Part"
+  },
+  "aha": {
+   "zh": "2/3×3/4 为什么是分子乘分子？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "乘法一定让数变大。",
+   "en": "Multiplying always makes a number bigger."
+  },
+  "insight": {
+   "zh": "乘 2/3 就是取它的 2/3：把 3/4 切成 3 份取 2 份，落在 1/2；取一部分，所以比 3/4 小。",
+   "en": "Multiplying by 2/3 means taking 2/3 of something: cut 3/4 into 3 parts, take 2, and you land on 1/2. You took only a part, so it's smaller than 3/4."
+  },
+  "non_example": {
+   "zh": "乘一个大于 1 的数（比如 × 3/2）才会变大：3/4 × 3/2 = 9/8，落在 3/4 右边；乘小于 1 的数变小。",
+   "en": "Only multiplying by something bigger than 1 (like × 3/2) makes it grow: 3/4 × 3/2 = 9/8, to the right of 3/4. Multiplying by something less than 1 shrinks it."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-1",
+   "S-3",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "6"
+  },
+  "series": "fractions",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 9,
+  "slug": "09-fraction-division",
+  "title": {
+   "zh": "分数除法为什么\"颠倒相乘\"",
+   "en": "Why Dividing by a Fraction Means Flip and Multiply"
+  },
+  "aha": {
+   "zh": "除以 2/3 为什么等于乘 3/2？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "除法一定让数变小；（或者）只记住了一个例子。",
+   "en": "Dividing always makes a number smaller; or remembering the rule from a single example."
+  },
+  "insight": {
+   "zh": "除以 2/3 就是数「里面有几个 2/3」：每个 1 里面正好有 3/2 个，所以 6 里面有 6 × 3/2 = 9 个。",
+   "en": "Dividing by 2/3 asks how many 2/3s fit inside: every 1 holds exactly 3/2 of them, so 6 holds 6 × 3/2 = 9."
+  },
+  "non_example": {
+   "zh": "除以大于 1 的数，结果变小：6 ÷ 3/2 = 4，每个 1 里面只放得下 2/3 个 3/2。",
+   "en": "Dividing by something bigger than 1 does make it smaller: 6 ÷ 3/2 = 4, because each 1 only holds 2/3 of a 3/2."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-1",
+   "S-3",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "6"
+  },
+  "series": "fractions",
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 10,
+  "slug": "10-ratio-scaling",
+  "title": {
+   "zh": "比例：放大镜下形状不变",
+   "en": "Ratios: Shapes That Survive the Magnifying Glass"
+  },
+  "aha": {
+   "zh": "为什么\"同时乘以同一个数\"比值不变？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "放大两倍，什么都跟着变两倍，面积也只变两倍；宽和高同时加上同一个数，形状也不变。",
+   "en": "Scale by two and everything doubles, area included; and adding the same amount to width and height keeps the shape too."
+  },
+  "insight": {
+   "zh": "宽和高同时乘同一个数，宽是高的几倍就不变，比值不变，形状就不变；可面积是宽乘高，两条边各乘一次，放大两倍面积就是四倍。",
+   "en": "Multiply the width and the height by the same number and the width is still the same multiple of the height: the ratio, and so the shape, doesn't change. But area is width times height, so each side multiplies once; scale by two and the area goes up four times."
+  },
+  "non_example": {
+   "zh": "宽和高都加两格，三比二变成五比四，照片变方了；边长放大两倍，面积不是两倍，是四倍。",
+   "en": "Add two squares to both the width and the height and 3 : 2 becomes 5 : 4, so the photo gets squarer; scale the sides by two and the area isn't doubled, it's four times as big."
+  },
+  "stage": 2,
+  "seeds": [],
+  "grade": {
+   "cn": "6"
+  },
+  "series": null,
+  "callbacks": [
+   22,
+   25
+  ],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 11,
+  "slug": "11-parallelogram-area",
+  "title": {
+   "zh": "平行四边形面积：剪一刀，挪过去",
+   "en": "Parallelogram Area: One Cut, One Slide"
+  },
+  "aha": {
+   "zh": "为什么是底×高，而不是底×斜边？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "平行四边形的面积是底乘斜边，就像长方形长乘宽一样。",
+   "en": "A parallelogram's area is base times slanted side, just like a rectangle's length times width."
+  },
+  "insight": {
+   "zh": "沿高剪下一个三角形平移到另一边，平行四边形就拼成了长方形；长是底、宽是高，斜边被拼进了里面，所以面积是底乘高。",
+   "en": "Cut off a triangle along the height and slide it to the other side, and the parallelogram becomes a rectangle; its length is the base and its width is the height, with the slanted side hidden inside, so the area is base times height."
+  },
+  "non_example": {
+   "zh": "把平行四边形往下压，底和斜边都不变，面积却越来越小，压平了是零，底乘斜边却一点没变。",
+   "en": "Squash the parallelogram down: the base and slanted side stay the same, but the area shrinks to zero, while base times slanted side doesn't change at all."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-4"
+  ],
+  "grade": {
+   "cn": "5"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 12,
+  "slug": "12-triangle-area",
+  "title": {
+   "zh": "三角形为什么要\"除以 2\"",
+   "en": "Where Does the ½ in Triangle Area Come From?"
+  },
+  "aha": {
+   "zh": "面积公式里的 ½ 从哪来？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "除以二是规定的，背下来就行；钝角三角形的高在外面，公式就用不上了。",
+   "en": "Dividing by two is just a rule to memorise; and when an obtuse triangle's height falls outside it, the formula no longer works."
+  },
+  "insight": {
+   "zh": "再拿一个一模一样的三角形，转半圈拼上去，就成了底乘高的平行四边形；一个三角形正好是它的一半，所以要除以二。",
+   "en": "Take an identical triangle, turn it half a turn and fit it on, and you get a parallelogram of base times height; one triangle is exactly half of it, which is why we divide by two."
+  },
+  "non_example": {
+   "zh": "把钝角三角形的斜边当成高去乘，算出来就大了；真正的高在三角形外面，两个钝角三角形照样拼成平行四边形，照样是一半。",
+   "en": "Using an obtuse triangle's slanted side as the height gives too much; the real height lies outside the triangle, and two obtuse triangles still make a parallelogram, so it's still half."
+  },
+  "stage": 2,
+  "seeds": [
+   "S-4"
+  ],
+  "grade": {
+   "cn": "5"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 13,
+  "slug": "13-circle-area",
+  "title": {
+   "zh": "圆面积：把圆切成披萨",
+   "en": "Circle Area: Slice the Circle Like a Pizza"
+  },
+  "aha": {
+   "zh": "πr² 是怎么来的？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "圆是弯的，没法像长方形那样算面积；切成六十四块就真的变成长方形了。",
+   "en": "A circle is curved, so it can't be worked out like a rectangle; and cutting it into sixty-four pieces turns it into an actual rectangle."
+  },
+  "insight": {
+   "zh": "把圆切成很多小扇形交错拼起来，越切越细就越接近一个长方形：高是半径 r，长是半个圆周派 r，所以面积是派 r 方。",
+   "en": "Cut a circle into many thin wedges and fit them together top-to-tail, and the finer the cut, the closer it gets to a rectangle: its height is the radius r and its length is half the circumference, pi r, so the area is pi r squared."
+  },
+  "non_example": {
+   "zh": "只切四块时拼出来坑坑洼洼，一点不像长方形；切多少块，边上都还有一点弯，它只是越来越接近长方形。",
+   "en": "With only four pieces the shape is bumpy and nothing like a rectangle; however many pieces you cut, the edges still curve a little. It only gets closer and closer to a rectangle."
+  },
+  "stage": 2,
+  "seeds": [],
+  "grade": {
+   "cn": "6"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 14,
+  "slug": "14-cone-volume",
+  "title": {
+   "zh": "圆锥为什么是圆柱的 1/3",
+   "en": "Why Is a Cone One Third of a Cylinder?"
+  },
+  "aha": {
+   "zh": "为什么是 1/3？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "圆锥是圆柱的 1/2；\"倒沙三次刚好倒满就是证明\"",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 2,
+  "seeds": [],
+  "grade": {
+   "cn": "6"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 15,
+  "slug": "15-negative-times-negative",
+  "title": {
+   "zh": "负负得正",
+   "en": "Why Is a Negative Times a Negative Positive?"
+  },
+  "aha": {
+   "zh": "为什么 (−2)×(−3)=+6？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "负负得正没有道理，背下来就行；两个负号会抵消，所以负二加负三是正五。",
+   "en": "Negative times negative being positive has no reason, you just memorise it; two minus signs cancel, so negative two plus negative three is positive five."
+  },
+  "insight": {
+   "zh": "把数看成从零出发的箭头：乘正数是拉长，乘负一是绕零转半圈；负二乘负三就是拉长到六、再转两次半圈，转回正六。",
+   "en": "Think of a number as an arrow from zero: multiplying by a positive number stretches it, and multiplying by negative one turns it half a turn around zero. Negative two times negative three is stretch to six, then two half turns, back to positive six."
+  },
+  "non_example": {
+   "zh": "加法里没有负负得正：负二加负三是从负二再往左走三格，到负五。",
+   "en": "Adding has no such rule: negative two plus negative three starts at negative two and goes three more to the left, to negative five."
+  },
+  "stage": 3,
+  "seeds": [
+   "S-1",
+   "S-4",
+   "S-6"
+  ],
+  "grade": {
+   "cn": "7",
+   "us": "6"
+  },
+  "series": null,
+  "callbacks": [
+   33
+  ],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 16,
+  "slug": "16-subtract-negative",
+  "title": {
+   "zh": "减去一个负数为什么是加",
+   "en": "Why Subtracting a Negative Means Adding"
+  },
+  "aha": {
+   "zh": "3−(−2) 为什么等于 5？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "三减负二等于一：三减二是一，负号没什么用。",
+   "en": "Three minus negative two is one: three minus two is one, and the minus sign doesn't matter."
+  },
+  "insight": {
+   "zh": "减法问的是两个数差多少，也就是在数轴上从减数走到被减数要走几格；负二在零的左边，从负二走到三要走五格，所以三减负二等于五。",
+   "en": "Subtraction asks how far apart two numbers are: how many steps on the number line from the number you subtract to the one you start with. Negative two is left of zero, so from negative two to three is five steps, and three minus negative two is five."
+  },
+  "non_example": {
+   "zh": "一其实是三加负二：从三往左走两格，到一；那是加一个负数，不是减一个负数。",
+   "en": "One is really three plus negative two: from three, two steps to the left, landing on one. That's adding a negative, not subtracting one."
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "7",
+   "us": "6"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 17,
+  "slug": "17-square-of-sum",
+  "title": {
+   "zh": "完全平方公式：多出来的 2ab",
+   "en": "(a+b)²: Where the Extra 2ab Comes From"
+  },
+  "aha": {
+   "zh": "(a+b)² 为什么不是 a²+b²？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "平方就是各自平方，a 加 b 的平方就是 a 方加 b 方。",
+   "en": "Squaring just squares each part, so a plus b squared is a squared plus b squared."
+  },
+  "insight": {
+   "zh": "边长 a 加 b 的正方形，横竖各切一刀，切成 a 方、b 方和两条 a 乘 b 的长条，所以 a 加 b 的平方等于 a 方加二 a b 加 b 方。",
+   "en": "Cut a square with side a plus b once across and once down: you get a squared, b squared and two a-by-b strips, so a plus b squared is a squared plus two a b plus b squared."
+  },
+  "non_example": {
+   "zh": "大正方形里只放 a 方和 b 方两块，另外两个角上还空着两条长条，填不满；三加二的平方是二十五，三方加二方只有十三。",
+   "en": "Put only a squared and b squared into the big square and two strips in the other corners stay empty; three plus two squared is twenty-five, but three squared plus two squared is only thirteen."
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "7–8"
+  },
+  "series": null,
+  "callbacks": [
+   4,
+   5
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 18,
+  "slug": "18-difference-of-squares",
+  "title": {
+   "zh": "平方差：剪下来补上去",
+   "en": "Difference of Squares: Cut and Paste"
+  },
+  "aha": {
+   "zh": "a²−b² 为什么等于 (a+b)(a−b)？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "a²−b² = (a−b)²",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "a²+b² 不能这样拼",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "7–8"
+  },
+  "series": null,
+  "callbacks": [
+   4,
+   5
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 19,
+  "slug": "19-equation-balance",
+  "title": {
+   "zh": "解方程就是天平",
+   "en": "Solving an Equation Is Balancing a Scale"
+  },
+  "aha": {
+   "zh": "两边同时减去同一个数，为什么还成立？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "等号后面是写答案的地方，所以三加四等于空格加五，空格里填七。",
+   "en": "The equals sign means 'write the answer here', so in 3 + 4 = blank + 5 the blank is 7."
+  },
+  "insight": {
+   "zh": "等号说的是两边一样重，像一架平着的天平；两边同时拿走一样多，天平还是平的，所以两边可以同时减去同一个数，一直减到盒子单独留在一边。",
+   "en": "The equals sign says both sides weigh the same, like a level balance. Take the same amount off both sides and it stays level, so you may subtract the same number from both sides until the box is left alone."
+  },
+  "non_example": {
+   "zh": "只从一边拿走砝码，天平马上歪向另一边，两边不一样重，等式就不成立了。",
+   "en": "Take weights off only one side and the balance tips straight away: the sides no longer weigh the same, and the equation is no longer true."
+  },
+  "stage": 3,
+  "seeds": [
+   "S-2"
+  ],
+  "grade": {
+   "cn": "7"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 20,
+  "slug": "20-sqrt2-irrational",
+  "title": {
+   "zh": "√2 为什么不是分数",
+   "en": "Why √2 Is Not a Fraction"
+  },
+  "aha": {
+   "zh": "有没有一个分数平方后正好等于 2？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "\"分数可以无限接近 √2，所以差不多就是分数\"——**不用**分数逼近动画",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "8"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 21,
+  "slug": "21-pythagoras",
+  "title": {
+   "zh": "勾股定理：拼一拼就看见",
+   "en": "The Pythagorean Theorem: Rearrange and See"
+  },
+  "aha": {
+   "zh": "为什么是 a²+b²=c²，而不是 a+b=c？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "斜边就等于两条直角边加起来，c 等于 a 加 b。",
+   "en": "The long side is just the two short sides added up: c equals a plus b."
+  },
+  "insight": {
+   "zh": "同一个大正方形里，四个直角三角形只换个摆法，空白处就从 c 方变成 a 方加 b 方，所以 a 方加 b 方等于 c 方。",
+   "en": "In the same big square, just rearrange the four right triangles and the empty space turns from c squared into a squared plus b squared, so a squared plus b squared equals c squared."
+  },
+  "non_example": {
+   "zh": "把直角撑成钝角，四个三角形戳出大正方形、互相压住，拼不起来；这时 c 方比 a 方加 b 方大。",
+   "en": "Push the right angle open into an obtuse one and the triangles poke out of the square and overlap, so nothing fits; then c squared is bigger than a squared plus b squared."
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "8"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 22,
+  "slug": "22-slope",
+  "title": {
+   "zh": "斜率：一次函数的\"坡度\"",
+   "en": "Slope: How Steep Is a Line?"
+  },
+  "aha": {
+   "zh": "y=kx+b 里的 k 到底是什么？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "k 是\"直线的长度\"或\"与 x 轴交点\"；斜率就是比（呼应 #10）",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "8"
+  },
+  "series": null,
+  "callbacks": [
+   10
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 23,
+  "slug": "23-completing-square",
+  "title": {
+   "zh": "配方：把矩形补成正方形",
+   "en": "Completing the Square, Literally"
+  },
+  "aha": {
+   "zh": "求根公式是从哪里来的？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "求根公式只能背；补的角块是 b²/4 而不是 b²",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "9"
+  },
+  "series": null,
+  "callbacks": [
+   4,
+   5
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 24,
+  "slug": "24-parabola-vertex",
+  "title": {
+   "zh": "抛物线的顶点在哪",
+   "en": "Where Is the Vertex of a Parabola?"
+  },
+  "aha": {
+   "zh": "y=a(x−h)²+k 为什么能看出顶点？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "y=(x−2)² 的顶点在 x=−2",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "9"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 25,
+  "slug": "25-similar-triangles-trig",
+  "title": {
+   "zh": "相似三角形与三角函数",
+   "en": "Similar Triangles and Trigonometry"
+  },
+  "aha": {
+   "zh": "为什么 sin30° 永远是 1/2，跟三角形大小无关？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "三角形越大 sin 越大",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "边长放大 2 倍，面积变 4 倍，比值不变",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "9"
+  },
+  "series": null,
+  "callbacks": [
+   10
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 26,
+  "slug": "26-graph-shift",
+  "title": {
+   "zh": "图像平移为什么是\"左加右减\"",
+   "en": "Why f(x+2) Shifts Left"
+  },
+  "aha": {
+   "zh": "y=f(x+2) 为什么往左移？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "+2 就是往右 2",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 27,
+  "slug": "27-exp-log",
+  "title": {
+   "zh": "指数增长与对数：同一张图的两种读法",
+   "en": "Exponentials and Logarithms: One Graph, Two Readings"
+  },
+  "aha": {
+   "zh": "对数到底在\"问\"什么？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "log(a+b) = log a + log b",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 28,
+  "slug": "28-unit-circle",
+  "title": {
+   "zh": "单位圆上的 sin 和 cos",
+   "en": "Sine and Cosine on the Unit Circle"
+  },
+  "aha": {
+   "zh": "为什么正弦图像是波浪？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "弧度只是另一种单位，与弧长无关",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 29,
+  "slug": "29-arithmetic-sum",
+  "title": {
+   "zh": "等差数列求和：倒过来再加一遍",
+   "en": "Summing an Arithmetic Series: Flip It and Add"
+  },
+  "aha": {
+   "zh": "1+2+…+100 为什么等于 5050？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "首尾配对这招只对从一开始的数列管用，比如一加到一百。",
+   "en": "Pairing first with last only works for sums that start at one, like one up to a hundred."
+  },
+  "insight": {
+   "zh": "把一个和画成一级一级的台阶，再复制一份转半圈拼上，就是一个长方形；每排都是首项加末项，一共项数那么多排，所以和是项数乘首项加末项再除以二。",
+   "en": "Draw the sum as a staircase of dots, copy it, turn the copy half a turn and fit it on: you get a rectangle. Every row is first term plus last term, there are as many rows as terms, so the sum is the number of terms times first plus last, divided by two."
+  },
+  "non_example": {
+   "zh": "一加二加四加八每级多得不一样，转半圈拼上，有的排九个点、有的排六个点，拼不成长方形。",
+   "en": "In one plus two plus four plus eight the steps aren't equal: flip and fit, and some rows have nine dots while others have six. No rectangle."
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一/高二"
+  },
+  "series": null,
+  "callbacks": [
+   31,
+   39
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 30,
+  "slug": "30-derivative-zoom",
+  "title": {
+   "zh": "导数：把曲线放大到变成直线",
+   "en": "The Derivative: Zoom In Until the Curve Is Straight"
+  },
+  "aha": {
+   "zh": "切线斜率为什么就是\"瞬时变化率\"？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "切线就是只碰曲线一个点的直线；任何曲线放大都会变直。",
+   "en": "A tangent is a line that touches the curve at just one point; and any curve turns straight if you zoom in far enough."
+  },
+  "insight": {
+   "zh": "切线是割线在 h 趋近于零时逼近的那条直线；把能求导的曲线在切点附近不断放大，弯曲越来越不明显，曲线越来越贴近这条切线。",
+   "en": "The tangent is the line the secants approach as h goes to zero. Zoom in on a differentiable curve near the point and the bend fades: the curve hugs that tangent more and more closely."
+  },
+  "non_example": {
+   "zh": "y 等于 x 的绝对值在原点是尖角：放大多少倍都还是尖角，右边割线斜率总是一，左边总是负一，没有切线。",
+   "en": "y equals the absolute value of x has a corner at the origin: zoom as far as you like and it stays a corner. Secants on the right always have slope one, on the left minus one, so there is no tangent."
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 31,
+  "slug": "31-derivative-x-squared",
+  "title": {
+   "zh": "为什么 (x²)′=2x",
+   "en": "Why the Derivative of x² Is 2x"
+  },
+  "aha": {
+   "zh": "求导公式能不能\"看见\"？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "角块为什么能丢：dx 越小，角块占比越小",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二"
+  },
+  "series": null,
+  "callbacks": [
+   4,
+   5,
+   29,
+   39
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 32,
+  "slug": "32-vector-addition",
+  "title": {
+   "zh": "向量加法：首尾相接",
+   "en": "Adding Vectors: Tip to Tail"
+  },
+  "aha": {
+   "zh": "为什么平行四边形法则和三角形法则是同一回事？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "向量的和的长度 = 长度之和",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 33,
+  "slug": "33-multiply-by-i",
+  "title": {
+   "zh": "乘以 i 就是转 90°",
+   "en": "Multiplying by i Is a 90° Turn"
+  },
+  "aha": {
+   "zh": "为什么 i²=−1？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "\"虚数是不存在的数\"",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高一/高二"
+  },
+  "series": null,
+  "callbacks": [
+   15
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 34,
+  "slug": "34-matrix-transform",
+  "title": {
+   "zh": "矩阵是把整个平面变形",
+   "en": "A Matrix Transforms the Whole Plane"
+  },
+  "aha": {
+   "zh": "2×2 矩阵到底\"做\"了什么？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "矩阵乘法可以交换（呼应 #2）",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "先转再拉 ≠ 先拉再转",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二拓展"
+  },
+  "series": null,
+  "callbacks": [
+   2
+  ],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 35,
+  "slug": "35-mean-leveling",
+  "title": {
+   "zh": "平均数就是\"削峰填谷\"",
+   "en": "The Mean Levels the Peaks and Fills the Valleys"
+  },
+  "aha": {
+   "zh": "平均数为什么能代表一组数？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "平均数一定是这组数里出现过的一个数。",
+   "en": "The mean has to be one of the numbers in the list."
+  },
+  "insight": {
+   "zh": "把高的削下来、填到矮的上面，总数一块不变，最后大家一样高；这个高度就是平均数，也就是总数除以个数。",
+   "en": "Shave the tall bars down and fill the short ones up; the total never changes, and everyone ends up the same height. That height is the mean: the total divided by how many there are."
+  },
+  "non_example": {
+   "zh": "来了一个特别大的数，削峰填谷以后平均数被它一个拉高，原来的四个人全都在平均数下面。",
+   "en": "Add one very large number, and after levelling the mean is pulled up by it alone; all four original people end up below the mean."
+  },
+  "stage": 2,
+  "seeds": [],
+  "grade": {
+   "cn": "4"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "coming",
+  "youtube": null
+ },
+ {
+  "id": 36,
+  "slug": "36-coin-frequency",
+  "title": {
+   "zh": "抛硬币：频率为什么会稳定",
+   "en": "Coin Flips: Why Frequencies Settle Down"
+  },
+  "aha": {
+   "zh": "抛 10 次正面不一定 5 次，那\"概率 1/2\"说的是什么？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "\"连续 5 次反面，下次一定是正面\"（赌徒谬误）；\"10 次一定是 5 次\"",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 3,
+  "seeds": [],
+  "grade": {
+   "cn": "7–9"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 37,
+  "slug": "37-conditional-probability",
+  "title": {
+   "zh": "条件概率：把样本空间缩小",
+   "en": "Conditional Probability: Shrinking the Sample Space"
+  },
+  "aha": {
+   "zh": "已知其中一个是男孩，两个都是男孩的概率为什么是 1/3？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "条件概率 = 原来的概率；P(A|B) = P(B|A)",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 38,
+  "slug": "38-galton-board",
+  "title": {
+   "zh": "高尔顿板与二项分布",
+   "en": "The Galton Board and the Binomial Distribution"
+  },
+  "aha": {
+   "zh": "为什么小球会堆成\"钟形\"？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "每个格子落球机会一样（等可能偏差）",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二"
+  },
+  "series": null,
+  "callbacks": [],
+  "phase": "planned",
+  "youtube": null
+ },
+ {
+  "id": 39,
+  "slug": "39-finite-differences",
+  "title": {
+   "zh": "差分：离散的导数",
+   "en": "Finite Differences: The Discrete Derivative"
+  },
+  "aha": {
+   "zh": "为什么 n² 的\"差的差\"是常数？",
+   "en": ""
+  },
+  "misconception": {
+   "zh": "\"数列和函数是两回事\"；高阶等差数列只能背题型",
+   "en": ""
+  },
+  "insight": {
+   "zh": "",
+   "en": ""
+  },
+  "non_example": {
+   "zh": "",
+   "en": ""
+  },
+  "stage": 4,
+  "seeds": [],
+  "grade": {
+   "cn": "高二"
+  },
+  "series": null,
+  "callbacks": [
+   29,
+   31
+  ],
+  "phase": "planned",
+  "youtube": null
+ }
+]

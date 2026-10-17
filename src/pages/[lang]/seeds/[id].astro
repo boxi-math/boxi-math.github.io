@@ -1,0 +1,23 @@
+---
+import Base from "../../../layouts/Base.astro";
+import EpisodeList from "../../../components/EpisodeList.astro";
+import { LANGS, type Lang, SEEDS, episodes, t } from "../../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => SEEDS.map((s) => ({ params: { lang, id: s.id } })));
+}
+const lang = Astro.params.lang as Lang;
+const s = SEEDS.find((x) => x.id === Astro.params.id)!;
+const eps = episodes.filter((e) => e.seeds.includes(s.id)).sort((a, b) => a.id - b.id);
+---
+
+<Base lang={lang} title={s.name[lang]} description={s.what[lang]} path={`seeds/${s.id}/`}>
+  <div class="narrow">
+    <p class="crumbs"><a href={`/${lang}/#seeds`}>{t("seeds", lang)}</a> / {s.id}</p>
+    <h1>{s.name[lang]}</h1>
+    <p class="lead">{s.what[lang]}</p>
+    <p><strong>{t("grows", lang)}:</strong> {s.grows[lang]}</p>
+  </div>
+  <h2>{eps.length} {t("episodes", lang)}</h2>
+  <EpisodeList eps={eps} lang={lang} />
+</Base>

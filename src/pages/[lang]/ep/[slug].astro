@@ -1,0 +1,109 @@
+---
+import Base from "../../../layouts/Base.astro";
+import EpisodeList from "../../../components/EpisodeList.astro";
+import { LANGS, type Lang, STAGES, SEEDS, GRADE_LABEL, episodes, byId, t, pickText } from "../../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => episodes.map((e) => ({ params: { lang, slug: e.slug } })));
+}
+const lang = Astro.params.lang as Lang;
+const e = episodes.find((x) => x.slug === Astro.params.slug)!;
+const stage = STAGES[e.stage];
+const title = pickText(e.title, lang);
+const aha = pickText(e.aha, lang);
+const insight = pickText(e.insight, lang);
+const mix = pickText(e.misconception, lang);
+const non = pickText(e.non_example, lang);
+const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefined);
+---
+
+<Base lang={lang} title={title} description={aha || insight || stage.question[lang]} path={`ep/${e.slug}/`}>
+  <article class="narrow">
+    <p class="crumbs">
+      <a href={`/${lang}/stages/${e.stage}/`}>{t("stage", lang)} {e.stage} · {stage.name[lang]}</a> / #{e.id}
+    </p>
+    <h1>{title}</h1>
+    {aha && <p class="lead">{aha}</p>}
+
+    <div class="chips">
+      {
+        e.seeds.map((id) => {
+          const s = SEEDS.find((x) => x.id === id)!;
+          return (
+            <a class="chip" href={`/${lang}/seeds/${id}/`}>
+              {id} · {s.name[lang]}
+            </a>
+          );
+        })
+      }
+    </div>
+
+    <div class="video">
+      {
+        e.youtube ? (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${e.youtube}`}
+            title={title}
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy"
+          />
+        ) : (
+          <div>
+            <span class={`badge ${e.phase}`}>{t(e.phase, lang)}</span>
+            <p style="margin-top:0.75rem">{t("videoSoon", lang)}</p>
+          </div>
+        )
+      }
+    </div>
+
+    {
+      insight && (
+        <div class="block insight">
+          <div class="label">{t("insight", lang)}</div>
+          <p>{insight}</p>
+        </div>
+      )
+    }
+    {
+      mix && (
+        <div class="block mix">
+          <div class="label">{t("misconception", lang)}</div>
+          <p>{mix}</p>
+        </div>
+      )
+    }
+    {
+      non && (
+        <div class="block non">
+          <div class="label">{t("nonExample", lang)}</div>
+          <p>{non}</p>
+        </div>
+      )
+    }
+
+    {
+      Object.keys(e.grade).length > 0 && (
+        <div class="block">
+          <div class="label">{t("grade", lang)}</div>
+          <div class="chips">
+            {Object.entries(e.grade).map(([k, v]) => (
+              <span class="chip">
+                {GRADE_LABEL[k]?.[lang] ?? k} {v}
+              </span>
+            ))}
+          </div>
+        </div>
+      )
+    }
+  </article>
+
+  {
+    related.length > 0 && (
+      <section>
+        <h2>{t("related", lang)}</h2>
+        <EpisodeList eps={related} lang={lang} />
+      </section>
+    )
+  }
+</Base>

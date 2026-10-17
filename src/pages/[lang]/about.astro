@@ -1,0 +1,67 @@
+---
+import Base from "../../layouts/Base.astro";
+import { LANGS, type Lang, t } from "../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+---
+
+<Base lang={lang} title={t("about", lang)} path="about/">
+  <article class="narrow">
+    {
+      lang === "en" ? (
+        <>
+          <h1>About</h1>
+          <p class="lead">Every child deserves to understand why maths works — not only the children whose parents can pay for a good tutor.</p>
+          <p>
+            Boxi Math makes short videos that each answer one “why”: why 8 + 5 is easier if you split the 5, why 1/2 and 2/4 are the
+            same point, why a negative times a negative is positive. Each one is drawn so you can see the idea, names the common
+            mix-up it fixes, and shows where the picture stops working.
+          </p>
+          <h2>How it is organised</h2>
+          <p>
+            By <strong>stage</strong>, not by school year. Children move on when an idea makes sense, and school years differ from
+            country to country anyway, so every video lists the matching year in China, the US, the UK and Singapore. Under the
+            stages are six <strong>seeds</strong> — habits of mind worth planting early, like “the equals sign is a balance” and
+            “mistakes are fine, try it”.
+          </p>
+          <h2>Open</h2>
+          <p>
+            Videos and text are CC BY 4.0: use them in class, translate them, remix them — just credit Boxi Yu. The animation tools
+            behind them are open source too, at <a href="https://github.com/animind-ai">animind-ai</a>.
+          </p>
+          <h2>Who</h2>
+          <p>
+            Made by <a href="https://boxiyu.github.io">Boxi Yu</a>, a researcher in AI and software engineering who wants good
+            maths teaching to cost nothing.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1>关于</h1>
+          <p class="lead">每个孩子都应该懂得数学为什么成立，不只是请得起好家教的孩子。</p>
+          <p>
+            Boxi Math 做短视频，每集只回答一个「为什么」：为什么 8+5 先拆 5，为什么 1/2 和 2/4 是同一个点，为什么负负得正。
+            每集都把道理画出来，点出它要纠正的常见误会，也讲清楚这张图什么时候不灵。
+          </p>
+          <h2>怎么组织</h2>
+          <p>
+            按<strong>阶段</strong>，不按年级。孩子懂了再往前；各国年级本来也不一样，所以每集都标出中国、美国、英国、新加坡对应的年级。
+            阶段之下还有六颗<strong>种子</strong>：越早种下越好的思维习惯，比如「等号是天平」「错了没关系，试试看」。
+          </p>
+          <h2>开放</h2>
+          <p>
+            视频和文字用 CC BY 4.0 授权：可以拿去上课、翻译、改编，注明作者 Boxi Yu 即可。做动画的工具也开源在{" "}
+            <a href="https://github.com/animind-ai">animind-ai</a>。
+          </p>
+          <h2>作者</h2>
+          <p>
+            <a href="https://boxiyu.github.io">Boxi Yu</a>，做 AI 与软件工程研究，希望好的数学教育不花钱。
+          </p>
+        </>
+      )
+    }
+  </article>
+</Base>
