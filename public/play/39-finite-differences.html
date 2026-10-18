@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finite Differences: The Discrete Derivative · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stage canvas.main { height: 280px; }
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 19px; min-width: 1.6em; text-align: center; color: var(--fg); }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls button:disabled { opacity: .45; cursor: default; }
+  .controls .chip { font-family: var(--math); font-size: 15px; }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; text-align: left; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); background: var(--surface); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); background: var(--surface); }
+  .ka { color: var(--a); font-weight: 700; }
+  .kb { color: var(--b); font-weight: 700; }
+  .kc { color: var(--c); font-weight: 700; }
+  .kh { color: var(--hl); font-weight: 700; }
+  .kn { color: var(--no); font-weight: 700; }
+  .mathline { font-size: 17px; overflow-wrap: anywhere; }
+  .mathline b { color: var(--fg); }
+  .mathline .lab { font-family: var(--font); font-size: 13px; color: var(--muted); }
+  .myth { display: inline-block; font-size: 13px; border: 1px solid var(--no); color: var(--no); border-radius: 999px; padding: 1px 10px; margin-bottom: 8px; }
+  .myth.done s { text-decoration-thickness: 2px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0"></canvas>
+      <div class="controls">
+        <span id="c1">
+          <button class="chip" data-s1="sq">0, 1, 4, 9 …</button><button class="chip" data-s1="pow">1, 2, 4, 8 …</button>
+          <button class="big" id="drive"></button> <button id="plus1" data-t="plus1"></button>
+        </span>
+        <span id="c2">
+          <button class="chip" data-s2="sq">0, 1, 4, 9 …</button><button class="chip" data-s2="q">3, 7, 13 …</button><button class="chip" data-s2="pow">1, 2, 4, 8 …</button><button class="chip" data-s2="cube">0, 1, 8, 27 …</button>
+          <button class="big" id="diff" data-t="diff"></button> <button id="ext" data-t="ext"></button> <button id="undo" data-t="undo"></button>
+        </span>
+        <span id="c3">
+          <span class="stepper">n<button data-m="-" aria-label="n smaller">−</button><b id="nVal"></b><button data-m="+" aria-label="n bigger">+</button></span>
+          <button id="rings" data-t="rings"></button>
+        </span>
+        <span id="c4">
+          <span class="stepper">n<button data-k="-" aria-label="n smaller">−</button><b id="kVal"></b><button data-k="+" aria-label="n bigger">+</button></span>
+        </span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">(n+1)² − n² = 2n + 1</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Finite Differences: The Discrete Derivative", zh: "差分：离散的导数" },
+  eyebrow: { en: "Boxi Math · Try it · #39", zh: "Boxi Math · 动手试试 · #39" },
+  intro: { en: "A car stops at n squared after n seconds. Plant the signposts, take the gaps, then the gaps between those, and see why they line up with the derivatives 2x and 2.",
+           zh: "一辆车第 n 秒停在 n 平方的位置。插路标、求相邻的差、再求差的差，看它们为什么正对上导数 2x 和 2。" },
+  s1: { en: "Signposts", zh: "路标" }, s2: { en: "Difference table", zh: "差分表" },
+  s3: { en: "Ring by ring", zh: "一圈一圈" }, s4: { en: "2n + 1 ↔ 2x", zh: "2n + 1 ↔ 2x" },
+  reset: { en: "Reset", zh: "重置" },
+  drive: { en: "Drive", zh: "开车" }, pause: { en: "Pause", zh: "暂停" }, again: { en: "Again", zh: "再开一次" },
+  plus1: { en: "+1 second", zh: "+1 秒" },
+  diff: { en: "Take differences", zh: "再做一次差" }, ext: { en: "Next term", zh: "推下一项" }, undo: { en: "Undo", zh: "撤销" },
+  rings: { en: "All rings", zh: "所有圈" },
+  v1: { en: "The road from 0", zh: "从 0 出发的路" }, v2: { en: "Gaps, then gaps of gaps", zh: "差，再求差" },
+  v3: { en: "A square with whole-number side", zh: "边长取整数的正方形" }, v4: { en: "Position, speed, acceleration", zh: "位置、速度、加速度" },
+  tag1: { en: "drag the car", zh: "拖小车" }, tag2: { en: "tap the table", zh: "点表格" },
+  tag3: { en: "drag the gold corner", zh: "拖金色角点" }, tag4: { en: "drag across the graphs", zh: "在图上左右拖" },
+  resT: { en: "Distance per second is the difference 2n + 1, matching 2x; the extra per second is 2, matching the derivative of 2x.",
+          zh: "每秒走的路是差分 2n + 1，对上 2x；每秒多走的是 2，对上 2x 的导数。" },
+  resN: { en: "Differences of a sequence and derivatives of a function are two versions of the same idea.", zh: "数列的差分和函数的导数，是同一件事的两个版本。" },
+  moreS: { en: "Why is this a proof, not just a pattern? And what comes next?", zh: "为什么这是证明，不只是找规律？下一步是什么？" },
+  moreP: { en: "The table only shows a few numbers, but the algebra covers every n: (n+1)² − n² = n² + 2n + 1 − n² = 2n + 1, and (2(n+1) + 1) − (2n + 1) = 2. So the second difference of the squares is 2 forever, not by coincidence. The derivative does the same sum with a tiny push: (x + dx)² − x² = 2x·dx + dx²; divide by dx and let dx go to 0 and only 2x is left. With dx = 1 nothing can shrink, so the corner's 1 stays: that is the extra 1 in 2n + 1. Going backwards, adding up the differences rebuilds the sequence: 1 + 3 + 5 + … + (2n − 1) = n², the staircases of #29. The same trick predicts the next term of 3, 7, 13, 21, 31: build back up from the constant row and you get 43. Next: how many rounds of differences does it take for the cubes to become constant?",
+           zh: "表里只写了几个数，代数却管所有的 n：(n+1)² − n² = n² + 2n + 1 − n² = 2n + 1，(2(n+1) + 1) − (2n + 1) = 2。所以平方数的二阶差分永远是 2，不是巧合。导数做的是同一道减法，只是推得很短：(x + dx)² − x² = 2x·dx + dx²，除以 dx 再让 dx 趋近于零，只剩 2x。dx = 1 时什么都缩不了，角块那个 1 就留下来，这就是 2n + 1 里多出来的 1。反过来，把差一个个加回去就还原了数列：1 + 3 + 5 + … + (2n − 1) = n²，就是 #29 的台阶。同样的办法能推出 3、7、13、21、31 的下一项：从常数那一行往上加回去，得 43。下一集：那立方数，要差几次才变成常数？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → (step 2: ↓ takes differences, → next term), Enter does the step's main button.",
+          zh: "鼠标、触屏、键盘都能用：选中图后按 ← →（第 2 步：↓ 再做一次差，→ 推下一项），回车按这一步的主按钮。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · a puzzle", zh: "第 1 步 · 一道找规律题" },
+       h: { en: "A workbook has a find-the-pattern puzzle that starts 0, 1, 4, 9, 16. Take the gaps, then the gaps between those: all twos. Is that a coincidence?",
+            zh: "练习册上有道找规律题，开头是 0、1、4、9、16。相邻的差再求一次差，全是二。这是巧合吗？" },
+       p: { en: "Swap the puzzle for a road: a car stops at n squared after n seconds, and we plant a signpost wherever it stops. Drive it, or drag the car.",
+            zh: "把这道题换成一条路：一辆车第 n 秒停在 n 平方的位置，停在哪，就在哪插一根路标。开一开，或者拖着小车走。" } },
+  2: { kicker: { en: "Step 02 · difference table", zh: "第 2 步 · 差分表" },
+       h: { en: "The distance each second is the gap between neighbouring posts. Then take the gaps of those gaps.",
+            zh: "每秒走的路，就是相邻路标的距离。再把这些距离求一次差。" },
+       p: { en: "Each new number is the one above-right minus the one above-left. Keep going until a row is constant.",
+            zh: "新的每个数 = 右上方减左上方。一直做，直到某一行全是同一个数。" } },
+  3: { kicker: { en: "Step 03 · ring by ring", zh: "第 3 步 · 一圈一圈" },
+       h: { en: "Last time the side grew by a little dx. Now let the side be a whole number, so it grows by dx = 1.",
+            zh: "上一集边长多长了一小段 d x；现在边长只能取整数，一次长 dx = 1。" },
+       p: { en: "Drag the gold corner. Each time the square grows, the new cells form an L: two strips of n, plus one corner.",
+            zh: "拖金色的角点。正方形每长一次，多出来的是一个 L 形：两条 n 格的长条，再加一个角块。" } },
+  4: { kicker: { en: "Step 04 · speed and acceleration", zh: "第 4 步 · 速度和加速度" },
+       h: { en: "Distance per second is like a speed; extra distance per second is like an acceleration.",
+            zh: "每秒走的路像速度，每秒多走的像加速度。" },
+       p: { en: "Drag across the graphs to pick a second. The bars are the differences, the gold lines are the derivatives.",
+            zh: "在图上左右拖，选一秒。柱子是差分，金色的线是导数。" } },
+};
+Play.i18n(D);
+
+// sequences: n0 = first index, cnt = how many terms the table starts with
+const SEQ = {
+  sq: { n0: 0, cnt: 6, f: (n) => n * n, name: "n²" },
+  q: { n0: 1, cnt: 5, f: (n) => n * n + n + 1, name: "aₙ" },
+  pow: { n0: 0, cnt: 5, f: (n) => 2 ** n, name: "2ⁿ" },
+  cube: { n0: 0, cnt: 6, f: (n) => n ** 3, name: "n³" },
+};
+const SUP = ["", "", "²", "³", "⁴", "⁵"], Dk = (k) => "Δ" + SUP[k];
+const MMAX = 10, EXTMAX = 3, SPEED = 1.3;
+let step = 1, seq1 = "sq", tm = 0, target = 0, guess = "", s2 = "sq", k2 = 0, ext = 0, m = 5, rings = false, n4 = 2;
+let dirty = true, G = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+const F = (v, d = 2) => fmt(v, d);
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+const line = (c, x1, y1, x2, y2, col, lw = 1.5, dash = []) => { c.strokeStyle = col; c.lineWidth = lw; c.setLineDash(dash); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.setLineDash([]); };
+
+// ---------- step 1: the road ----------
+const N1 = () => (seq1 === "sq" ? 5 : 4);
+const f1 = (n) => (seq1 === "sq" ? n * n : 2 ** n);
+const pos1 = (x) => { const n = Math.floor(x); return n >= N1() ? f1(N1()) : f1(n) + (f1(n + 1) - f1(n)) * (x - n); };
+function drawRoad(c, w, h) {
+  const N = N1(), lo = f1(0), hi = f1(N), L = 26, Rr = w - 26, X = (v) => L + (v - lo) / (hi - lo) * (Rr - L), y0 = h - 80;
+  G = { L, Rr, lo, hi };
+  const MU = color("--muted"), FG = color("--fg"), Cc = color("--c"), HL = color("--hl");
+  const gc = seq1 === "sq" ? color("--b") : color("--no"), dc = seq1 === "sq" ? Cc : color("--no");
+  c.lineCap = "round"; line(c, L - 12, y0, Rr + 12, y0, rgba(MU, 0.45), 6); c.lineCap = "butt";
+  const pu = (Rr - L) / (hi - lo), every = pu * 5 >= 36 ? 5 : 10;
+  for (let v = lo; v <= hi; v++) {
+    const big = v % every === 0;
+    if (pu >= 5 || big) line(c, X(v), y0 + 4, X(v), y0 + (big ? 11 : 7), rgba(MU, big ? 0.9 : 0.5), 1);
+    if (big && ![...Array(N + 1)].some((_, k) => f1(k) === v)) Play.text(c, String(v), X(v), y0 + 44, { size: 13, color: MU });
+  }
+  const n = Math.min(N, Math.floor(tm + 1e-9));
+  const arcH = (k) => clamp((X(f1(k + 1)) - X(f1(k))) * 0.5, 10, 64);
+  const mid = (k) => (X(f1(k)) + X(f1(k + 1))) / 2;
+  for (let k = 0; k < N; k++) {
+    const fr = k < n ? 1 : k === n ? tm - n : 0;
+    if (fr <= 0) continue;
+    const a = X(f1(k)), b = X(f1(k + 1)), H = arcH(k);
+    c.strokeStyle = gc; c.lineWidth = 2.2; c.beginPath();
+    for (let i = 0; i <= 30; i++) { const u = fr * i / 30, x = a + (b - a) * u, y = y0 - 14 - H * Math.sin(Math.PI * u); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.stroke();
+    if (fr === 1) Play.text(c, String(f1(k + 1) - f1(k)), mid(k), y0 - 14 - H - 11, { size: 15, weight: 700, color: gc });
+  }
+  for (let k = 1; k < n; k++) {
+    const d2 = (f1(k + 1) - f1(k)) - (f1(k) - f1(k - 1));
+    Play.text(c, "+" + d2, (mid(k - 1) + mid(k)) / 2, y0 - 106, { size: 14, weight: 700, color: dc });
+  }
+  for (let k = 0; k <= n; k++) {
+    const x = X(f1(k));
+    line(c, x, y0 - 1, x, y0 - 24, FG, 2);
+    c.fillStyle = HL; c.beginPath(); c.moveTo(x, y0 - 24); c.lineTo(x + 9, y0 - 20); c.lineTo(x, y0 - 16); c.fill();
+    const tn = k < N && X(f1(k + 1)) - x < 20, tp = k > 0 && x - X(f1(k - 1)) < 20;   // keep close labels apart
+    Play.text(c, String(f1(k)), x + (tn ? -2 : tp ? 2 : 0), y0 + 22, { size: 14, weight: 700, align: tn ? "right" : tp ? "left" : "center" });
+  }
+  const xc = X(pos1(tm));
+  c.fillStyle = Cc; c.beginPath(); c.roundRect ? c.roundRect(xc - 13, y0 - 18, 26, 11, 4) : c.rect(xc - 13, y0 - 18, 26, 11); c.fill();
+  c.fillStyle = FG; [-7, 7].forEach((d) => { c.beginPath(); c.arc(xc + d, y0 - 6, 3.2, 0, 2 * Math.PI); c.fill(); });
+  Play.text(c, `t = ${F(tm, 1)} s · ` + t({ en: "position", zh: "位置" }) + ` ${F(pos1(tm), 1)}`, w / 2, h - 14, { size: 14, weight: 650 });
+}
+
+// ---------- step 2: difference table ----------
+function table() {
+  const S = SEQ[s2], rows = [[...Array(S.cnt)].map((_, i) => S.f(S.n0 + i))];
+  for (let k = 1; k < S.cnt; k++) { const p = rows[k - 1]; rows.push(p.slice(1).map((v, i) => v - p[i])); }
+  let kc = -1;
+  for (let k = 1; k < rows.length; k++) { const r = rows[k]; if (r.length >= 2 && r.every((v) => v === r[0])) { kc = k; break; } }
+  if (kc >= 0) for (let e = 0; e < ext; e++) {   // build back up from the constant row
+    rows[kc].push(rows[kc][0]);
+    for (let j = kc - 1; j >= 0; j--) rows[j].push(rows[j][rows[j].length - 1] + rows[j + 1][rows[j + 1].length - 1]);
+  }
+  return { S, rows, kc, maxK: kc >= 0 ? kc : S.cnt - 1 };
+}
+function drawTable(c, w, h) {
+  const T = table(), S = T.S, C = S.cnt + ext, cw = Math.min(66, (w - 58) / C), x0 = 46 + Math.max(0, (w - 58 - C * cw) / 2), rh = 48, yR = (j) => 84 + j * rh;
+  G = { yR, rh, x0 };
+  const MU = color("--muted"), FG = color("--fg"), HL = color("--hl"), NO = color("--no");
+  const rc = (j) => (j === 0 ? FG : s2 === "pow" ? NO : [FG, color("--b"), color("--c"), color("--h")][Math.min(j, 3)]);
+  Play.text(c, "n", 10, 48, { size: 14, italic: true, color: MU, align: "left" });
+  for (let i = 0; i < C; i++) Play.text(c, String(S.n0 + i), x0 + (i + 0.5) * cw, 48, { size: 13, color: MU });
+  line(c, 6, 64, w - 6, 64, rgba(MU, 0.35), 1);
+  const fs = cw < 42 ? 14 : 16;
+  for (let j = 0; j <= k2; j++) {
+    const row = T.rows[j], y = yR(j);
+    Play.text(c, j ? Dk(j) : S.name, 10, y, { size: 15, weight: 700, color: rc(j), align: "left" });
+    if (j === T.kc) {
+      const a = x0 + (j / 2) * cw + 3, b = x0 + (j / 2 + row.length) * cw - 3;
+      c.strokeStyle = HL; c.lineWidth = 2; c.beginPath(); c.roundRect ? c.roundRect(a, y - 16, b - a, 32, 9) : c.rect(a, y - 16, b - a, 32); c.stroke();
+    }
+    row.forEach((v, i) => {
+      const x = x0 + (i + j / 2 + 0.5) * cw, extd = i >= S.cnt - j;
+      if (j > 0) { line(c, x - cw / 2 + 4, y - rh + 12, x - 3, y - 13, rgba(MU, 0.4), 1); line(c, x + cw / 2 - 4, y - rh + 12, x + 3, y - 13, rgba(MU, 0.4), 1); }
+      if (extd) { c.fillStyle = rgba(HL, 0.22); c.beginPath(); c.arc(x, y, Math.min(17, cw / 2 - 1), 0, 2 * Math.PI); c.fill(); }
+      Play.text(c, String(v), x, y, { size: fs, weight: 700, color: extd ? FG : rc(j) });
+    });
+  }
+  let s = "", col = MU;
+  if (T.kc >= 0 && k2 >= T.kc) { s = `${Dk(T.kc)} = ${T.rows[T.kc][0]} · ` + t({ en: "constant", zh: "常数" }); col = HL; }
+  else if (k2 >= T.maxK) { s = t({ en: "never constant", zh: "永远不是常数" }); col = NO; }
+  else if (k2 === 0) s = t({ en: "tap here: take differences", zh: "点这里：做一次差" });
+  Play.text(c, s, w / 2, yR(k2) + 38, { size: 14, weight: 700, color: col });
+}
+
+// ---------- step 3: the square ----------
+function drawSq(c, w, h) {
+  const n = m - 1, pl = 40, pr = 16, pt = 60, pb = 44, E = MMAX, p = Math.max(4, Math.min((w - pl - pr) / E, (h - pt - pb) / E));
+  const ox = pl + (w - pl - pr - E * p) / 2, oy = h - pb;
+  G = { ox, oy, p, E };
+  const A = color("--a"), B = color("--b"), Cc = color("--c"), HL = color("--hl"), MU = color("--muted"), FG = color("--fg");
+  const cell = (i, j) => [ox + i * p, oy - (j + 1) * p];
+  c.strokeStyle = rgba(MU, 0.18); c.lineWidth = 1; c.setLineDash([2, 3]);   // room to grow
+  for (let i = 0; i < E; i++) for (let j = 0; j < E; j++) if (Math.max(i, j) >= m) c.strokeRect(ox + i * p + 0.5, oy - (j + 1) * p + 0.5, p - 1, p - 1);
+  c.setLineDash([]);
+  for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+    const k = Math.max(i, j);
+    const col = rings ? (k % 2 ? Cc : A) : k < n ? A : i === n && j === n ? Cc : B;
+    const [x, y] = cell(i, j);
+    c.fillStyle = rgba(col, rings ? (k === n ? 0.45 : 0.26) : k < n ? 0.2 : 0.4); c.fillRect(x, y, p, p);
+    c.strokeStyle = rgba(MU, 0.35); c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, p - 1, p - 1);
+  }
+  const rect = (i, j, a, b, col, lw = 2) => { c.strokeStyle = col; c.lineWidth = lw; c.strokeRect(ox + i * p, oy - (j + b) * p, a * p, b * p); };
+  if (!rings) {
+    if (n > 0) { rect(0, 0, n, n, A); rect(n, 0, 1, n, B); rect(0, n, n, 1, B); }
+    rect(n, n, 1, 1, Cc, 2.4);
+    const o = { size: p >= 24 ? 15 : 13, weight: 700 };
+    if (n > 0 && p >= 16) { Play.text(c, String(n), ox + (n + 0.5) * p, oy - (n / 2) * p, { ...o, color: B }); Play.text(c, String(n), ox + (n / 2) * p, oy - (n + 0.5) * p, { ...o, color: B }); }
+    if (p >= 14) Play.text(c, "1", ox + (n + 0.5) * p, oy - (n + 0.5) * p, { ...o, color: Cc });
+    if (n >= 2) Play.text(c, `n² = ${n * n}`, ox + (n / 2) * p, oy - (n / 2) * p, { size: 15, weight: 700, color: A });
+    // brackets under the square: n, then 1
+    const y = oy + 8, br = (a, b, col) => { c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.moveTo(a + 2, y + 4); c.lineTo(a + 2, y); c.lineTo(b - 2, y); c.lineTo(b - 2, y + 4); c.stroke(); };
+    if (n > 0) { br(ox, ox + n * p, A); Play.text(c, "n = " + n, ox + n * p / 2, y + 17, { size: 14, weight: 700, color: A }); }
+    br(ox + n * p, ox + m * p, Cc);
+    if (n === 0 || n * p / 2 + 26 < n * p) Play.text(c, "1", ox + (n + 0.5) * p, y + 17, { size: 14, weight: 700, color: Cc });
+  } else {
+    for (let k = 0; k < m; k++) if (p >= 15) Play.text(c, String(2 * k + 1), ox + (k + 0.5) * p, oy - (k + 0.5) * p, { size: p >= 24 ? 14 : 13, weight: 700, color: FG });
+  }
+  // gold corner handle
+  c.fillStyle = HL; c.strokeStyle = FG; c.lineWidth = 1.5; c.beginPath(); c.arc(ox + m * p, oy - m * p, 7, 0, 2 * Math.PI); c.fill(); c.stroke();
+  let s;
+  if (rings) {
+    const odd = [...Array(m)].map((_, k) => 2 * k + 1);
+    s = (m <= 6 ? odd.join(" + ") : `1 + 3 + 5 + … + ${2 * m - 1}`) + ` = ${odd.reduce((a, b) => a + b, 0)} = ${m}²`;
+  } else s = `${m}² − ${n}² = ${m * m} − ${n * n} = ${n} + ${n} + 1 = ${2 * n + 1}`;
+  Play.text(c, s, w / 2, 40, { size: 15, weight: 700 });
+}
+
+// ---------- step 4: graphs ----------
+function drawGraphs(c, w, h) {
+  const L = 44, Rr = w - 16, u0 = -0.25, u1 = 5.3, sx = (u) => L + (u - u0) / (u1 - u0) * (Rr - L);
+  G = { L, Rr, u0, u1 };
+  const A = color("--a"), B = color("--b"), Cc = color("--c"), HL = color("--hl"), MU = color("--muted"), FG = color("--fg"), Hh = color("--h");
+  const top = 30, gap = 26, Hs = h - top - 30 - 2 * gap, fr = [0.42, 0.34, 0.24];
+  let y = top;
+  const P = fr.map((f, i) => { const hp = f * Hs, o = { t: y, py0: y + 22, py1: y + hp, ymax: [29, 11.6, 3.3][i] }; y += hp + gap; return o; });
+  P.forEach((o) => (o.sy = (v) => o.py1 - v / o.ymax * (o.py1 - o.py0)));
+  const n = n4;
+  // selected second: a soft band through all panels
+  c.fillStyle = rgba(Hh, 0.09); P.forEach((o) => c.fillRect(sx(n), o.py0, sx(n + 1) - sx(n), o.py1 - o.py0));
+  const titles = [t({ en: "position: n² and x²", zh: "位置：n² 和 x²" }), t({ en: "per second: Δ = 2n + 1 and 2x", zh: "每秒走：Δ = 2n + 1 和 2x" }), t({ en: "extra per second: Δ² = 2 and (2x)′ = 2", zh: "每秒多走：Δ² = 2 和 (2x)′ = 2" })];
+  P.forEach((o, i) => {
+    line(c, sx(u0), o.sy(0), sx(u1), o.sy(0), rgba(MU, 0.6), 1.2); line(c, sx(0), o.py0 - 4, sx(0), o.sy(0), rgba(MU, 0.6), 1.2);
+    Play.text(c, titles[i], L, o.t + 8, { size: 13, weight: 650, color: MU, align: "left" });
+  });
+  // A: x² and the posts
+  const a = P[0];
+  c.strokeStyle = rgba(A, 0.8); c.lineWidth = 2; c.beginPath();
+  for (let i = 0; i <= 60; i++) { const u = Math.min(5.3, Math.sqrt(a.ymax)) * i / 60; i ? c.lineTo(sx(u), a.sy(u * u)) : c.moveTo(sx(u), a.sy(u * u)); }
+  c.stroke();
+  line(c, sx(n), a.sy(n * n), sx(n + 1), a.sy((n + 1) ** 2), B, 3);
+  for (let k = 0; k <= 5; k++) {
+    c.fillStyle = k === n || k === n + 1 ? B : FG; c.beginPath(); c.arc(sx(k), a.sy(k * k), 4, 0, 2 * Math.PI); c.fill();
+    Play.text(c, String(k * k), sx(k) - 7, a.sy(k * k) - 11, { size: 13, weight: 700, align: "right" });
+  }
+  Play.text(c, `+${2 * n + 1}`, (sx(n) + sx(n + 1)) / 2 + 10, a.sy(((n * n + (n + 1) ** 2) / 2)) + 8, { size: 14, weight: 700, color: B, align: "left" });
+  // B: bars 2k+1 on [k, k+1] and the line 2x
+  const b = P[1];
+  for (let k = 0; k < 5; k++) {
+    const x1 = sx(k) + 1, x2 = sx(k + 1) - 1, yt = b.sy(2 * k + 1);
+    c.fillStyle = rgba(B, k === n ? 0.45 : 0.18); c.fillRect(x1, yt, x2 - x1, b.sy(0) - yt);
+    c.strokeStyle = B; c.lineWidth = k === n ? 2 : 1; c.strokeRect(x1, yt, x2 - x1, b.sy(0) - yt);
+    Play.text(c, String(2 * k + 1), (x1 + x2) / 2, b.sy(0) + 12, { size: 13, weight: 700, color: B });
+  }
+  line(c, sx(0), b.sy(0), sx(5.2), b.sy(10.4), HL, 2.6);
+  Play.text(c, "2x", sx(0.55), b.sy(1.1) - 16, { size: 15, weight: 700, color: HL, italic: true });
+  line(c, sx(n) + 5, b.sy(2 * n), sx(n) + 5, b.sy(2 * n + 1), Cc, 3.2);
+  Play.text(c, "+1", sx(n) - 3, b.sy(2 * n + 0.5), { size: 13, weight: 700, color: Cc, align: "right" });
+  c.fillStyle = Hh; c.beginPath(); c.arc(sx(n + 0.5), b.sy(2 * n + 1), 4.5, 0, 2 * Math.PI); c.fill();
+  // C: second differences 2 on [k+½, k+1½] and the line 2
+  const d = P[2];
+  for (let k = 0; k < 4; k++) {
+    const x1 = sx(k + 0.5) + 1, x2 = sx(k + 1.5) - 1, yt = d.sy(2), on = k === n || k + 1 === n;
+    c.fillStyle = rgba(Cc, on ? 0.4 : 0.18); c.fillRect(x1, yt, x2 - x1, d.sy(0) - yt);
+    c.strokeStyle = Cc; c.lineWidth = 1; c.strokeRect(x1, yt, x2 - x1, d.sy(0) - yt);
+    Play.text(c, "2", (x1 + x2) / 2, (yt + d.sy(0)) / 2, { size: 13, weight: 700, color: Cc });
+  }
+  line(c, sx(0), d.sy(2), sx(5.2), d.sy(2), HL, 2.6, [7, 5]);
+  for (let k = 0; k <= 5; k++) Play.text(c, String(k), sx(k), h - 12, { size: 13, color: MU });
+  Play.text(c, "t", sx(u1) - 2, h - 12, { size: 14, color: MU, italic: true, align: "right" });
+}
+
+function draw(c, w, h) {
+  G = null;
+  if (step === 1) drawRoad(c, w, h);
+  else if (step === 2) drawTable(c, w, h);
+  else if (step === 3) drawSq(c, w, h);
+  else drawGraphs(c, w, h);
+  if (G) G.step = step;
+}
+
+// ---------- explain panel ----------
+const myth = (done) => `<p><span class="myth${done ? " done" : ""}">${done ? "✗ <s>" : ""}${t({ en: "Sequences and functions are different worlds?", zh: "数列和函数是两回事？" })}${done ? "</s>" : ""}</span></p>`;
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2>`;
+  if (step === 1) {
+    const sq = seq1 === "sq", n = Math.floor(tm + 1e-9), vals = [...Array(n + 1)].map((_, k) => f1(k));
+    const gaps = vals.slice(1).map((v, i) => v - vals[i]), d2 = gaps.slice(1).map((v, i) => v - gaps[i]);
+    html += sq ? `<p>${t(s.p)}</p>` + myth(false) + `<p class="note">${t({ en: "The kid in front waves it off: it's a sequence problem, nothing to do with functions, just memorise the type.", zh: "前桌摆摆手：这是数列题，跟函数不沾边，背题型就行。" })}</p>`
+      : `<p>${t({ en: "Now try powers of two: one, two, four, eight, sixteen. Drive and watch the gaps.", zh: "换成二的 n 次方：一、二、四、八、十六。开一开，看看每秒走的路。" })}</p>`;
+    const gc = sq ? "kb" : "kn", dc = sq ? "kc" : "kn";
+    html += `<div class="mathline"><span class="lab">${t({ en: "signposts", zh: "路标" })}</span> ${vals.join(", ")}<br>` +
+      `<span class="lab">${t({ en: "per second", zh: "每秒走" })}</span> ${sp(gc, gaps.join(", ") || "…")}<br>` +
+      `<span class="lab">${t({ en: "extra per second", zh: "每秒多走" })}</span> ${sp(dc, d2.map((v) => "+" + v).join(", ") || "…")}</div>`;
+    html += `<p><strong>${t({ en: "How much further does the car go each second than the second before?", zh: "每秒走的路，一秒比一秒多多少？" })}</strong></p>`;
+    const right = sq ? "2" : "x2", ready = n >= 3;
+    html += `<div class="choices">` + [["1", { en: "1 more", zh: "多 1" }], ["2", { en: "2 more", zh: "多 2" }], ["x2", { en: "Twice as far", zh: "翻一倍" }]]
+      .map(([k, o]) => `<button data-g="${k}" class="${guess === k ? (ready ? (k === right ? "right" : "wrong") : "on") : ""}">${t(o)}</button>`).join("") + `</div>`;
+    if (guess && !ready) html += `<p>${t({ en: "Drive on to at least 3 seconds to check.", zh: "开到第 3 秒以后再核对。" })}</p>`;
+    else if (guess && sq) html += `<p><strong>${t({ en: "Each of those is two more than the one before: two, two, two, two. The signposts spread further apart, but they spread out evenly.", zh: "这些距离一秒比一秒多二：二、二、二、二。路标越来越稀，可是稀得很均匀。" })}</strong></p>` +
+      `<p class="note">${t({ en: "Now press 1, 2, 4, 8 … and compare.", zh: "再按 1, 2, 4, 8 … 比一比。" })}</p>`;
+    else if (guess) html += `<p><span class="tag-no">${t({ en: "The gaps are one, two, four, eight again: they spread faster and faster, never evenly.", zh: "每秒走的还是一、二、四、八，越拉越开，永远不均匀。" })}</span></p>`;
+  } else if (step === 2) {
+    const T = table(), S = T.S, done = T.kc >= 0 && k2 >= T.kc;
+    html += `<p>${t(s.p)}</p><div class="legend"><span><b class="kb">Δ</b> ${t({ en: "per second", zh: "每秒走" })}</span><span><b class="kc">Δ²</b> ${t({ en: "extra per second", zh: "每秒多走" })}</span></div>`;
+    if (k2 > 0) html += `<div class="mathline">${[...Array(k2 + 1)].map((_, j) => `<span class="lab">${j ? Dk(j) : S.name}</span> ${T.rows[j].slice(0, S.cnt - j).join(", ")}`).join("<br>")}</div>`;
+    if (s2 === "pow") {
+      if (k2 >= 1) html += `<p><span class="tag-no">${t({ en: "The gaps are 1, 2, 4, 8 again: spreading faster and faster, never constant however many times you take differences.", zh: "每秒走的还是 1、2、4、8，越拉越开，怎么差都不会变成常数。" })}</span></p>`;
+    } else if (done) {
+      const c0 = T.rows[T.kc][0];
+      html += `<p><strong>${t({ en: `Constant after ${T.kc} round${T.kc > 1 ? "s" : ""}: ${Dk(T.kc)} = ${c0}.`, zh: `做 ${T.kc} 次差就成了常数：${Dk(T.kc)} = ${c0}。` })}</strong> ` +
+        (s2 === "sq" ? t({ en: "The posts spread out evenly because that extra two never changes.", zh: "路标稀得均匀，就是这个多出来的二一直不变。" })
+          : s2 === "cube" ? t({ en: "Cubes need three rounds, and the constant is 6.", zh: "立方数要差三次，常数是 6。" }) : "") + `</p>`;
+      if (ext > 0) {
+        const r0 = T.rows[0], last = r0[r0.length - 1], nn = S.n0 + r0.length - 1, chk = S.f(nn);
+        html += `<div class="mathline"><span class="lab">${t({ en: "built back up", zh: "往上加回去" })}</span> ${sp("kh", String(last))}<br><span class="lab">${t({ en: "check", zh: "核对" })}</span> ${S.name === "aₙ" ? `${nn}² + ${nn} + 1` : S.name.replace("n", String(nn))} = ${chk} ${chk === last ? "✓" : "✗"}</div>`;
+      } else html += `<p>${t({ en: "Press “Next term”: add the constant to the end of its row, then add upward.", zh: "按「推下一项」：常数那一行往后补一个，再一层层往上加。" })}</p>`;
+    } else if (k2 === 0) html += `<p>${t({ en: "Tap the table or press “Take differences”.", zh: "点一下表格，或者按「再做一次差」。" })}</p>`;
+  } else if (step === 3) {
+    const n = m - 1;
+    html += `<p>${t(s.p)}</p>`;
+    if (!rings) {
+      html += `<div class="mathline">(n+1)² − n² = ${sp("kb", "n")} + ${sp("kb", "n")} + ${sp("kc", "1")} = 2n + 1<br>${m}² − ${n}² = ${sp("kb", n)} + ${sp("kb", n)} + ${sp("kc", "1")} = <b>${2 * n + 1}</b></div>`;
+      html += `<div class="mathline"><span class="lab">#31</span> (x + dx)² − x² = ${sp("kb", "2x·dx")} + ${sp("kc", "dx²")}<br><span class="lab">dx = 1</span> 2x + ${sp("kc", "1")}</div>`;
+      html += `<p><strong>${t({ en: "The extra one is the corner we couldn't drop last time: with dx = 1 it can't shrink away.", zh: "多出来的那个一，就是上一集丢不掉的角块：dx = 1 时它缩不掉。" })}</strong></p>` +
+        `<p class="note">${t({ en: "Press “All rings” to see every L at once.", zh: "按「所有圈」，一次看所有的 L 形。" })}</p>`;
+    } else {
+      html += `<p>${t({ en: "Remember the staircases of arithmetic series? One plus three plus five plus seven plus nine makes exactly five by five.", zh: "还记得等差数列的台阶吗？一加三加五加七加九，正好拼成五乘五。" })}</p>` +
+        `<div class="mathline">${[...Array(m)].map((_, k) => sp(k % 2 ? "kc" : "ka", 2 * k + 1)).join(" + ")} = <b>${m * m}</b> = ${m}²</div>` +
+        `<p><strong>${t({ en: "The rings we add are exactly the numbers the differences gave us.", zh: "一圈一圈加上去的，正是差分算出来的那些数。" })}</strong></p>`;
+    }
+  } else {
+    const n = n4;
+    html += `<p>${t(s.p)}</p>`;
+    html += `<div class="mathline"><span class="lab">${t({ en: `second ${n} → ${n + 1}`, zh: `第 ${n} → ${n + 1} 秒` })}</span> ${(n + 1) ** 2} − ${n * n} = ${sp("kb", 2 * n + 1)} = 2·${n} + 1<br>` +
+      `<span class="lab">2x</span> x = ${n}: ${sp("kh", 2 * n)} &nbsp; x = ${F(n + 0.5, 1)}: ${sp("kh", 2 * n + 1)}<br>` +
+      `<span class="lab">${t({ en: "extra", zh: "多走" })}</span> ${sp("kc", "Δ² = 2")} ↔ ${sp("kh", "(2x)′ = 2")}</div>`;
+    html += `<p>${t({ en: "Distance per second is like a speed: the difference two n plus one, matching the derivative two x. Extra distance per second is like an acceleration: the second difference two, matching the derivative of two x, which is two.", zh: "每秒走的路像速度，它就是差分二 n 加一，对上导数二 x。每秒多走的像加速度，是二阶差分二，对上二 x 的导数二。" })}</p>`;
+    html += `<p class="note">${t({ en: `The bar is 1 above the line at x = ${n}: that's the corner. Halfway through the second, at x = ${F(n + 0.5, 1)}, the line hits the bar exactly (pink dot).`, zh: `x = ${n} 处柱子比线高 1，就是那个角块；走到这一秒的正中间 x = ${F(n + 0.5, 1)}，线正好碰到柱顶（粉点）。` })}</p>`;
+    html += `<p><strong>${t({ en: "So the second difference of the squares is constant, just as the second derivative of x squared is constant.", zh: "所以平方数的二阶差分是常数，正像 x 平方的二阶导数是常数。" })}</strong></p>` + myth(true);
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = step !== i + 1));
+  document.querySelectorAll("[data-s1]").forEach((b) => b.classList.toggle("on", b.dataset.s1 === seq1));
+  document.querySelectorAll("[data-s2]").forEach((b) => b.classList.toggle("on", b.dataset.s2 === s2));
+  $("drive").textContent = t(target > tm + 1e-6 ? D.pause : tm >= N1() ? D.again : D.drive);
+  const T = table();
+  $("diff").disabled = k2 >= T.maxK;
+  $("ext").disabled = !(T.kc >= 0 && k2 >= T.kc && ext < EXTMAX);
+  $("undo").disabled = k2 === 0 && ext === 0;
+  $("nVal").textContent = m - 1; $("kVal").textContent = n4;
+  $("rings").classList.toggle("on", rings);
+  const narrow = cv.parentElement.getBoundingClientRect().width < 560;
+  cv.style.height = (step === 1 ? 280 : step === 2 ? 84 + T.maxK * 48 + 64 : step === 3 ? (narrow ? 380 : 430) : (narrow ? 520 : 470)) + "px";
+  cv.setAttribute("aria-label", step === 1 ? `t = ${F(tm, 1)}, position ${F(pos1(tm), 1)}` : step === 2 ? `${T.S.name}: ${k2} rounds of differences` : step === 3 ? `(n+1)² − n² = 2n + 1, n = ${m - 1}` : `n = ${n4}: ${2 * n4 + 1}`);
+  dirty = true;
+}
+$("explain").addEventListener("click", (ev) => { const g = ev.target.closest("[data-g]"); if (g) { guess = g.dataset.g; render(); } });
+
+// ---------- input ----------
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; target = tm; render(); });
+const setT = (v) => { if (!isFinite(v)) return; tm = clamp(v, 0, N1()); target = tm; render(); };
+function goTo(v) { target = clamp(v, 0, N1()); if (Play.reduced) tm = target; render(); }
+function drive() {
+  if (target > tm + 1e-6) { target = tm; return render(); }
+  if (tm >= N1()) tm = 0;
+  goTo(N1());
+}
+const plus1 = () => goTo(Math.floor(target + 1e-9) + 1);
+const minus1 = () => goTo(Math.ceil(target - 1e-9) - 1);
+document.querySelectorAll("[data-s1]").forEach((b) => (b.onclick = () => { seq1 = b.dataset.s1; tm = target = 0; guess = ""; render(); }));
+$("drive").onclick = drive; $("plus1").onclick = plus1;
+document.querySelectorAll("[data-s2]").forEach((b) => (b.onclick = () => { s2 = b.dataset.s2; k2 = 0; ext = 0; render(); }));
+const doDiff = () => { if (k2 < table().maxK) { k2++; render(); } };
+const doExt = () => { const T = table(); if (T.kc >= 0 && k2 >= T.kc && ext < EXTMAX) { ext++; render(); } };
+const undo = () => { if (ext > 0) ext--; else if (k2 > 0) k2--; render(); };
+$("diff").onclick = doDiff; $("ext").onclick = doExt; $("undo").onclick = undo;
+const setM = (v) => { if (!isFinite(v)) return; m = clamp(Math.round(v), 1, MMAX); render(); };
+const setN4 = (v) => { if (!isFinite(v)) return; n4 = clamp(Math.floor(v), 0, 4); render(); };
+document.querySelectorAll("[data-m]").forEach((b) => (b.onclick = () => setM(m + (b.dataset.m === "+" ? 1 : -1))));
+document.querySelectorAll("[data-k]").forEach((b) => (b.onclick = () => setN4(n4 + (b.dataset.k === "+" ? 1 : -1))));
+$("rings").onclick = () => { rings = !rings; render(); };
+
+let grab = false;
+function dragAt(px, py) {
+  if (!G || G.step !== step) return;
+  if (step === 1) {
+    const v = clamp(G.lo + (px - G.L) / (G.Rr - G.L) * (G.hi - G.lo), G.lo, G.hi);
+    let k = 0; while (k < N1() - 1 && f1(k + 1) <= v) k++;
+    setT(k + (v - f1(k)) / (f1(k + 1) - f1(k)));
+  } else if (step === 3) setM(Math.max((px - G.ox) / G.p, (G.oy - py) / G.p));
+  else if (step === 4) setN4(G.u0 + (px - G.L) / (G.Rr - G.L) * (G.u1 - G.u0));
+}
+Play.drag(cv, {
+  down(px, py) {
+    if (!G || G.step !== step) return false;
+    if (step === 2) { if (table().kc >= 0 && k2 >= table().kc) doExt(); else doDiff(); return false; }
+    if (step === 3) { const hx = G.ox + m * G.p, hy = G.oy - m * G.p; if (Math.hypot(px - hx, py - hy) > 40 && !(px < hx + 20 && py > hy - 20)) return false; }
+    grab = true; dragAt(px, py); return true;
+  },
+  move(px, py) { if (grab) dragAt(px, py); },
+  up() { grab = false; },
+});
+const K = {
+  1: { l: minus1, r: plus1, e: drive },
+  2: { l: () => { if (ext > 0) { ext--; render(); } }, r: doExt, d: doDiff, u: () => { if (k2 > 0 && ext === 0) { k2--; render(); } }, e: doDiff },
+  3: { l: () => setM(m - 1), r: () => setM(m + 1), e: () => $("rings").onclick() },
+  4: { l: () => setN4(n4 - 1), r: () => setN4(n4 + 1), e: () => setN4((n4 + 1) % 5) },
+};
+const kk = (key) => () => { const f = K[step][key] || (key === "u" ? K[step].r : key === "d" ? K[step].l : null); if (f) f(); };
+Play.keys(cv, { ArrowLeft: kk("l"), ArrowRight: kk("r"), ArrowUp: kk("u"), ArrowDown: kk("d"), Enter: kk("e"), " ": kk("e") });
+$("reset").onclick = () => { seq1 = "sq"; tm = target = 0; guess = ""; s2 = "sq"; k2 = 0; ext = 0; m = 5; rings = false; n4 = 2; nav.set(1); };
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { if (step) render(); });
+
+Play.loop((dt) => {
+  if (Math.abs(target - tm) > 1e-9) {
+    const before = Math.floor(tm + 1e-9);
+    tm = target > tm ? Math.min(target, tm + SPEED * dt) : Math.max(target, tm - SPEED * dt);
+    if (Math.floor(tm + 1e-9) !== before || Math.abs(target - tm) < 1e-9) render();
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

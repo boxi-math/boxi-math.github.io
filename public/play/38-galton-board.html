@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Galton Board and the Binomial Distribution · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls button:disabled { opacity: .45; cursor: default; }
+  .controls .val { min-width: 2.6em; }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .tools .seed { font-family: var(--math); font-size: 14px; color: var(--fg); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .choices button { min-height: 38px; padding: 4px 14px; font-size: 14px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .turns { font-family: var(--math); letter-spacing: .12em; color: var(--fg); font-weight: 700; }
+  .row6 b { color: var(--c); }
+  .tbl { border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; width: 100%; max-width: 380px; font-variant-numeric: tabular-nums; }
+  .tbl th { font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--line); }
+  .tbl td { text-align: right; padding: 3px 6px; color: var(--fg); font-family: var(--math); font-size: 15px; }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl tr.sel td { background: var(--soft); font-weight: 700; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed; margin-right: 5px; vertical-align: 3px; }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools">
+      <span class="seed" id="seedV"></span>
+      <button class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="Galton board"></canvas>
+      <div class="controls" id="c1">
+        <button id="d1" data-t="drop1"></button><button id="d10" data-t="drop10"></button><button id="d100" data-t="drop100"></button>
+        <button id="to128" data-t="to128"></button><button class="small" id="play" data-t="pause"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span data-t="rowsL"></span><button id="rm" aria-label="fewer rows">−</button><span class="val" id="rowsV"></span><button id="rp" aria-label="more rows">+</button>
+        <button id="nextR" data-t="nextR"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span data-t="ballsL"></span><input id="nS" type="range" min="1" max="1000" value="128" aria-label="number of balls"><span class="val" id="nV"></span>
+        <button data-n="10">10</button><button data-n="128">128</button><button data-n="1000">1000</button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><span data-t="ballsW"></span> ≈ n × <span class="frac"><span>C(6, k)</span><span>64</span></span></div></div>
+    <div class="rn"><span class="tag-demo" data-t="demo"></span><br><span data-t="resN"></span></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p id="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "The Galton Board and the Binomial Distribution", zh: "高尔顿板与二项分布" },
+  eyebrow: { en: "Boxi Math · Try it · #38", zh: "Boxi Math · 动手试试 · #38" },
+  intro: { en: "At the school fair there's a marble game: a ball bounces off pins all the way down and lands in one of seven slots. Drop balls yourself, then count the routes to each slot.",
+           zh: "游园会上有个弹珠游戏：小球一路碰着钉子，掉进七个格子。自己放球试试，再数一数通向每个格子的路。" },
+  s1: { en: "Equally likely?", zh: "每格一样？" }, s2: { en: "Count the routes", zh: "数路" }, s3: { en: "Routes vs balls", zh: "路数对球数" },
+  reset: { en: "Reset", zh: "重置" },
+  drop1: { en: "Drop 1", zh: "放 1 个" }, drop10: { en: "Drop 10", zh: "放 10 个" }, drop100: { en: "Drop 100", zh: "放 100 个" },
+  to128: { en: "Up to 128", zh: "放到 128 个" }, pause: { en: "Pause", zh: "暂停" }, playB: { en: "Play", zh: "继续" },
+  rowsL: { en: "Rows of pegs", zh: "钉子层数" }, nextR: { en: "Next route", zh: "下一条路" }, ballsL: { en: "Balls", zh: "球数" },
+  ballsW: { en: "balls in slot k", zh: "第 k 格的球数" },
+  demo: { en: "Demo, not proof", zh: "这是演示，不是证明" },
+  resT: { en: "Every route is equally likely; the slots with more routes get more balls.", zh: "每条路的机会一样，路多的格子球就多。" },
+  resN: { en: "So the bell shape comes from counting: the most routes lead to the middle. These route counts are where the binomial distribution comes from.",
+          zh: "所以钟形是数出来的：通向中间的路最多。这些路数就是二项分布的来历。" },
+  moreS: { en: "Why is every route 1/64, and why Pascal's triangle?", zh: "为什么每条路都是 1/64？为什么是杨辉三角？" },
+  moreP: { en: "At each of the six pegs the ball goes left or right, half and half, and the turns don't depend on each other, so one fixed route has chance 1/2 × 1/2 × … = (1/2)⁶ = 1/64. A peg can only be reached from the peg up-left or up-right of it, so its route count is the sum of those two: that is how Pascal's triangle is built. Landing in slot k means choosing which k of the six turns are rights, which is C(6, k). The simulated balls on this page come from a fixed seed, the same ones as in the video; they show the shape, they don't prove it.",
+           zh: "六颗钉子上，球每次往左往右各一半，前后互不影响，所以任意一条指定的路，机会是 1/2 × 1/2 × … = (1/2)⁶ = 1/64。一颗钉子只能从它左上或右上的钉子过来，所以到它的路数是上面两个数之和，这正是杨辉三角的造法。落进第 k 格，就是在六次拐弯里挑出哪 k 次往右，有 C(6, k) 种挑法。这一页的球是用固定种子模拟的，和视频里同一批；它让你看到形状，不是证明。" },
+  foot: { en: "Click the board (or press → / space) to drop a ball in step 1 · tap or drag across the slots, or use ← →, to pick a slot in steps 2–3 · ↑ ↓ next route / more balls. Green balls, gold dashed steps = route count prediction, red dashed line = “every slot equal”.",
+          zh: "第 1 步点画板（或按 → / 空格）放一个球 · 第 2、3 步点或拖过格子、或按 ← → 选格子 · ↑ ↓ 换下一条路 / 加减球数。绿色是球，金色虚线台阶是按路数算的预测，红色虚线是「每格一样」。" },
+  v1: { en: "Drop balls, watch the slots", zh: "放球，看格子" }, v2: { en: "Routes to each peg and slot", zh: "到每颗钉子、每个格子的路数" }, v3: { en: "Predicted vs actual", zh: "预测和实际" },
+  tag1: { en: "click to drop", zh: "点一下放一个" }, tag2: { en: "tap a slot", zh: "点一个格子" }, tag3: { en: "tap a slot", zh: "点一个格子" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const SEED = 3814, ROWS = 6, NMAX = 1000, NV = 128, TOP = 34;
+const LT = () => t({ en: "L", zh: "左" }), RT = () => t({ en: "R", zh: "右" });
+const hot = (s) => `<span class="hot">${s}</span>`;
+function C(n, k) { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); }
+el("moreQ").textContent = t({ en: `Next: ten coin flips with exactly five heads is the same count with ten rows: C(10, 5) = ${C(10, 5)} of the ${2 ** 10} routes.`,
+                              zh: `下一步：抛十次硬币正好五次正面，就是十层钉子的同一种数法：${2 ** 10} 条路里有 C(10, 5) = ${C(10, 5)} 条。` });
+
+// ---------- the same balls as the video: Python's random.Random(seed), rng.random() < 0.5 → right ----------
+function pyRandom(seed) {
+  const n = 624, m = 397, mt = new Uint32Array(n); let mti;
+  const mul = (a, b) => Math.imul(a, b) >>> 0;
+  mt[0] = 19650218; for (mti = 1; mti < n; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
+  let i = 1;
+  for (let k = n; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0)) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+  for (let k = n - 1; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+  mt[0] = 0x80000000;
+  function next() {
+    if (mti >= n) {
+      for (let k = 0; k < n; k++) { const y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff); mt[k] = mt[(k + m) % n] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
+      mti = 0;
+    }
+    let y = mt[mti++];
+    y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
+    return y >>> 0;
+  }
+  return () => ((next() >>> 5) * 67108864 + (next() >>> 6)) / 9007199254740992;
+}
+function galtonPaths(seed, balls, rows) {   // 0 = left, 1 = right; slot = number of rights
+  const r = pyRandom(seed), out = [];
+  for (let b = 0; b < balls; b++) { const p = []; for (let i = 0; i < rows; i++) p.push(r() < 0.5 ? 1 : 0); out.push(p); }
+  return out;
+}
+const PATHS = galtonPaths(SEED, NMAX, ROWS);
+const SLOT = PATHS.map((p) => p.reduce((a, b) => a + b, 0));
+function counts(n) { const c = Array(ROWS + 1).fill(0); for (let i = 0; i < n; i++) c[SLOT[i]]++; return c; }
+function routesTo(rows, k) {                // every route with k rights, in order L < R
+  const out = [];
+  for (let m = 0; m < 2 ** rows; m++) {
+    const p = []; for (let i = 0; i < rows; i++) p.push((m >> (rows - 1 - i)) & 1);
+    if (p.reduce((a, b) => a + b, 0) === k) out.push(p);
+  }
+  return out;
+}
+const turns = (p) => p.map((b) => (b ? RT() : LT())).join(" ");
+
+// ---------- state ----------
+let step = 1, guess, target, launched, landed, flying, gap, clock, playing, rows2, sel2, route, n3, sel3, dirty = true;
+function init() {
+  guess = null; target = 0; launched = 0; landed = 0; flying = []; gap = 0; clock = 0; playing = !Play.reduced;
+  rows2 = ROWS; sel2 = 3; route = 0; n3 = NV; sel3 = 3;
+}
+init();
+
+// ---------- geometry ----------
+function geo(w, rows, hBin) {
+  const dx = clamp((w - 28) / (rows + 1), 26, 54), dy = Math.max(28, dx * 0.8), cx = w / 2;
+  const y0 = TOP + 20 + dy * 0.55, binTop = y0 + (rows - 1) * dy + dy * 0.6, binBot = binTop + hBin;
+  return {
+    rows, dx, dy, cx, y0, binTop, binBot, H: binBot + 30, start: [cx, y0 - dy * 0.85],
+    node: (r, j) => [cx + (j - r / 2) * dx, r < rows ? y0 + r * dy : binTop],
+    slotX: (k) => cx + (k - rows / 2) * dx,
+    slotAt: (px) => clamp(Math.round((px - cx) / dx + rows / 2), 0, rows),
+  };
+}
+function fitHeight(h) {
+  const want = Math.round(h) + "px";
+  if (cvEl.style.height !== want) { cvEl.style.height = want; return true; }
+  return false;
+}
+const hBinFor = (w) => (step === 2 ? 46 : w < 560 ? 140 : 170);
+function dot(x, px, py, r, fill, stroke, lw = 1.5) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function line(x, pts, col, lw, dash) {
+  x.strokeStyle = col; x.lineWidth = lw; x.lineJoin = "round"; x.lineCap = "round"; x.setLineDash(dash || []);
+  x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(...p) : x.moveTo(...p))); x.stroke(); x.setLineDash([]);
+}
+function routePts(G, p) {                  // start, the peg it hits in each row, the slot mouth
+  const pts = [G.start]; let j = 0;
+  for (let r = 0; r <= G.rows; r++) { pts.push(G.node(r, j)); if (r < G.rows) j += p[r]; }
+  return pts;
+}
+function walls(x, G, tint) {
+  const half = G.dx / 2, l = G.slotX(0) - half, r = G.slotX(G.rows) + half;
+  for (let k = 0; k <= G.rows; k++) if (tint && tint[k]) { x.fillStyle = tint[k]; x.fillRect(G.slotX(k) - half, G.binTop, G.dx, G.binBot - G.binTop); }
+  x.strokeStyle = rgba(color("--muted"), 0.9); x.lineWidth = 1.5; x.beginPath();
+  for (let k = 0; k <= G.rows + 1; k++) { const px = l + k * G.dx; x.moveTo(px, G.binTop); x.lineTo(px, G.binBot); }
+  x.moveTo(l, G.binBot); x.lineTo(r, G.binBot); x.stroke();
+}
+function pegs(x, G, rp) {
+  for (let r = 0; r < G.rows; r++) for (let j = 0; j <= r; j++) dot(x, ...G.node(r, j), rp, color("--muted"));
+}
+
+// bins: stacked balls while they fit, bars otherwise; lines share the same scale
+function binScale(G, n, maxV) {
+  const cols = G.dx >= 50 ? 5 : 4, d = (G.dx - 6) / cols, room = G.binBot - G.binTop;
+  const balls = n <= 300 && (maxV / cols) * d <= room - 22;
+  const unit = balls ? d / cols : (room - 22) / Math.max(1, maxV);
+  return { cols, d, balls, h: (c) => c * unit };
+}
+function drawBins(x, G, c, S, last) {
+  const A = color("--a");
+  c.forEach((v, k) => {
+    const l = G.slotX(k) - G.dx / 2 + 3;
+    if (S.balls) {
+      for (let i = 0; i < v; i++) {
+        const px = l + S.d * ((i % S.cols) + 0.5), py = G.binBot - S.d * (Math.floor(i / S.cols) + 0.5);
+        dot(x, px, py, S.d / 2 - 0.7, last && last[0] === k && last[1] === i ? color("--hl") : A);
+      }
+    } else if (v) {
+      const hh = S.h(v);
+      x.fillStyle = rgba(A, 0.55); x.fillRect(l, G.binBot - hh, G.dx - 6, hh);
+      x.strokeStyle = A; x.lineWidth = 1.5; x.strokeRect(l, G.binBot - hh, G.dx - 6, hh);
+    }
+  });
+}
+function stackTop(G, S, v) { return G.binBot - (S.balls ? Math.ceil(v / S.cols) * S.d : S.h(v)); }
+function flatLine(x, G, S, v) {
+  const y = G.binBot - S.h(v), half = G.dx / 2;
+  line(x, [[G.slotX(0) - half, y], [G.slotX(G.rows) + half, y]], color("--no"), 2.2, [7, 5]);
+}
+function underLabels(x, G, vals, selK) {
+  vals.forEach((v, k) => Play.text(x, String(v), G.slotX(k), G.binBot + 15, { size: 14, weight: k === selK ? 800 : 600, color: k === selK ? color("--hl") : color("--fg") }));
+}
+
+// ---------- step 1: drop balls ----------
+const SEG = 0.1, TOTAL = SEG * (ROWS + 2);
+function draw1(x, w) {
+  const G = geo(w, ROWS, hBinFor(w));
+  if (fitHeight(G.H)) return;
+  const c = counts(landed), n = landed, maxV = Math.max(...c, n / 7, 1), S = binScale(G, n, maxV);
+  walls(x, G);
+  if (n) line(x, routePts(G, PATHS[n - 1]), rgba(color("--hl"), 0.9), 3);
+  pegs(x, G, 3.5);
+  drawBins(x, G, c, S, n ? [SLOT[n - 1], c[SLOT[n - 1]] - 1] : null);
+  if (n >= 7) flatLine(x, G, S, n / 7);
+  underLabels(x, G, c, -1);
+  // balls in flight
+  const rb = clamp(G.dx * 0.12, 4, 6.5), off = 3.5 + rb;
+  flying.forEach((f) => {
+    const pts = routePts(G, PATHS[f.i]), slot = SLOT[f.i];
+    pts.push([pts[pts.length - 1][0], stackTop(G, S, c[slot]) - rb]);
+    const s = Math.min(f.age / SEG, pts.length - 1.001), i = Math.floor(s), u = s - i;
+    const a = pts[i], b = pts[i + 1], lift = (k) => (k >= 1 && k <= ROWS ? off : 0);
+    const px = a[0] + (b[0] - a[0]) * u, py = a[1] - lift(i) + (b[1] - lift(i + 1) - a[1] + lift(i)) * u - (i < ROWS + 1 && i > 0 ? Math.sin(Math.PI * u) * G.dy * 0.22 : 0);
+    dot(x, px, py, rb, color("--a"), color("--fg"), 1);
+  });
+  if (!n && !flying.length) dot(x, ...G.start, rb + 1, null, rgba(color("--muted"), 0.8));
+}
+
+// ---------- step 2: count the routes ----------
+function draw2(x, w) {
+  const G = geo(w, rows2, hBinFor(w));
+  if (fitHeight(G.H)) return;
+  const k = clamp(sel2, 0, rows2), R = rows2, CC = color("--c"), HL = color("--hl");
+  const ok = (r, j) => j >= 0 && j <= Math.min(r, R) && j <= k && r - j <= R - k && (r < R || j === k);
+  const tint = []; tint[k] = rgba(CC, 0.14);
+  walls(x, G, tint);
+  // the lattice of routes, the ones that reach slot k, and one of them
+  const faint = rgba(color("--muted"), 0.35);
+  line(x, [G.start, G.node(0, 0)], CC, 2.5);
+  for (let r = 0; r < R; r++) for (let j = 0; j <= r; j++) for (const d of [0, 1]) {
+    const on = ok(r, j) && ok(r + 1, j + d);
+    line(x, [G.node(r, j), G.node(r + 1, j + d)], on ? rgba(CC, 0.75) : faint, on ? 2.5 : 1.2);
+  }
+  const all = routesTo(R, k), p = all[route % all.length];
+  line(x, routePts(G, p), HL, 4.5);
+  dot(x, ...G.start, 6, color("--a"), color("--fg"), 1);
+  const rp = Math.min(12, G.dx * 0.32);
+  for (let r = 0; r < R; r++) for (let j = 0; j <= r; j++) {
+    const on = ok(r, j), P = G.node(r, j);
+    dot(x, ...P, rp, color("--surface"), on ? CC : rgba(color("--muted"), 0.6), on ? 2 : 1.2);
+    Play.text(x, String(C(r, j)), P[0], P[1] + 0.5, { size: 13, weight: 700, color: on ? CC : color("--muted"), halo: false });
+  }
+  for (let s = 0; s <= R; s++) Play.text(x, String(C(R, s)), G.slotX(s), (G.binTop + G.binBot) / 2, { size: 15, weight: 800, color: s === k ? CC : color("--fg"), halo: false });
+  Play.text(x, t({ en: "slot ", zh: "第 " }) + (k + 1) + t({ en: " from the left", zh: " 格" }), G.slotX(k), G.binBot + 15,
+    { size: 13, weight: 700, color: CC, align: k < R / 2 ? "left" : k > R / 2 ? "right" : "center" });
+}
+
+// ---------- step 3: routes predict the pile ----------
+function draw3(x, w) {
+  const G = geo(w, ROWS, hBinFor(w));
+  if (fitHeight(G.H)) return;
+  const n = n3, c = counts(n), k = sel3, exp = c.map((_, s) => (n * C(ROWS, s)) / 2 ** ROWS);
+  const S = binScale(G, n, Math.max(...c, ...exp, 1));
+  const tint = []; tint[k] = rgba(color("--hl"), 0.16);
+  walls(x, G, tint);
+  pegs(x, G, 3);
+  drawBins(x, G, c, S, null);
+  flatLine(x, G, S, n / 7);
+  const half = G.dx / 2, st = [];
+  exp.forEach((e, s) => { const y = G.binBot - S.h(e); st.push([G.slotX(s) - half, y], [G.slotX(s) + half, y]); });
+  line(x, st, color("--hl"), 2.6, [6, 4]);
+  const yTop = Math.min(stackTop(G, S, c[k]), G.binBot - S.h(exp[k])) - 11;
+  Play.text(x, "≈" + fmt(exp[k], 1), G.slotX(k), Math.max(G.binTop - 2, yTop), { size: 13, weight: 800, color: color("--hl") });
+  underLabels(x, G, c, k);
+}
+
+function draw(x, w) { if (step === 1) draw1(x, w); else if (step === 2) draw2(x, w); else draw3(x, w); }
+
+// ---------- explanations ----------
+const kick = (s) => `<div class="kicker">${t(s)}</div>`;
+function legend1() {
+  return `<div class="legend"><span><span class="sw" style="background:var(--a)"></span>${t({ en: "ball", zh: "球" })}</span><span><span class="ln" style="border-color:var(--hl)"></span>${t({ en: "route of the last ball", zh: "最后一个球的路" })}</span><span><span class="dsh" style="border-color:var(--no)"></span>${t({ en: "if every slot were equal", zh: "要是每格一样" })}</span></div>`;
+}
+function explain1() {
+  const n = landed, c = counts(n);
+  let o = kick({ en: "Step 01 · test the guess", zh: "观察 01 / 先试试直觉" }) +
+    `<h2>${t({ en: "Pour in a handful of balls. What shape will they land in?", zh: "倒下一大把球，会落成什么样子？" })}</h2>
+    <p>${t({ en: "The stall keeper says: all seven slots are equally likely, so the balls should land about flat. At each peg a ball goes left or right, half and half.", zh: "摊主说：七个格子机会一样，球该落得差不多平。球每碰到一颗钉子，就往左或往右，机会各一半。" })}</p>`;
+  if (guess == null) o += `<p class="big">${t({ en: "Your guess first:", zh: "先猜一猜：" })}</p><div class="choices">${[{ en: "About flat", zh: "差不多平" }, { en: "High in the middle", zh: "中间高" }, { en: "High at the sides", zh: "两边高" }].map((s, i) => `<button data-g="${i}">${t(s)}</button>`).join("")}</div>`;
+  if (n) {
+    const p = PATHS[n - 1], r = SLOT[n - 1];
+    o += `<p>${t({ en: `Ball ${n}:`, zh: `第 ${n} 个球：` })} <span class="turns">${turns(p)}</span></p>
+      <div class="mathline">${t({ en: `${r} rights → slot ${r + 1} from the left`, zh: `往右 ${r} 次 → 左数第 ${r + 1} 格` })}</div>`;
+  }
+  if (n >= 7) o += `<p>${t({ en: `If the seven slots were equally likely, ${n} balls would give about ${n} ÷ 7 ≈ ${fmt(n / 7, 1)} each (red dashed line).`, zh: `要是七格机会一样，${n} 个球每格该有 ${n} ÷ 7 ≈ ${fmt(n / 7, 1)} 个左右（红色虚线）。` })}</p>`;
+  const outer = Math.max(c[0], c[6]), hill = n >= 100 && c[3] > 2 * outer && Math.min(c[2], c[4]) > outer;
+  if (n >= 2 && n <= 20) o += `<p>${t({ en: `${n} so far: the slots are up and down, with no pattern yet.`, zh: `现在 ${n} 个：各格高高低低，看不出规律。` })}</p>`;
+  else if (n > 20 && !hill) o += `<p>${t({ en: `${n} so far: a shape is starting to show. Keep dropping.`, zh: `现在 ${n} 个：开始有点形状了，接着放。` })}</p>`;
+  if (hill) {
+    o += `<p class="big">${t({ en: `High in the middle, low at the sides: they've piled into a hill. The two outer slots have only ${hot(c[0])} and ${hot(c[6])}; the middle one has ${hot(c[3])}.`, zh: `中间高、两边低，堆成了一座山。最边上两格只有 ${hot(c[0])} 个和 ${hot(c[6])} 个，正中间有 ${hot(c[3])} 个。` })}
+      ${guess === 1 ? `<span class="ok-t">${t({ en: "As you guessed.", zh: "你猜对了。" })}</span>` : guess != null ? `<span class="no-t">${t({ en: "Not what you guessed.", zh: "和你猜的不一样。" })}</span>` : ""}
+      <span class="tag-no">${t({ en: "Not flat.", zh: "不是平的。" })}</span> ${t({ en: "Why? Step 02 counts the routes.", zh: "为什么？第 02 步来数路。" })}</p>`;
+  } else if (target < NV) o += `<p>${t({ en: "Keep dropping. The video drops 128 in all: press “Up to 128”.", zh: "接着放。视频里一共放了 128 个：按「放到 128 个」。" })}</p>`;
+  return o + legend1();
+}
+function explain2() {
+  const R = rows2, k = clamp(sel2, 0, R), N = C(R, k), all = routesTo(R, k), p = all[route % all.length], tot = 2 ** R;
+  const row = Array.from({ length: R + 1 }, (_, s) => (s === k ? `<b>${C(R, s)}</b>` : C(R, s))).join(", ");
+  let why;
+  if (k === 0 || k === R) why = t({ en: `To land at the far ${k ? "right" : "left"}, all ${R} turns must be ${k ? "rights" : "lefts"}: just one route.`, zh: `落进最${k ? "右" : "左"}边，${R} 次都得往${k ? "右" : "左"}，只有一条路。` });
+  else why = t({ en: `To land here: ${R - k} lefts and ${k} rights in any order, ${N} routes. That is choosing which ${k} of the ${R} turns are rights: C(${R}, ${k}) = ${N}.`, zh: `落进这一格：${R - k} 左 ${k} 右，顺序随便排，有 ${N} 条路。也就是在 ${R} 次拐弯里挑 ${k} 次往右：C(${R}, ${k}) = ${N}。` });
+  return kick({ en: "Step 02 · count the routes", zh: "观察 02 / 数一数路" }) +
+    `<h2>${t({ en: "Why? Because there are more routes to the middle.", zh: "为什么？因为通向中间的路多。" })}</h2>
+    <p>${t({ en: "The number on each peg is how many routes reach it. A ball can only come from the peg up-left or up-right, so each number is the sum of the two above it: Pascal's triangle.", zh: "每颗钉子上的数，是走到它的路有几条。球只能从左上或右上那颗钉子过来，所以每个数是上面两个数之和：杨辉三角。" })}</p>
+    <p class="big">${why}</p>
+    <p>${t({ en: `Route ${route % all.length + 1} of ${N}:`, zh: `第 ${route % all.length + 1} 条路（共 ${N} 条）：` })} <span class="turns">${turns(p)}</span></p>
+    <div class="mathline row6">${row}</div>
+    <p>${t({ en: `${tot} routes in all, each with chance (1/2)<sup>${R}</sup> = 1/${tot}. So this slot gets about ${N}/${tot} of the balls.`, zh: `一共 ${tot} 条路，每条的机会都是 (1/2)<sup>${R}</sup> = 1/${tot}，所以这一格大约分到 ${N}/${tot} 的球。` })}</p>
+    <div class="legend"><span><span class="ln" style="border-color:var(--c)"></span>${t({ en: "routes to this slot", zh: "通向这一格的路" })}</span><span><span class="ln" style="border-color:var(--hl)"></span>${t({ en: "one of them", zh: "其中一条" })}</span></div>`;
+}
+function explain3() {
+  const n = n3, c = counts(n), k = sel3, ck = C(ROWS, k), e = (n * ck) / 64;
+  const rows = c.map((v, s) => `<tr class="${s === k ? "sel" : ""}"><td>${s + 1}</td><td>${C(ROWS, s)}</td><td>${fmt((n * C(ROWS, s)) / 64, 1)}</td><td>${v}</td></tr>`);
+  const off = Math.max(...c.map((v, s) => Math.abs(v - (n * C(ROWS, s)) / 64))), flatOff = Math.abs(c[3] - n / 7);
+  return `<span class="tag-demo">${t(D.demo)}</span>` + kick({ en: "Step 03 · routes vs balls", zh: "观察 03 / 路数对球数" }) +
+    `<h2>${t({ en: "Slots with more routes get more balls", zh: "路多的格子，球就多" })}</h2>
+    <p>${t({ en: "Each of the 64 routes is equally likely, so slot k should get about n × C(6, k) ÷ 64 balls: the gold dashed steps. The red dashed line is what “every slot equal” would give.", zh: "64 条路机会一样，所以第 k 格该有 n × C(6, k) ÷ 64 个左右：金色虚线台阶。红色虚线是「每格一样」时的高度。" })}</p>
+    <div class="mathline">${n} × ${ck} ÷ 64 = <b>${fmt(e, 1)}</b>${t({ en: "; actual", zh: "；实际" })} <b>${c[k]}</b></div>
+    <p><span class="no-t">${t({ en: "Every slot equal:", zh: "每格一样：" })}</span> ${n} ÷ 7 ≈ ${fmt(n / 7, 1)}${t({ en: `; the outer slots hold ${c[0]} and ${c[6]}, nowhere near.`, zh: `；最边上两格只有 ${c[0]} 个和 ${c[6]} 个，远远不到。` })}</p>
+    <table class="tbl"><tr><th>${t({ en: "slot", zh: "格" })}</th><th>${t({ en: "routes", zh: "路数" })}</th><th>${t({ en: "predicted", zh: "预测" })}</th><th>${t({ en: "actual", zh: "实际" })}</th></tr>${rows.join("")}</table>
+    <p>${t({ en: `With ${n} balls, the gold steps miss by at most ${fmt(off, 1)} balls (${fmt((off / n) * 100, 1)}% of all); the flat line misses the middle slot alone by ${fmt(flatOff, 1)}. Drag the slider and compare.`, zh: `${n} 个球时，金色台阶最多差 ${fmt(off, 1)} 个（占总数 ${fmt((off / n) * 100, 1)}%）；水平线光是正中间一格就差 ${fmt(flatOff, 1)} 个。拖动滑块比一比。` })}</p>
+    <div class="legend"><span><span class="dsh" style="border-color:var(--hl)"></span>${t({ en: "predicted by routes", zh: "按路数预测" })}</span><span><span class="dsh" style="border-color:var(--no)"></span>${t({ en: "every slot equal", zh: "每格一样" })}</span></div>`;
+}
+
+// ---------- render ----------
+let shown = "";
+function render() {
+  const html = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  if (html !== shown) { el("explain").innerHTML = html; shown = html; }
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("seedV").textContent = t({ en: "seed ", zh: "种子 " }) + SEED;
+  el("d1").disabled = el("d10").disabled = el("d100").disabled = target >= NMAX;
+  el("to128").disabled = target >= NV;
+  el("play").hidden = Play.reduced || landed >= target;
+  el("play").textContent = t(playing ? D.pause : D.playB);
+  el("rowsV").textContent = rows2; el("rm").disabled = rows2 <= 1; el("rp").disabled = rows2 >= 8;
+  el("nS").value = n3; el("nV").textContent = n3;
+  document.querySelectorAll("[data-n]").forEach((b) => b.classList.toggle("on", +b.dataset.n === n3));
+  dirty = true;
+}
+
+// ---------- actions ----------
+function drop(k) {
+  if (target >= NMAX) return;
+  const was = launched >= target;
+  target = Math.min(NMAX, target + k);
+  const g = k === 1 ? 0 : k <= 10 ? 0.14 : 0.035;
+  if (was) { gap = g; clock = g; } else if (k > 1) gap = g;
+  if (Play.reduced) finish();
+  render();
+}
+function finish() { launched = landed = target; flying = []; }
+function setSel(k) { if (step === 2) { sel2 = clamp(k, 0, rows2); route = 0; } else sel3 = clamp(k, 0, ROWS); render(); }
+function setN(v) { n3 = clamp(Math.round(v), 1, NMAX); render(); }
+
+let cvO = null;
+Play.drag(cvEl, {
+  down(px) {
+    if (step === 1) { drop(1); return false; }
+    setSel(geo(cvO.w, step === 2 ? rows2 : ROWS, 0).slotAt(px)); return true;
+  },
+  move(px) { const k = geo(cvO.w, step === 2 ? rows2 : ROWS, 0).slotAt(px); if (k !== (step === 2 ? sel2 : sel3)) setSel(k); },
+});
+const arrow = (d) => (e) => {
+  if (step === 1) { if (d > 0) drop(1); }
+  else setSel((step === 2 ? sel2 : sel3) + d);
+};
+const updown = (d) => (e) => {
+  if (step === 2) { route = (route + d + C(rows2, sel2) * 100) % C(rows2, sel2); render(); }
+  else if (step === 3) setN(n3 + d * (e.shiftKey ? 10 : 1));
+  else if (d > 0) drop(1);
+};
+Play.keys(cvEl, { ArrowLeft: arrow(-1), ArrowRight: arrow(1), ArrowUp: updown(1), ArrowDown: updown(-1), " ": arrow(1) });
+
+el("d1").onclick = () => drop(1);
+el("d10").onclick = () => drop(10);
+el("d100").onclick = () => drop(100);
+el("to128").onclick = () => drop(NV - target);
+el("play").onclick = () => { playing = !playing; render(); };
+el("rm").onclick = () => { rows2 = Math.max(1, rows2 - 1); sel2 = Math.floor(rows2 / 2); route = 0; render(); };
+el("rp").onclick = () => { rows2 = Math.min(8, rows2 + 1); sel2 = Math.floor(rows2 / 2); route = 0; render(); };
+el("nextR").onclick = () => { route = (route + 1) % C(rows2, sel2); render(); };
+el("nS").oninput = (e) => setN(+e.target.value);
+document.querySelectorAll("[data-n]").forEach((b) => (b.onclick = () => setN(+b.dataset.n)));
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-g]"); if (b) { guess = +b.dataset.g; if (!target) drop(1); else render(); } });
+el("reset").onclick = () => { init(); nav.set(1); };
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; if (s !== 1) finish(); render(); });
+cvO = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (step === 1 && playing && (flying.length || launched < target)) {
+    clock += dt;
+    while (launched < target && clock >= gap) { flying.push({ i: launched++, age: 0 }); clock -= gap; }
+    let moved = false;
+    flying.forEach((f) => (f.age += dt));
+    while (flying.length && flying[0].age >= TOTAL) { flying.shift(); landed++; moved = true; }
+    if (moved) render();
+    dirty = true;
+  }
+  if (dirty) { dirty = false; cvO.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
