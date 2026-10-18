@@ -125,3 +125,4 @@ body.embed .foot { display: none; }
   .result .rn { margin-top: 10px; }
   .result .math { font-size: 20px; }
 }
+.explain > .tag-demo { align-self: flex-start; }

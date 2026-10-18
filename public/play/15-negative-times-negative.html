@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Is a Negative Times a Negative Positive? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .kid button { font-size: 15px; min-height: 42px; min-width: 44px; padding: 8px 12px; }
+  .kid .val { font-family: var(--math); color: var(--fg); font-size: 17px; min-width: 2.6em; text-align: center; }
+  .kid .grp { display: inline-flex; align-items: center; gap: 4px; }
+  .kid button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { font-size: 14px; min-height: 40px; }
+  .choices button.ok { border-color: var(--a); box-shadow: inset 0 0 0 2px var(--a); }
+  .choices button.bad { border-color: var(--no); box-shadow: inset 0 0 0 2px var(--no); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 22px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .up-t { color: var(--a); font-weight: 700; } .dn-t { color: var(--no); font-weight: 700; }
+  table.cases { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.cases td { padding: 5px 6px; border-top: 1px solid var(--line); color: var(--muted); }
+  table.cases td.m { font-family: var(--math); font-size: 16px; color: var(--fg); white-space: nowrap; }
+  table.cases td.r { text-align: right; white-space: nowrap; font-weight: 700; }
+  table.cases tr.go { cursor: pointer; } table.cases tr.go:hover td { background: var(--soft); }
+  table.cases tr.cur td { background: var(--soft); }
+  table.cases tr.mk td.m { box-shadow: inset 3px 0 0 var(--hl); }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 9px; } table.cases { font-size: 13px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main"></canvas>
+      <div class="controls kid" id="c1">
+        <span data-t="putIn"></span>
+        <button id="o2"></button><button id="o3"></button>
+        <button id="empty" data-t="emptyB"></button>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <span class="grp"><button id="aM" aria-label="first number minus">−</button><span class="val" id="aV"></span><button id="aP" aria-label="first number plus">+</button></span>
+        <span>×</span>
+        <span class="grp"><button id="bM" aria-label="second number minus">−</button><span class="val" id="bV"></span><button id="bP" aria-label="second number plus">+</button></span>
+        <button id="go"></button>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <button id="tearB" data-t="tearB"></button>
+        <button id="takeB" data-t="takeB"></button>
+        <button id="backB" data-t="backB"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p id="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba } = Play;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const D = {
+  title: { en: "Why Is a Negative Times a Negative Positive?", zh: "负负得正" },
+  eyebrow: { en: "Boxi Math · Try it · #15", zh: "Boxi Math · 动手试试 · #15" },
+  intro: { en: "Lin's wallet holds two IOUs, each for three yuan owed to a deskmate. The deskmate tears up both IOUs. Is Lin poorer now, or richer? Put notes in, take them out, and watch the balance.",
+           zh: "小林欠同桌两张欠条，每张三元。同桌把欠条撕了，小林变穷了还是变富了？往钱包里放进、拿走，看余额怎么变。" },
+  s1: { en: "Signs cancel?", zh: "负号抵消？" }, s2: { en: "So many lots of", zh: "几个几" }, s3: { en: "Tear the IOUs", zh: "撕欠条" },
+  reset: { en: "Reset", zh: "重置" },
+  putIn: { en: "Put in an IOU:", zh: "放进欠条：" },
+  emptyB: { en: "Empty", zh: "清空" },
+  tearB: { en: "Tear an IOU", zh: "撕一张欠条" }, takeB: { en: "Take away cash", zh: "拿走一张现金" }, backB: { en: "Put back", zh: "放回去" },
+  doB: { en: "Do it", zh: "做一遍" }, againB: { en: "Put back", zh: "放回去" },
+  v1: { en: "Empty wallet · adding", zh: "空钱包 · 加法" }, v2: { en: "Wallet · multiplying", zh: "钱包 · 乘法" }, v3: { en: "Wallet · tear the IOUs", zh: "钱包 · 撕欠条" },
+  tag1: { en: "tap the buttons", zh: "点下面的按钮" }, tag2: { en: "pick two numbers", zh: "选两个数" }, tag3: { en: "drag a note out", zh: "把一张拖出钱包" },
+  resT: { en: "Taking away IOUs raises the balance", zh: "拿走欠条，余额往上涨" },
+  moreS: { en: "Is it just a convention?", zh: "这只是一个约定吗？" },
+  moreQ: { en: "Next: why does subtracting a negative number add?", zh: "下一个问题：那减去一个负数，为什么反而是加上它？" },
+  foot: { en: "Green notes are cash, red notes are IOUs, the bar under the wallet is the balance. On a focused picture, arrow keys work too (step 1: ← owe 2, → owe 3; step 2: ← → first number, ↑ ↓ second number, Enter does it; step 3: → tear an IOU, ← take away cash, Backspace puts back).",
+          zh: "绿色是现金，红色是欠条，钱包下面的条是余额。选中图后也能用方向键（第 1 步：← 欠 2 元，→ 欠 3 元；第 2 步：← → 换前面的数，↑ ↓ 换后面的数，回车做一遍；第 3 步：→ 撕一张欠条，← 拿走一张现金，退格放回去）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+cvEl.setAttribute("aria-label", t({ en: "a wallet with cash and IOUs, and a balance bar", zh: "装着现金和欠条的钱包，下面是余额条" }));
+const V = 3, PAIR = 2;                 // the video: notes of three yuan, two of each
+const AMAX = 3, BMAX = 4, S1MAX = 4;
+const sg = (x) => (x < 0 ? `(−${-x})` : `${x}`);          // factor, negatives in brackets
+const sv = (x) => (x > 0 ? `+${x}` : x < 0 ? `−${-x}` : "0"); // signed value
+const num = (x) => (x < 0 ? `−${-x}` : `${x}`);
+
+let step = 1, dirty = true, L = null;
+let notes = [], bal = 0;
+let pick1 = -1;                                    // step 1 guess
+let A = 2, B = 3, done2 = false, pend2 = false, pick2 = -1;   // step 2
+const seen = new Set();                            // sign cases done in step 2
+let tornI = 0, tookC = 0;                          // step 3
+let grab = null, gx = 0, gy = 0, moved = 0;
+
+// ---------- the wallet ----------
+// note: {kind: "c" cash | "i" IOU, v, st: in | enter | leave | tear, p: 0..1, x, y (current), ox, oy (drag offset)}
+const mk = (kind, v, st = "in") => ({ kind, v, st, p: st === "in" ? 1 : 0, x: null, y: null, ox: 0, oy: 0, fresh: st === "enter" });
+const val = (n) => (n.kind === "c" ? n.v : -n.v);
+const target = () => notes.reduce((s, n) => s + (n.st === "in" || n.st === "enter" ? val(n) : 0), 0);
+const busy = () => notes.some((n) => n.st !== "in");
+function remove(n) { n.st = n.kind === "i" ? "tear" : "leave"; n.p = 0; }
+
+function base2() {
+  const k = Math.max(PAIR, Math.abs(A)), n = Math.abs(B);
+  notes = [];
+  for (let i = 0; i < k; i++) notes.push(mk("c", n));
+  for (let i = 0; i < k; i++) notes.push(mk("i", n));
+  done2 = false; pend2 = false;
+}
+function base3() {
+  notes = [];
+  for (let i = 0; i < PAIR; i++) notes.push(mk("c", V));
+  for (let i = 0; i < PAIR; i++) notes.push(mk("i", V));
+  tornI = 0; tookC = 0;
+}
+function enterStep(s) {
+  grab = null;
+  if (s === 1) notes = [];
+  else if (s === 2) base2();
+  else base3();
+  bal = target();
+}
+
+// ---------- layout ----------
+function layout(W) {
+  const slots = step === 3 ? 4 : 6, gap = 8;
+  const ww = Math.min(W - 28, 600), wx = (W - ww) / 2;
+  const nw = Math.min(76, (ww - 24 - (slots - 1) * gap) / slots), nh = Math.max(44, Math.round(nw * 0.7));
+  const wy = 42 + (step === 3 ? 0 : 6), rowY = [wy + 12, wy + 22 + nh], wh = 2 * nh + 34;
+  const by = wy + wh + 46, R = step === 3 ? 8 : 12;
+  return { W, slots, gap, ww, wx, nw, nh, wy, wh, rowY, bx0: wx + 14, bx1: wx + ww - 14, by, R, H: by + (step === 1 ? 62 : 44) };
+}
+function slotOf(n) {
+  let i = 0;
+  for (const m of notes) { if (m === n) break; if (m.kind === n.kind) i++; }
+  return [L.wx + 12 + i * (L.nw + L.gap), L.rowY[n.kind === "c" ? 0 : 1]];
+}
+const sx = (v) => L.bx0 + ((v + L.R) / (2 * L.R)) * (L.bx1 - L.bx0);
+
+// ---------- drawing ----------
+function rr(x, X, Y, w, h, r) {
+  x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r);
+  x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath();
+}
+function noteShape(x, n, X, Y, hl) {
+  const { nw, nh } = L, col = color(n.kind === "c" ? "--a" : "--no");
+  rr(x, X, Y, nw, nh, 6); x.fillStyle = color("--surface"); x.fill();
+  x.fillStyle = rgba(col, n.kind === "c" ? 0.2 : 0.13); x.fill();
+  x.lineWidth = hl ? 3 : 2; x.strokeStyle = hl ? color("--hl") : col; x.setLineDash(n.kind === "i" ? [5, 3] : []); x.stroke(); x.setLineDash([]);
+  const word = n.kind === "c" ? t({ en: "cash", zh: "现金" }) : t({ en: "owe", zh: "欠条" });
+  Play.text(x, word, X + nw / 2, Y + nh * 0.32, { size: 13, weight: 650, color: col, halo: false });
+  Play.text(x, `${n.v}`, X + nw / 2, Y + nh * 0.7, { size: 17, weight: 800, color: color("--fg"), halo: false });
+}
+function drawNote(x, n) {
+  const X = n.x + n.ox, Y = n.y + n.oy, { nw, nh } = L;
+  if (n.st === "in") return noteShape(x, n, X, Y, n === grab);
+  x.save();
+  if (n.st === "enter") { x.globalAlpha = Math.min(1, 0.25 + n.p); noteShape(x, n, X, Y); }
+  else if (n.st === "leave") { x.globalAlpha = 1 - n.p; noteShape(x, n, X, Y - n.p * (nh + 20)); }
+  else {   // tear: two halves fall apart
+    const p = n.p, cx = X + nw / 2;
+    x.globalAlpha = 1 - p * p;
+    for (const s of [-1, 1]) {
+      x.save();
+      x.translate(cx + s * p * 14, Y + nh / 2 + p * nh * 0.9); x.rotate(s * p * 0.5); x.translate(-cx, -(Y + nh / 2));
+      x.beginPath();
+      const jag = [0, 0.2, 0.4, 0.6, 0.8, 1].map((f, i) => [cx + (i % 2 ? 4 : -4), Y + f * nh]);
+      if (s < 0) { x.moveTo(X - 4, Y - 4); jag.forEach(([a, b]) => x.lineTo(a, b)); x.lineTo(X - 4, Y + nh + 4); }
+      else { x.moveTo(X + nw + 4, Y - 4); jag.forEach(([a, b]) => x.lineTo(a, b)); x.lineTo(X + nw + 4, Y + nh + 4); }
+      x.closePath(); x.clip(); noteShape(x, n, X, Y); x.restore();
+    }
+  }
+  x.restore();
+}
+function drawWallet(x) {
+  const { wx, wy, ww, wh } = L, b = color("--b");
+  rr(x, wx, wy, ww, wh, 14); x.fillStyle = rgba(b, 0.08); x.fill(); x.lineWidth = 2; x.strokeStyle = rgba(b, 0.7); x.stroke();
+  x.strokeStyle = rgba(b, 0.25); x.lineWidth = 1; x.setLineDash([4, 4]);
+  x.beginPath(); x.moveTo(wx + 10, wy + wh / 2); x.lineTo(wx + ww - 10, wy + wh / 2); x.stroke(); x.setLineDash([]);
+  if (!notes.some((n) => n.kind === "c")) Play.text(x, t({ en: "no cash", zh: "没有现金" }), wx + ww / 2, L.rowY[0] + L.nh / 2, { size: 13, color: color("--muted"), halo: false });
+  if (!notes.some((n) => n.kind === "i")) Play.text(x, t({ en: "no IOUs", zh: "没有欠条" }), wx + ww / 2, L.rowY[1] + L.nh / 2, { size: 13, color: color("--muted"), halo: false });
+}
+function drawBar(x) {
+  const { bx0, bx1, by, R } = L, mu = color("--muted"), fg = color("--fg");
+  rr(x, bx0, by - 8, bx1 - bx0, 16, 8); x.fillStyle = rgba(mu, 0.15); x.fill();
+  const b = clamp(bal, -R, R), x0 = sx(0), x1 = sx(b);
+  if (Math.abs(x1 - x0) > 0.5) {
+    x.fillStyle = color(b > 0 ? "--a" : "--no");
+    x.fillRect(Math.min(x0, x1), by - 8, Math.abs(x1 - x0), 16);
+  }
+  const unit = (bx1 - bx0) / (2 * R), ls = [1, 2, 3, 4, 6].find((s) => s * unit >= 28) || 6;
+  x.strokeStyle = rgba(mu, 0.7); x.lineWidth = 1;
+  for (let v = -R; v <= R; v++) {
+    const X = sx(v), big = v % ls === 0;
+    x.beginPath(); x.moveTo(X, by + 9); x.lineTo(X, by + (big ? 15 : 12)); x.stroke();
+    if (big) Play.text(x, num(v), X, by + 25, { size: 13, color: v === 0 ? fg : mu, weight: v === 0 ? 700 : 500 });
+  }
+  x.strokeStyle = fg; x.lineWidth = 2; x.beginPath(); x.moveTo(x0, by - 13); x.lineTo(x0, by + 13); x.stroke();
+  const rb = Math.round(bal), lx = clamp(x1, bx0 + 46, bx1 - 46);
+  Play.text(x, `${t({ en: "balance", zh: "余额" })} ${sv(rb)}`, lx, by - 24, { size: 15, weight: 800, color: rb > 0 ? color("--a") : rb < 0 ? color("--no") : fg });
+  if (step === 1 && pick1 === 0) {        // the myth's answer, drawn where it would put the balance
+    const g = sx(5);
+    x.strokeStyle = color("--no"); x.lineWidth = 2; x.setLineDash([4, 3]);
+    x.beginPath(); x.moveTo(g, by - 12); x.lineTo(g, by + 34); x.stroke(); x.setLineDash([]);
+    Play.text(x, t({ en: "signs cancel? +5", zh: "负号抵消？+5" }), clamp(g, bx0 + 60, bx1 - 60), by + 46, { size: 13, weight: 700, color: color("--no") });
+  }
+}
+function draw(x, w) {
+  L = layout(w);
+  for (const n of notes) if (n.x == null || n.fresh) {
+    const [X, Y] = slotOf(n); n.x = X; n.y = n.fresh ? Y - L.nh - 24 : Y; n.fresh = false;
+  }
+  drawWallet(x);
+  for (const n of notes) if (n !== grab) drawNote(x, n);
+  if (grab) drawNote(x, grab);
+  drawBar(x);
+}
+
+// ---------- animation ----------
+function tick(dt) {
+  if (!L) return false;
+  let any = false;
+  const k = Play.reduced ? 1 : Math.min(1, dt * 12);
+  for (const n of notes) {
+    if (n.x == null) continue;
+    const [X, Y] = slotOf(n);
+    if (n !== grab && (n.st === "in" || n.st === "enter") && (Math.abs(n.x - X) > 0.3 || Math.abs(n.y - Y) > 0.3)) { n.x += (X - n.x) * k; n.y += (Y - n.y) * k; any = true; }
+    if (n.st !== "in") { n.p = Play.reduced ? 1 : Math.min(1, n.p + dt / 0.65); any = true; }
+  }
+  for (const n of notes) if (n.st === "enter" && n.p >= 1) { n.st = "in"; n.x = slotOf(n)[0]; n.y = slotOf(n)[1]; }
+  const n0 = notes.length;
+  notes = notes.filter((n) => !((n.st === "leave" || n.st === "tear") && n.p >= 1));
+  if (notes.length !== n0) any = true;
+  const tg = target();
+  if (Math.abs(bal - tg) > 0.01) { bal += (tg - bal) * (Play.reduced ? 1 : Math.min(1, dt * 7)); if (Math.abs(bal - tg) < 0.02) bal = tg; any = true; }
+  if (pend2 && !busy() && bal === tg) { pend2 = false; done2 = true; seen.add(key(A, B)); render(); }
+  return any;
+}
+
+// ---------- actions ----------
+function add1(v) { if (notes.length >= S1MAX) return; notes.push(mk("i", v, "enter")); render(); }
+function empty1() { notes = []; render(); }
+const key = (a, b) => `${Math.sign(a)}${Math.sign(b)}`;
+function setAB(a, b) {
+  a = clamp(a, -AMAX, AMAX); b = clamp(b, -BMAX, BMAX);
+  if (b === 0) b = B;
+  if (a === A && b === B) return;
+  A = a; B = b; pick2 = -1; base2(); bal = 0; render();
+}
+function stepB(d) { let b = B + d; if (b === 0) b += d; setAB(A, clamp(b, -BMAX, BMAX) || B); }
+function go2() {
+  if (done2 || pend2) { base2(); bal = 0; render(); return; }
+  const kind = B > 0 ? "c" : "i", n = Math.abs(B);
+  if (A > 0) for (let i = 0; i < A; i++) notes.push(mk(kind, n, "enter"));
+  if (A < 0) notes.filter((m) => m.kind === kind && m.st === "in").slice(A).forEach(remove);
+  pend2 = true; render();
+}
+function take3(kind) {
+  const n = notes.filter((m) => m.kind === kind && m.st === "in").pop();
+  if (!n) return;
+  remove(n); if (kind === "i") tornI++; else tookC++;
+  render();
+}
+function back3() { base3(); bal = 0; render(); }
+
+function hit(px, py) {
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const n = notes[i];
+    if (n.st === "in" && px >= n.x && px <= n.x + L.nw && py >= n.y && py <= n.y + L.nh) return n;
+  }
+  return null;
+}
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!L || step !== 3) return false;
+    const n = hit(px, py); if (!n) return false;
+    grab = n; gx = px; gy = py; moved = 0; dirty = true; return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    grab.ox = px - gx; grab.oy = py - gy; moved = Math.max(moved, Math.hypot(grab.ox, grab.oy)); dirty = true;
+  },
+  up() {
+    if (!grab) return;
+    const n = grab, cx = n.x + n.ox + L.nw / 2, cy = n.y + n.oy + L.nh / 2;
+    const out = cx < L.wx || cx > L.wx + L.ww || cy < L.wy || cy > L.wy + L.wh;
+    grab = null;
+    if (moved < 6 || out) {
+      n.x += n.ox; n.y += n.oy; n.ox = 0; n.oy = 0;
+      remove(n); if (n.kind === "i") tornI++; else tookC++;
+    } else { n.x += n.ox; n.y += n.oy; n.ox = 0; n.oy = 0; }
+    render();
+  },
+});
+Play.keys(cvEl, {
+  ArrowLeft: () => (step === 1 ? add1(2) : step === 2 ? setAB(A - 1, B) : take3("c")),
+  ArrowRight: () => (step === 1 ? add1(3) : step === 2 ? setAB(A + 1, B) : take3("i")),
+  ArrowUp: () => step === 2 && stepB(1),
+  ArrowDown: () => step === 2 && stepB(-1),
+  Enter: () => step === 2 && go2(),
+  " ": () => step === 2 && go2(),
+  Backspace: () => (step === 1 ? empty1() : step === 3 ? back3() : 0),
+});
+
+// ---------- explanations ----------
+const hot = (s) => `<span class="hot">${s}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const LEG = () => legend([dotI("--a", { en: "cash", zh: "现金" }), dotI("--no", { en: "IOU", zh: "欠条" }), dotI("--b", { en: "wallet", zh: "钱包" })]);
+const upDown = (d) => (d > 0 ? `<span class="up-t">${t({ en: `up by ${d}`, zh: `涨了 ${d} 元` })}</span>`
+  : d < 0 ? `<span class="dn-t">${t({ en: `down by ${-d}`, zh: `少了 ${-d} 元` })}</span>` : t({ en: "unchanged", zh: "不变" }));
+
+function explain1() {
+  const vs = notes.filter((n) => n.st !== "tear" && n.st !== "leave").map((n) => n.v), S = vs.reduce((s, v) => s + v, 0);
+  let out = `<div class="kicker">${t({ en: "Step 01 · signs cancel?", zh: "第 1 步 · 负号抵消？" })}</div>
+    <h2>${t({ en: "Do two minus signs just cancel?", zh: "两个负号会抵消吗？" })}</h2>
+    <p>${t({ en: "Lin isn't sure: negative times negative is positive, there's no reason, just memorise it. Two minus signs cancel, so negative two plus negative three is positive five?",
+              zh: "小林挠挠头：负负得正，没什么道理，背下来就行吧。两个负号会抵消，所以负二加负三是正五？" })}</p>
+    <p>${t({ en: "Guess first: (−2) + (−3) = ?", zh: "先猜：(−2) + (−3) = ?" })}</p>
+    <div class="choices">${["+5", "−5"].map((s, i) => `<button data-c1="${i}" class="${pick1 === i ? "on" : ""}">${s}</button>`).join("")}</div>`;
+  if (!vs.length) {
+    out += `<p class="big">${t({ en: "Now try it. Start with an empty wallet: put in an IOU for 2 yuan, then one for 3 yuan.", zh: "动手试试。从空钱包开始：先放进一张欠 2 元，再放进一张欠 3 元。" })}</p>`;
+  } else {
+    out += `<div class="mathline">${vs.map((v) => `(−${v})`).join(" + ")} = ${hot(num(-S))}${vs.length > 1 ? ` <span class="tag-no">≠ +${S}</span>` : ""}</div>`;
+    if (vs.length === 1) out += `<p class="big">${t({ en: `Owing ${vs[0]}: the balance is ${num(-S)}. Put in another IOU.`, zh: `欠 ${vs[0]} 元，余额是 ${num(-S)}。再放进一张欠条。` })}</p>`;
+    else out += `<p class="big">${t({ en: `Owing ${vs.join(", then owing ")} more, ${S} in all: a balance of ${num(-S)}. The minus signs don't cancel.`,
+                                     zh: `先欠 ${vs.join(" 元，再欠 ")} 元，一共欠 ${S} 元，余额是 ${num(-S)}。负号并没有抵消。` })}</p>
+      <p>${t({ en: "Adding has no such rule. So is negative times negative being positive just something to memorise? Go to step 2.", zh: "加法里没有负负得正。那乘法里的负负得正，是不是只能硬背？到第 2 步看。" })}</p>`;
+  }
+  return out + LEG();
+}
+
+function caseText(a, b) {
+  const n = Math.abs(b), m = Math.abs(a), what = b > 0 ? { en: `cash note${m === 1 ? "" : "s"}`, zh: "现金" } : { en: `IOU${m === 1 ? "" : "s"}`, zh: "欠条" };
+  if (a === 0) return t({ en: "zero lots: put in nothing, take away nothing", zh: "零份：什么也不放，什么也不拿" });
+  return a > 0 ? t({ en: `put in ${m} ${t(what)} of ${n}`, zh: `放进 ${m} 张 ${n} 元的${t(what)}` })
+               : t({ en: `take away ${m} ${t(what)} of ${n}`, zh: `拿走 ${m} 张 ${n} 元的${t(what)}` });
+}
+function table(m, n, cur, marks, hide4) {
+  const rows = [[m, n], [m, -n], [-m, n], [-m, -n]];
+  return `<table class="cases">${rows.map(([a, b], i) => {
+    const r = a * b, q = i === 3 && hide4;
+    return `<tr class="go${cur === i ? " cur" : ""}${marks.includes(i) ? " mk" : ""}" data-r="${i}"><td class="m">${sg(a)} × ${sg(b)} = ${q ? "?" : num(r)}</td><td>${caseText(a, b)}</td>
+      <td class="r ${q ? "" : r > 0 ? "up-t" : "dn-t"}">${q ? "?" : sv(r)}</td></tr>`;
+  }).join("")}</table>`;
+}
+function explain2() {
+  const r = A * B, m = Math.abs(A) || PAIR, n = Math.abs(B), both = A < 0 && B < 0;
+  const cur = A === 0 ? -1 : (A > 0 ? 0 : 2) + (B > 0 ? 0 : 1);
+  let out = `<div class="kicker">${t({ en: "Step 02 · so many lots of", zh: "第 2 步 · 几个几" })}</div>
+    <h2>${t({ en: "Multiplication is still 'so many lots of'", zh: "乘法还是几个几" })}</h2>
+    <p>${t({ en: "The first number says put in or take away, the second says cash or IOU. Every case starts from the same wallet: cash and IOUs cancel out, the balance is zero.",
+              zh: "前面的数管放进还是拿走，后面的数管现金还是欠条。每种情况都从同一个钱包出发：现金和欠条一张抵一张，余额是零。" })}</p>
+    <div class="mathline">${sg(A)} × ${sg(B)} = ${done2 ? hot(num(r)) : "?"}</div>
+    <p class="big">${caseText(A, B).replace(/^./, (c) => c.toUpperCase())}${t({ en: ". ", zh: "。" })}${done2 ? `${t({ en: "The balance went", zh: "余额" })} ${upDown(r)}${t({ en: ".", zh: "。" })}` : ""}</p>`;
+  if (both && !done2) {
+    out += `<p>${t({ en: "Predict first: taking away IOUs, will the balance go up or down?", zh: "先预测：拿走欠条，余额会涨还是会降？" })}</p>
+      <div class="choices">${[{ en: "Up", zh: "涨" }, { en: "Down", zh: "降" }].map((o, i) => `<button data-c2="${i}" class="${pick2 === i ? "on" : ""}">${t(o)}</button>`).join("")}</div>`;
+  } else if (both && done2) {
+    out += `<p>${pick2 === 1 ? `<span class="tag-no">${t({ en: "Not down.", zh: "不是降。" })}</span> ` : ""}${t({ en: `The money owed is gone, so the balance actually goes up by ${r}.`, zh: `欠别人的钱没有了，余额反而涨了 ${r} 元。` })}</p>`;
+  }
+  out += `<p>${t({ en: "The four cases (tap a row to load it):", zh: "四种情况（点一行就换过去）：" })}</p>${table(m, n, cur, [], !seen.has("-1-1"))}`;
+  return out + LEG();
+}
+function explain3() {
+  const bl = V * tornI - V * tookC;
+  let out = `<div class="kicker">${t({ en: "Step 03 · tear the IOUs", zh: "第 3 步 · 撕欠条" })}</div>
+    <h2>${t({ en: "Tear up the IOUs. Poorer or richer?", zh: "把欠条撕了，变穷还是变富？" })}</h2>
+    <p>${t({ en: `Lin's wallet: ${PAIR} cash notes of ${V} and ${PAIR} IOUs of ${V}, balance 0. Drag an IOU out of the wallet (or tap it) to tear it up.`,
+              zh: `小林的钱包：${PAIR} 张 ${V} 元现金、${PAIR} 张欠 ${V} 元的欠条，余额 0。把欠条拖出钱包（或者点它），就撕掉了。` })}</p>`;
+  const lines = [];
+  if (tornI) lines.push(`${sg(-tornI)} × ${sg(-V)} = ${hot(sv(tornI * V))}`);
+  if (tookC) lines.push(`${sg(-tookC)} × ${V} = ${sv(-tookC * V)}`);
+  out += `<div class="mathline">${lines.length ? lines.join("<br>") : t({ en: "balance 0", zh: "余额 0" })}${lines.length > 1 ? `<br>${t({ en: "balance", zh: "余额" })} ${sv(bl)}` : ""}</div>`;
+  if (!tornI && !tookC) out += `<p class="big">${t({ en: "Tear one IOU and watch the balance bar.", zh: "撕一张欠条，看余额条。" })}</p>`;
+  if (tornI) out += `<p class="big">${t({ en: `Take away ${tornI} IOU${tornI > 1 ? "s" : ""} of ${V}: the balance goes up by ${tornI * V}.`, zh: `拿走 ${tornI} 张欠 ${V} 元的欠条，余额涨了 ${tornI * V} 元。` })}
+      ${tornI === PAIR ? t({ en: `So negative ${tornI} times negative ${V} is positive ${tornI * V}. Fewer IOUs means you owe less, which is the same as having more.`, zh: `所以负 ${tornI} 乘负 ${V} 是正 ${tornI * V}。欠条变少，就是欠的钱变少，等于多了钱。` }) : ""}</p>`;
+  if (tookC) out += `<p>${t({ en: `Taking away cash goes the other way: ${tookC} note${tookC > 1 ? "s" : ""} of ${V} out, the balance goes down by ${tookC * V}.`, zh: `拿走现金就反过来：拿走 ${tookC} 张 ${V} 元，余额少了 ${tookC * V} 元。` })}</p>`;
+  if (tornI) out += `<p>${t({ en: "Taking away IOUs is just like putting in cash: either way you're richer. Rows 1 and 4:", zh: "拿走欠条和放进现金一样，都让你更有钱。看第一行和第四行：" })}</p>${table(PAIR, V, tornI === PAIR && !tookC ? 3 : -1, [0, 3], false)}`;
+  return out + LEG();
+}
+
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("o2").textContent = t({ en: "owe 2", zh: "欠 2 元" }); el("o3").textContent = t({ en: "owe 3", zh: "欠 3 元" });
+  el("o2").disabled = el("o3").disabled = notes.length >= S1MAX;
+  el("aV").textContent = sg(A); el("bV").textContent = sg(B);
+  el("go").textContent = t(done2 || pend2 ? D.againB : D.doB);
+  el("tearB").disabled = !notes.some((n) => n.kind === "i" && n.st === "in");
+  el("takeB").disabled = !notes.some((n) => n.kind === "c" && n.st === "in");
+  const wid = cvEl.getBoundingClientRect().width || 600;
+  cvEl.style.height = Math.round(layout(wid).H) + "px";
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const c1 = e.target.closest("[data-c1]"), c2 = e.target.closest("[data-c2]"), r = e.target.closest("[data-r]");
+  if (c1) { pick1 = +c1.dataset.c1; render(); }
+  else if (c2) { pick2 = +c2.dataset.c2; render(); }
+  else if (r && step === 2) {
+    const i = +r.dataset.r, m = Math.abs(A) || PAIR, n = Math.abs(B);
+    setAB(i < 2 ? m : -m, i % 2 ? -n : n);
+  } else if (r && step === 3) { nav.set(2); const i = +r.dataset.r; setAB(i < 2 ? PAIR : -PAIR, i % 2 ? -V : V); }
+});
+el("o2").onclick = () => add1(2); el("o3").onclick = () => add1(3); el("empty").onclick = empty1;
+el("aM").onclick = () => setAB(A - 1, B); el("aP").onclick = () => setAB(A + 1, B);
+el("bM").onclick = () => stepB(-1); el("bP").onclick = () => stepB(1);
+el("go").onclick = go2;
+el("tearB").onclick = () => take3("i"); el("takeB").onclick = () => take3("c"); el("backB").onclick = back3;
+addEventListener("resize", () => render());
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; enterStep(s); render(); });
+el("reset").onclick = () => { pick1 = -1; pick2 = -1; A = PAIR; B = V; seen.clear(); nav.set(1); };
+
+// result bar and the note under it, computed for the video's case
+(() => {
+  const a = -PAIR, b = -V, r = a * b;
+  el("resM").textContent = `${sg(a)} × ${sg(b)} = ${sv(r)}`;
+  el("resN").textContent = t({ en: `Negative two times negative three is taking away two ${V}-yuan IOUs: the debt is gone, so the balance goes up by ${r}. Adding is different: (−2) + (−3) = ${num(a + b)}.`,
+                               zh: `负二乘负三，就是拿走两张欠 ${V} 元的欠条：欠的钱没了，余额反而涨了 ${r} 元。加法不一样：(−2) + (−3) = ${num(a + b)}。` });
+  const p = PAIR * b;
+  el("moreP").textContent = t({ en: `It is a convention, but it's the only one that makes the accounts balance. Put in two IOUs of ${V}, then take the same two away: the wallet is back where it started. In numbers, (−2) × (−3) + 2 × (−3) = ((−2) + 2) × (−3) = 0 × (−3) = 0. Since 2 × (−3) = ${num(p)}, (−2) × (−3) can only be ${-p}.`,
+                                zh: `负负得正是一个约定，可只有这样约定，这笔账才算得平。放进两张欠 ${V} 元的欠条，再把这两张拿走，钱包回到原样。写成算式：(−2) × (−3) + 2 × (−3) = ((−2) + 2) × (−3) = 0 × (−3) = 0。已知 2 × (−3) = ${num(p)}，(−2) × (−3) 只能是 ${-p}。` });
+})();
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (tick(dt)) dirty = true;
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

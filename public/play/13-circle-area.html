@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Circle Area: Cut It Up, Make a Rectangle · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.4em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .presets { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .controls .presets button { min-width: 44px; font-family: var(--math); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cC { color: var(--c); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cP { color: var(--h); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .mathline .row { display: block; }
+  .explain .tag-demo { align-self: flex-start; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="a circle cut into wedges"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="sqBtn" data-t="sqB"></button>
+      </div>
+      <div class="controls" id="cN" hidden>
+        <span data-t="pieces"></span>
+        <span class="presets" id="presets"><button data-n="4">4</button><button data-n="8">8</button><button data-n="16">16</button><button data-n="64">64</button></span>
+        <input id="nIn" type="range" min="4" max="64" step="2" value="4" aria-label="number of pieces"><span class="val" id="nVal"></span>
+      </div>
+      <div class="controls" id="cU" hidden>
+        <button class="big" id="cutBtn"></button>
+        <span data-t="whole"></span><input id="uIn" type="range" min="0" max="100" value="0" aria-label="cut and fit"><span data-t="fitted"></span>
+      </div>
+      <div class="controls" id="cR">
+        <span class="stepper"><span class="cP">r</span><button data-d="-" aria-label="radius minus one">−</button><b id="rVal"></b><button data-d="+" aria-label="radius plus one">+</button><span data-t="unit"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">S = πr × r = πr²</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Circle Area: Cut It Up, Make a Rectangle", zh: "圆面积：切开再拼成长方形" },
+  eyebrow: { en: "Boxi Math · Try it · #13", zh: "Boxi Math · 动手试试 · #13" },
+  intro: { en: "This round flower bed needs new turf. But a circle has no base and no height, so how do we find its area? Cut it into wedges, fit them together top-to-tail, and see what shape appears.",
+           zh: "这个圆形花坛要铺草皮，可圆没有底也没有高，面积该怎么算？把它切成小扇形，一块朝上一块朝下交错拼起来，看看拼成了什么。" },
+  s1: { en: "Curved?", zh: "弯的？" }, s2: { en: "Cut and fit", zh: "切开拼一拼" }, s3: { en: "Height r, length πr", zh: "高 r，长 πr" }, s4: { en: "The formula", zh: "面积公式" },
+  reset: { en: "Reset", zh: "重置" },
+  sqB: { en: "Measure and multiply?", zh: "量一量、乘一乘？" },
+  pieces: { en: "Pieces:", zh: "切成几块：" },
+  cutB: { en: "Cut and fit", zh: "切开拼好" }, backB: { en: "Put it back", zh: "拼回圆" }, pause: { en: "Pause", zh: "暂停" },
+  whole: { en: "circle", zh: "圆" }, fitted: { en: "fitted", zh: "拼好" }, unit: { en: "m", zh: "米" },
+  v1: { en: "A round flower bed", zh: "圆形花坛" }, v2: { en: "Wedges, top-to-tail", zh: "小扇形交错拼" },
+  v3: { en: "Length and height", zh: "长和高" }, v4: { en: "Picture and formula", zh: "图和公式" },
+  tag1: { en: "drag the pink dot", zh: "拖动粉色的点" }, tag2: { en: "drag sideways", zh: "左右拖动" },
+  tag3: { en: "drag sideways", zh: "左右拖动" }, tag4: { en: "+ / − change r", zh: "+ / − 改半径" },
+  resT: { en: "The rectangle's height is the radius r and its length is half the circumference, πr.", zh: "长方形的高是半径 r，长是半个圆周 πr。" },
+  resN: { en: "This is a demonstration, not a proof: however many pieces you cut, the edges still curve a little. It only gets closer and closer to a rectangle, but the area is always the circle's area.",
+          zh: "这是演示，不是证明：切多少块，边上都还有一点弯，它只是越来越接近长方形；可面积始终是这个圆的面积。" },
+  moreS: { en: "Why is the length exactly half the circumference?", zh: "为什么长正好是半个圆周？" },
+  moreP: { en: "Every wedge keeps its own piece of the circle's edge. Half of the wedges point down, and their curved pieces line up along the bottom; the other half point up, and theirs line up along the top. So the bottom edge is made of half the circle's edge, 2πr ÷ 2 = πr, and so is the top. The straight sides of the wedges are radii, so the shape stands r tall. With finer cuts the curved pieces flatten out and the slanted ends stand up straight, which is why the shape gets closer and closer to a πr by r rectangle. Next: why is a cone's volume one third of a cylinder's?",
+           zh: "每一块扇形都带着自己那一小段圆周。一半的扇形尖朝上，弧边排在下面；另一半尖朝下，弧边排在上面。所以下边用掉一半圆周，2πr ÷ 2 = πr，上边也是。扇形的两条直边都是半径，所以拼出来的图形高是 r。切得越细，弧边越平，两头的斜边也越立越直，所以越来越接近长 πr、高 r 的长方形。下一集：圆锥的体积，为什么是圆柱的三分之一？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → cut apart and fit together, ↑ ↓ change the number of pieces, + / − change the radius, Enter plays or pauses.",
+          zh: "鼠标、触屏、键盘都能用：选中图后，← → 切开或拼回，↑ ↓ 改块数，+ / − 改半径，回车播放或暂停。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · curved?", zh: "第 1 步 · 弯的？" },
+       h: { en: "How much turf for a round flower bed?", zh: "圆形花坛要铺多少草皮？" },
+       p: { en: "The edge is all curved, so it seems you can't just measure and multiply like a rectangle. The distance around it is the circumference: two pi r, and pi is about 3.14, a bit more than three.",
+            zh: "边都是弯的，好像没法像长方形那样，量一量、乘一乘就出来。绕一圈的长度是周长：二派 r，派大约是 3.14，比三多一点。" } },
+  2: { kicker: { en: "Step 02 · cut it up", zh: "第 2 步 · 切开" },
+       h: { en: "Cut the circle into pieces and fit them together, one pointing up, one pointing down", zh: "把圆切成几块，一块朝上一块朝下，交错着拼起来" },
+       p: { en: "Start with four pieces. Press “Cut and fit”, or drag the picture sideways.", zh: "先切四块。按「切开拼好」，或者在图上左右拖。" } },
+  3: { kicker: { en: "Step 03 · what is it made of?", zh: "第 3 步 · 长和高" },
+       h: { en: "This rectangle's height is the circle's radius r", zh: "这个长方形的高，就是圆的半径 r" },
+       p: { en: "Each little wedge reaches from the centre to the edge, one radius long. The length is half the circumference, pi times r, because the top and bottom edges each use up half of the circle's edge.",
+            zh: "每一小块扇形，都是从圆心到圆边，一条半径那么长。长是圆周的一半，也就是派乘 r，因为上下两条边，各用掉了一半的圆周。" } },
+  4: { kicker: { en: "Step 04 · the formula", zh: "第 4 步 · 公式" },
+       h: { en: "So the circle's area is length times height: pi r times r, which is pi r squared", zh: "所以圆的面积是长乘高：派 r 乘 r，也就是派 r 方" },
+       p: { en: "Change the radius r. The length πr, the height r and the area follow the picture.", zh: "改一改半径 r，长 πr、高 r 和面积都跟着图一起变。" } },
+};
+Play.i18n(D);
+
+// script numbers: circle r = 2, cuts 4 / 8 / 16 / 64; practice: r = 10 gives about 314
+const R0 = 2, N0 = 4, RMIN = 1, RMAX = 10, NMIN = 4, NMAX = 64;
+let r = R0, n = N0, step = 1, u = 0, uTo = 0, sq = false, predict = -1, really = -1;
+let dragging = null, V = null, dirty = true;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+const PI = Math.PI;
+
+// ---------- geometry (world units = metres, y up) ----------
+const ease = (s) => s * s * (3 - 2 * s);
+// b = half the angle of one wedge; s = straight width of one wedge; H = apex to the straight cut
+function geom() {
+  const b = PI / n, s = 2 * r * Math.sin(b), H = r * Math.cos(b), Wa = (n / 2) * s + s / 2;
+  return { b, s, H, Wa, C: [Wa / 2, H / 2] };
+}
+// wedge i of the circle: apex and the direction its curved edge faces, at progress uu (0 circle, 1 fitted).
+// Top half -> top row (curved edge up), left to right; bottom half -> bottom row (curved edge down).
+function wedges(uu) {
+  const g = geom(), e = ease(uu), out = [];
+  for (let i = 0; i < n; i++) {
+    const phi = (i + 0.5) * 2 * g.b, top = i < n / 2;
+    let T, tg;
+    if (top) { const j = n / 2 - 1 - i; T = [(j + 1) * g.s, 0]; tg = PI / 2; }
+    else { const j = i - n / 2; T = [j * g.s + g.s / 2, g.H]; tg = 1.5 * PI; }
+    out.push({ A: [g.C[0] + (T[0] - g.C[0]) * e, g.C[1] + (T[1] - g.C[1]) * e], al: phi + (tg - phi) * e, top });
+  }
+  return out;
+}
+const fittedStill = () => u === 1 && uTo === 1 && !dragging;
+
+// ---------- view ----------
+function layout() {
+  const g = geom(), W = cv.clientWidth || 600;
+  let x0, x1, y0, y1, lab = false;
+  if (step === 1) { x0 = -r; x1 = r; y0 = -r; y1 = r; }
+  else if (fittedStill()) { x0 = 0; x1 = g.Wa; y0 = g.H - r; y1 = r; lab = step >= 3; }
+  else { x0 = Math.min(0, g.C[0] - r); x1 = Math.max(g.Wa, g.C[0] + r); y0 = Math.min(g.H - r, g.C[1] - r); y1 = Math.max(r, g.C[1] + r); }
+  const inset = lab && step === 3 ? 132 : 0;
+  const L = lab ? 58 : 20, Rm = lab ? 20 : 20, T = step === 1 ? 74 : lab ? 78 : 54, B = (lab ? 48 : 20) + inset;
+  let p = Math.min(90, (W - L - Rm) / (x1 - x0));
+  const maxH = 470;
+  if ((y1 - y0) * p + T + B > maxH) p = (maxH - T - B) / (y1 - y0);
+  const H = Math.max(240, Math.round((y1 - y0) * p + T + B));
+  if (cv.style.height !== H + "px") cv.style.height = H + "px";
+  const ox = L + (W - L - Rm - (x1 - x0) * p) / 2 - x0 * p, oy = T + (H - T - B - (y1 - y0) * p) / 2 + y1 * p;
+  V = { p, ox, oy, W, H, lab, inset, bottom: y0 };
+}
+const S = ([x, y]) => [V.ox + x * V.p, V.oy - y * V.p];
+
+// ---------- drawing ----------
+function grid(x, w, hh) {
+  const { p, ox, oy } = V;
+  if (p < 9) return;
+  x.strokeStyle = rgba(color("--muted"), 0.16); x.lineWidth = 1; x.beginPath();
+  for (let i = Math.ceil(-ox / p); ox + i * p <= w; i++) { x.moveTo(ox + i * p, 0); x.lineTo(ox + i * p, hh); }
+  for (let j = Math.ceil((oy - hh) / p); oy - j * p >= 0; j++) { x.moveTo(0, oy - j * p); x.lineTo(w, oy - j * p); }
+  x.stroke();
+}
+function seg(x, P, Q, col, lw, dash) {
+  x.strokeStyle = col; x.lineWidth = lw; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(P[0], P[1]); x.lineTo(Q[0], Q[1]); x.stroke(); x.setLineDash([]);
+}
+// one wedge: apex at screen point [ax, ay], radius R px, curved edge facing world angle al, half-angle b
+function wedge(x, ax, ay, R, al, b, top) {
+  const Ac = top ? color("--b") : color("--a");
+  x.beginPath(); x.moveTo(ax, ay); x.arc(ax, ay, R, -al - b, -al + b); x.closePath();
+  x.fillStyle = rgba(Ac, 0.26); x.fill();
+  x.strokeStyle = rgba(color("--fg"), 0.4); x.lineWidth = 1; x.lineJoin = "round"; x.stroke();
+  x.beginPath(); x.arc(ax, ay, R, -al - b, -al + b);
+  x.strokeStyle = Ac; x.lineWidth = 3; x.stroke();
+}
+function handle(x, q) {
+  const [sx, sy] = S(q);
+  x.fillStyle = color("--h"); x.beginPath(); x.arc(sx, sy, 9, 0, 7); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2.5; x.stroke();
+}
+function bracket(x, xa, xb, y, dir, col, label) {
+  seg(x, [xa, y], [xb, y], col, 1.6);
+  seg(x, [xa, y - 6], [xa, y + 6], col, 1.6); seg(x, [xb, y - 6], [xb, y + 6], col, 1.6);
+  Play.text(x, label, (xa + xb) / 2, y + dir * 17, { color: col, size: 15, weight: 700 });
+}
+
+function drawCircle(x) {
+  const [cx, cy] = S([0, 0]), R = r * V.p, Ag = color("--a"), Bc = color("--b"), NO = color("--no"), P = color("--h");
+  if (sq) {
+    x.beginPath(); x.rect(cx - R, cy - R, 2 * R, 2 * R); x.arc(cx, cy, R, 0, 2 * PI, true);
+    x.fillStyle = rgba(NO, 0.16); x.fill();
+  }
+  x.beginPath(); x.arc(cx, cy, R, 0, 2 * PI); x.fillStyle = rgba(Ag, 0.2); x.fill();
+  x.lineWidth = 3;
+  x.strokeStyle = Bc; x.beginPath(); x.arc(cx, cy, R, PI, 2 * PI); x.stroke();
+  x.strokeStyle = Ag; x.beginPath(); x.arc(cx, cy, R, 0, PI); x.stroke();
+  if (sq) {
+    x.strokeStyle = NO; x.lineWidth = 2; x.setLineDash([7, 5]); x.strokeRect(cx - R, cy - R, 2 * R, 2 * R);
+    x.strokeStyle = color("--c"); x.beginPath(); x.moveTo(cx + R, cy); x.lineTo(cx, cy - R); x.lineTo(cx - R, cy); x.lineTo(cx, cy + R); x.closePath(); x.stroke();
+    x.setLineDash([]);
+  }
+  seg(x, [cx, cy], [cx + R, cy], P, 2.4, [7, 5]);
+  x.fillStyle = color("--fg"); x.beginPath(); x.arc(cx, cy, 3, 0, 7); x.fill();
+  Play.text(x, "r = " + fmt(r), cx + R / 2, cy - 15, { color: P, size: 15, weight: 700 });
+  Play.text(x, "C = 2πr ≈ " + fmt(2 * PI * r), cx, cy - R - (sq ? 20 : 18), { size: 15, weight: 700 });
+  handle(x, [r, 0]);
+}
+
+function draw(x, w, hh) {
+  if (!V) layout();
+  grid(x, w, hh);
+  if (step === 1) return drawCircle(x);
+  const g = geom(), NO = color("--no");
+  for (const W of wedges(u)) { const [ax, ay] = S(W.A); wedge(x, ax, ay, r * V.p, W.al, g.b, W.top); }
+  if (u < 1) return;
+  if (step === 2) {   // where a rectangle's straight edges would be
+    const c = rgba(NO, 0.85);
+    seg(x, S([0, 0]), S([(n / 2) * g.s, 0]), c, 1.6, [6, 5]);
+    seg(x, S([g.s / 2, g.H]), S([g.Wa, g.H]), c, 1.6, [6, 5]);
+  }
+  if (!V.lab) return;
+  // height: one wedge's radius, from its point to the middle of its curved edge
+  const P = color("--h"), Ag = color("--a"), Bc = color("--b"), num = step === 4;
+  const top = S([g.s / 2, g.H]), bot = S([g.s / 2, g.H - r]);
+  seg(x, top, bot, P, 2.6, [7, 5]);
+  x.fillStyle = P; x.beginPath(); x.arc(top[0], top[1], 3.5, 0, 7); x.fill();
+  const lx = S([0, 0])[0] - 8, ly = (top[1] + bot[1]) / 2;
+  Play.text(x, "r", lx, num ? ly - 10 : ly, { color: P, size: 17, weight: 700, align: "right", italic: true });
+  if (num) Play.text(x, "= " + fmt(r), lx, ly + 10, { color: P, size: 14, weight: 700, align: "right" });
+  // length: the curved pieces along the bottom and along the top
+  const yb = S([0, g.H - r])[1] + 12, yt = S([0, r])[1] - 12;
+  const half = num ? "πr ≈ " + fmt(PI * r) : t({ en: "πr = half of C", zh: "πr = 半个圆周" });
+  bracket(x, S([0, 0])[0], S([(n / 2) * g.s, 0])[0], yb, 1, Ag, half);
+  bracket(x, S([g.s / 2, 0])[0], S([g.Wa, 0])[0], yt, -1, Bc, half);
+  if (step === 3) inset(x, g, yb + 40);
+}
+
+// magnified piece of the top edge: still a little curved
+function inset(x, g, y0) {
+  const iw = Math.min(V.W - 32, 340), ih = 104, x0 = (V.W - iw) / 2, NO = color("--no");
+  x.save();
+  x.beginPath(); x.rect(x0, y0, iw, ih); x.fillStyle = color("--surface"); x.fill();
+  x.strokeStyle = color("--line"); x.lineWidth = 1.5; x.stroke(); x.clip();
+  const k = Math.min(iw / (1.3 * g.s), (ih * 0.42) / Math.max(1e-9, r - g.H)), j0 = Math.floor((n / 2 - 1) / 2);
+  const cxw = (j0 + 1) * g.s, cx = x0 + iw / 2, chordY = y0 + ih * 0.62;
+  const map = ([wx, wy]) => [cx + (wx - cxw) * k, chordY - (wy - g.H) * k];
+  for (let j = j0 - 2; j <= j0 + 3; j++) {
+    if (j >= 0 && j < n / 2) { const [ax, ay] = map([(j + 1) * g.s, 0]); wedge(x, ax, ay, r * k, PI / 2, g.b, true); }
+    if (j >= 0 && j < n / 2) { const [ax, ay] = map([j * g.s + g.s / 2, g.H]); wedge(x, ax, ay, r * k, 1.5 * PI, g.b, false); }
+  }
+  seg(x, [x0, chordY], [x0 + iw, chordY], rgba(color("--muted"), 0.9), 1.4, [5, 4]);
+  const [px, py] = map([cxw, r]), sag = (r - g.H) * k, rr = Math.min(36, Math.max(16, sag * 0.8 + 12));
+  x.strokeStyle = NO; x.lineWidth = 2; x.beginPath(); x.arc(px, py + sag / 2, rr, 0, 7); x.stroke();
+  x.restore();
+  Play.text(x, "× " + fmt(k / V.p, 0), x0 + 8, y0 + 15, { color: color("--muted"), size: 13, weight: 700, align: "left" });
+  Play.text(x, t({ en: "still curved", zh: "还是弯的" }), x0 + iw - 8, y0 + 15, { color: NO, size: 14, weight: 700, align: "right" });
+}
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+const ap = (v, d = 2) => (Math.abs(v - +v.toFixed(d)) > 1e-9 ? "≈" : "=");
+const colon = () => t({ en: ": ", zh: "：" });
+const unit = () => t(D.unit), unit2 = () => t({ en: "m²", zh: "平方米" });
+function render() {
+  const st = STEP[step], ex = $("explain"), g = geom(), area = PI * r * r;
+  const bulge = r - g.H, lean = 180 / n, wStraight = (n / 2) * g.s;
+  let html = `<div class="kicker">${t(st.kicker)}</div>`;
+  if (step >= 3) html += `<span class="tag-demo">${t({ en: "Demo, not proof", zh: "这是演示，不是证明" })}</span>`;
+  html += `<h2>${t(st.h)}</h2><p>${t(st.p)}</p>`;
+  if (step === 1) {
+    html += `<div class="mathline">${sp("cP", "r")} = ${sp("cP", fmt(r))}<br>C = 2π${sp("cP", "r")} ${ap(2 * PI * r)} 2 × 3.14… × ${fmt(r)} ${ap(2 * PI * r)} <b>${fmt(2 * PI * r)}</b></div>`;
+    if (sq) {
+      html += `<p><span class="tag-no">${t({ en: "Not exactly.", zh: "算不准。" })}</span> ` +
+        t({ en: `The square around it is ${fmt(2 * r)} × ${fmt(2 * r)} = ${fmt(4 * r * r)} ${unit2()}: too much, the red corners are left over. The blue square inside is only ${fmt(2 * r * r)} ${unit2()}: too little.`,
+            zh: `外面的正方形 ${fmt(2 * r)} × ${fmt(2 * r)} = ${fmt(4 * r * r)} ${unit2()}，太多了，红色的四个角是多出来的；里面的蓝色正方形只有 ${fmt(2 * r * r)} ${unit2()}，又太少。` }) + `</p>`;
+      html += `<p>${t({ en: `So the bed is somewhere between ${fmt(2 * r * r)} and ${fmt(4 * r * r)} ${unit2()}. Measuring and multiplying doesn't pin it down. If it were your job, what would you do?`,
+                         zh: `所以花坛在 ${fmt(2 * r * r)} 和 ${fmt(4 * r * r)} ${unit2()} 之间。量一量、乘一乘，定不下来。要是交给你，你会怎么办？` })}</p>`;
+      html += `<p class="note">${t({ en: "Go to step 02: cut it up.", zh: "去第 2 步：切开它。" })}</p>`;
+    } else html += `<p class="note">${t({ en: "Press “Measure and multiply?” to try the squares around and inside the circle. Drag the pink dot to change r.", zh: "按「量一量、乘一乘？」，用圆外和圆内的正方形试一试。拖粉色的点改半径 r。" })}</p>`;
+  } else if (step === 2) {
+    html += `<p><strong>${t({ en: "What if we cut more and more, thinner and thinner? What will it look like?", zh: "要是切成更多块，越切越细，拼出来会像什么？" })}</strong></p><div class="choices">` +
+      [{ en: "Closer to a rectangle", zh: "越来越像长方形" }, { en: "Just as bumpy", zh: "还是一样坑坑洼洼" }, { en: "A circle again", zh: "又变回圆" }]
+        .map((c, i) => `<button data-p="${i}" class="${predict === i ? (i === 0 ? "right" : "wrong") : ""}">${t(c)}</button>`).join("") + `</div>`;
+    if (u >= 1) {
+      html += `<div class="mathline">${t({ en: "pieces", zh: "块数" })}${colon()}<b>${n}</b><br>` +
+        `${t({ en: "bumps stick out", zh: "边上拱起" })}${colon()}${sp("cN", fmt(bulge))} ${unit()}<br>` +
+        `${t({ en: "ends lean", zh: "两头斜着" })}${colon()}${sp("cN", fmt(lean, 1) + "°")}</div>`;
+      if (n <= 4) html += `<p><span class="tag-no">${t({ en: "Nothing like a rectangle.", zh: "一点也不像长方形。" })}</span> ${t({ en: "The edges are all bumps. Now try 8, 16, 64 pieces.", zh: "边上坑坑洼洼的。再试试 8 块、16 块、64 块。" })}</p>`;
+      else if (n < 32) html += `<p>${t({ en: "The top and bottom edges get flatter and straighter, and the ends stand up straighter.", zh: "上下的边越来越平，越来越直，两头也越立越直。" })}</p>`;
+      else html += `<p>${t({ en: `${n} pieces, and it looks almost exactly like a rectangle.`, zh: `切成 ${n} 块，看起来几乎就是一个长方形了。` })}</p>`;
+      if (predict > 0) html += `<p class="note">${t({ en: "Not what you guessed! Slide the number of pieces up and watch the bumps shrink.", zh: "跟你猜的不一样！把块数往大拉，看边上的拱越来越小。" })}</p>`;
+    } else html += `<p class="note">${t({ en: "Brown pieces come from the top half of the circle, green ones from the bottom half.", zh: "棕色的块来自圆的上半边，绿色的来自下半边。" })}</p>`;
+  } else if (step === 3) {
+    if (u >= 1) {
+      html += `<div class="mathline"><span class="row">${t({ en: "height between the cuts", zh: "上下两刀之间的高" })} ${sp("cP", fmt(g.H, 3))} → ${sp("cP", "r")} = ${fmt(r)}</span>` +
+        `<span class="row">${t({ en: "straight length", zh: "直着量的长" })} ${sp("cA", fmt(wStraight, 3))} → ${sp("cA", "πr")} ${ap(PI * r, 3)} ${fmt(PI * r, 3)}</span>` +
+        `<span class="row">${t({ en: "bumps", zh: "边上拱起" })} ${sp("cN", fmt(bulge, 3))} ${unit()}</span></div>`;
+      html += `<p>${t({ en: "The finer we cut, the closer it gets, but the area is always the circle's area.", zh: "切得越细，就越接近，面积却始终是这个圆的面积。" })}</p>`;
+      html += `<p><strong>${t({ en: `After ${n} pieces, has it really become a rectangle?`, zh: `切成 ${n} 块后，真的变成长方形了吗？` })}</strong></p><div class="choices">` +
+        [{ en: "Yes", zh: "变成了" }, { en: "No, it only gets closer and closer", zh: "没有，只是越来越接近" }]
+          .map((c, i) => `<button data-q="${i}" class="${really === i ? (i === 1 ? "right" : "wrong") : ""}">${t(c)}</button>`).join("") + `</div>`;
+      if (really >= 0) html += `<p>${really === 1 ? "" : `<span class="tag-no">${t({ en: "Look at the zoom.", zh: "看放大镜。" })}</span> `}${t({ en: "It hasn't truly become a rectangle. The edges still curve a tiny bit, as the zoom shows.", zh: "它没有真的变成长方形，边上还有一点点弯，放大就能看见。" })}</p>`;
+    } else html += `<p class="note">${t({ en: "Fit the pieces together to see the labels.", zh: "把块拼好，就能看到标注。" })}</p>`;
+    html += `<div class="legend"><span><i class="dot" style="background:var(--b)"></i>${t({ en: "top: half the circle's edge", zh: "上边：一半圆周" })}</span><span><i class="dot" style="background:var(--a)"></i>${t({ en: "bottom: the other half", zh: "下边：另一半" })}</span><span><i class="dot" style="background:var(--h)"></i>${t({ en: "height: a radius", zh: "高：一条半径" })}</span></div>`;
+  } else {
+    html += `<div class="mathline">S = ${sp("cA", "πr")} × ${sp("cP", "r")} = πr²<br>` +
+      `= 3.14… × ${sp("cA", fmt(r))} × ${sp("cP", fmt(r))} = ${fmt(r * r)}π ${ap(area)} <b>${fmt(area)}</b> ${unit2()}</div>`;
+    html += `<p>${t({ en: "The length matches half the circumference, the height matches the radius, and nothing is left out.", zh: "长方形的长对着半个圆周，高对着半径，一个都没少。" })}</p>`;
+    html += `<p class="note">${t({ en: `That's how much turf the flower bed needs. Double r and the area becomes ${fmt(4 * r * r)}π: four times as much.`, zh: `花坛要铺的草皮就这么多。r 变成两倍，面积就是 ${fmt(4 * r * r)}π，变成四倍。` })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  $("c1").hidden = step !== 1; $("cN").hidden = step === 1; $("cU").hidden = step === 1; $("cR").hidden = step !== 1 && step !== 4;
+  $("sqBtn").classList.toggle("on", sq);
+  $("cutBtn").textContent = t(Math.abs(uTo - u) > 1e-3 ? D.pause : u > 0.5 ? D.backB : D.cutB);
+  $("uIn").value = Math.round(u * 100);
+  $("nIn").value = n; $("nVal").textContent = n;
+  document.querySelectorAll("#presets [data-n]").forEach((b) => b.classList.toggle("on", +b.dataset.n === n));
+  $("rVal").textContent = r;
+  if (!dragging) V = null;
+  dirty = true;
+}
+
+// ---------- input ----------
+$("explain").addEventListener("click", (e) => {
+  const p = e.target.closest("[data-p]"), q = e.target.closest("[data-q]");
+  if (p) predict = +p.dataset.p;
+  if (q) really = +q.dataset.q;
+  if (p || q) render();
+});
+function cutClick() {
+  if (Math.abs(uTo - u) > 1e-3) { uTo = u; return render(); }
+  uTo = u > 0.5 ? 0 : 1;
+  if (Play.reduced) u = uTo;
+  render();
+}
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s;
+  if (s === 2) { u = uTo = 0; }
+  if (s === 3) { if (n < 16) n = 64; u = uTo = 1; }
+  if (s === 4) { if (n < 16) n = 32; u = uTo = 1; }
+  render();
+});
+function setN(v) { n = clamp(Math.round(v / 2) * 2, NMIN, NMAX); render(); }
+function setR(v) { r = clamp(Math.round(v), RMIN, RMAX); render(); }
+function setU(v) { u = uTo = clamp(v, 0, 1); render(); }
+$("sqBtn").onclick = () => { sq = !sq; render(); };
+$("cutBtn").onclick = cutClick;
+$("uIn").oninput = (e) => setU(e.target.value / 100);
+$("nIn").oninput = (e) => setN(+e.target.value);
+document.querySelectorAll("#presets [data-n]").forEach((b) => (b.onclick = () => setN(+b.dataset.n)));
+document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => setR(r + (b.dataset.d === "+" ? 1 : -1))));
+Play.drag(cv, {
+  down(px, py) {
+    if (!V) layout();
+    if (step === 1) {
+      const [hx, hy] = S([r, 0]);
+      if (Math.hypot(px - hx, py - hy) > 26) return false;
+      dragging = "r"; return true;
+    }
+    dragging = "u"; uTo = u;
+    V = null; layout();      // room for the whole circle while scrubbing
+    dirty = true; return true;
+  },
+  move(px, py, dx) {
+    if (dragging === "r") {
+      const [cx, cy] = S([0, 0]), lim = Math.min(cx - 6, V.W - cx - 6, cy - 30, V.H - cy - 6) / V.p;
+      const nr = clamp(Math.round(Math.hypot(px - cx, py - cy) / V.p), RMIN, Math.max(RMIN, Math.min(RMAX, Math.floor(lim))));
+      if (nr !== r) { r = nr; render(); }
+    } else if (dragging === "u") {
+      u = uTo = clamp(u + dx / (V.W * 0.6), 0, 1);
+      $("uIn").value = Math.round(u * 100); dirty = true;
+    }
+  },
+  up() {
+    if (dragging === "u" && u > 0 && u < 1) { uTo = u > 0.5 ? 1 : 0; if (Play.reduced) u = uTo; }
+    dragging = null; render();
+  },
+});
+Play.keys(cv, {
+  ArrowLeft: () => step > 1 && setU(u - 0.1), ArrowRight: () => step > 1 && setU(u + 0.1),
+  ArrowUp: () => step > 1 && setN(n + 2), ArrowDown: () => step > 1 && setN(n - 2),
+  "+": () => setR(r + 1), "=": () => setR(r + 1), "-": () => setR(r - 1),
+  Enter: () => (step === 1 ? $("sqBtn").onclick() : cutClick()),
+  " ": () => (step === 1 ? $("sqBtn").onclick() : cutClick()),
+});
+$("reset").onclick = () => {
+  r = R0; n = N0; u = uTo = 0; sq = false; predict = -1; really = -1;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { if (!dragging) V = null; dirty = true; });
+
+Play.loop((dt) => {
+  if (u !== uTo) {
+    u = clamp(u + Math.sign(uTo - u) * dt / 2.6, 0, 1);
+    if (Math.abs(u - uTo) < 1e-3) { u = uTo; render(); }
+    else $("uIn").value = Math.round(u * 100);
+    dirty = true;
+  }
+  if (dirty) { dirty = false; if (!V) layout(); main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
