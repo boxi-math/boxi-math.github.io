@@ -77,9 +77,7 @@
    "sg": "2"
   },
   "series": "numbers",
-  "callbacks": [
-   34
-  ],
+  "callbacks": [],
   "phase": "coming",
   "youtube": null
  },
@@ -515,16 +513,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "圆锥是圆柱的 1/2；\"倒沙三次刚好倒满就是证明\"",
-   "en": ""
+   "zh": "圆锥是圆柱的一半；倒沙子倒三次正好满，就算证明了。",
+   "en": "A cone is half a cylinder; and pouring sand three times to fill it counts as a proof."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "一个正方体正好切成三个一样的四棱锥，所以四棱锥是同底同高柱体的三分之一；圆锥和这个四棱锥每一层的截面都一样大，体积也就一样，所以圆锥也是圆柱的三分之一。",
+   "en": "A cube cuts into exactly three identical square pyramids, so a pyramid is one third of the prism with the same base and height. A cone and that pyramid have equal cross-sections at every height, so their volumes match, and a cone is one third of its cylinder too."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "要是锥体是柱体的一半，两块就该拼成正方体，可正方体要切成三块四棱锥才拼得满。",
+   "en": "If a pyramid were half the prism, two would fill the cube, but it takes three pyramids to make the cube."
   },
   "stage": 2,
   "seeds": [],
@@ -533,7 +531,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -552,12 +550,12 @@
    "en": "Negative times negative being positive has no reason, you just memorise it; two minus signs cancel, so negative two plus negative three is positive five."
   },
   "insight": {
-   "zh": "把数看成从零出发的箭头：乘正数是拉长，乘负一是绕零转半圈；负二乘负三就是拉长到六、再转两次半圈，转回正六。",
-   "en": "Think of a number as an arrow from zero: multiplying by a positive number stretches it, and multiplying by negative one turns it half a turn around zero. Negative two times negative three is stretch to six, then two half turns, back to positive six."
+   "zh": "乘法还是几个几：前面的数管放进还是拿走，后面的数管现金还是欠条；负二乘负三就是拿走两张三元的欠条，欠的钱没了，余额反而涨了六元。",
+   "en": "Multiplication is still 'so many lots of': the first number says put in or take away, the second says cash or IOU. Negative two times negative three is taking away two three-yuan IOUs: the debt is gone, so the balance goes up by six."
   },
   "non_example": {
-   "zh": "加法里没有负负得正：负二加负三是从负二再往左走三格，到负五。",
-   "en": "Adding has no such rule: negative two plus negative three starts at negative two and goes three more to the left, to negative five."
+   "zh": "加法里没有负负得正：负二加负三是又欠两元、再欠三元，一共欠五元，余额是负五。",
+   "en": "Adding has no such rule: negative two plus negative three means owing two and then owing three more, five in all, a balance of negative five."
   },
   "stage": 3,
   "seeds": [
@@ -643,7 +641,7 @@
    4,
    5
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -658,16 +656,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "a²−b² = (a−b)²",
-   "en": ""
+   "zh": "减法也照搬，a 方减 b 方就是 a 减 b 的平方。",
+   "en": "Subtraction works the same way, so a squared minus b squared is a minus b, squared."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "边长 a 的正方形挖掉边长 b 的一角，剩下的 L 形剪一刀，把一条转过来补到旁边，拼成长 a 加 b、宽 a 减 b 的长方形，所以 a 方减 b 方等于 a 加 b 乘 a 减 b。",
+   "en": "Cut a b-by-b corner out of an a-by-a square, cut the L-shape once and turn one strip round to the side: it becomes a rectangle a plus b long and a minus b wide, so a squared minus b squared is a plus b times a minus b."
   },
   "non_example": {
-   "zh": "a²+b² 不能这样拼",
-   "en": ""
+   "zh": "a 减 b 的平方只是 L 形里左下角那个正方形，旁边还多出两条长条；五方减二方是二十一，三的平方只有九。",
+   "en": "a minus b squared is only the square in the bottom-left of the L, with two strips left over; five squared minus two squared is twenty-one, but three squared is only nine."
   },
   "stage": 3,
   "seeds": [],
@@ -679,7 +677,7 @@
    4,
    5
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -714,7 +712,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -729,16 +727,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "\"分数可以无限接近 √2，所以差不多就是分数\"——**不用**分数逼近动画",
-   "en": ""
+   "zh": "分数可以无限接近根号二，差不多就是分数了。",
+   "en": "Fractions can get as close to root two as you like, so it's basically a fraction."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "假设根号二等于 a 比 b（b 最小），就有一个直角边 b、斜边 a 的等腰直角三角形，三边都是整数；把一条直角边沿角平分线折到斜边上，切出一个直角边 a−b、斜边 2b−a 的小等腰直角三角形，边长还是整数而且更小，和\"最小\"矛盾。",
+   "en": "Suppose root two is a over b, with b as small as possible. Then there is an isosceles right triangle with legs b and hypotenuse a, all whole numbers. Fold one leg onto the hypotenuse along the angle bisector: it cuts off a smaller isosceles right triangle with legs a − b and hypotenuse 2b − a. Those are again whole numbers, and smaller, contradicting \"smallest\"."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "七比五很接近：七的平方是四十九，五的平方的两倍是五十，差一，就不是相等；越接近的分数也只是差得更少，从来不是零。",
+   "en": "Seven fifths is close: seven squared is forty-nine, twice five squared is fifty. Off by one is not equal; closer fractions are only off by less, never by zero."
   },
   "stage": 3,
   "seeds": [],
@@ -747,7 +745,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -795,16 +793,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "k 是\"直线的长度\"或\"与 x 轴交点\"；斜率就是比（呼应 #10）",
-   "en": ""
+   "zh": "k 是直线和 x 轴的交点，或者是直线的长度。",
+   "en": "k is where the line crosses the x-axis, or how long the line is."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "y 等于 k x 加 b 里的 k 是一个比：沿直线横走一格，竖走 k 格；小三角形滑到哪儿、放大多少倍，竖走除以横走都是 k，它管的是直线有多陡、往哪边斜。",
+   "en": "In y equals k x plus b, k is a ratio: step one unit across along the line and you go k units up. Slide the little triangle anywhere or scale it, and rise over run is always k. It says how steep the line is and which way it tilts."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "k 保持二不变只改 b，直线上下平移，和 x 轴的交点一直在变，小三角形却一点没变，所以 k 不是交点。",
+   "en": "Keep k at two and change only b: the line slides up and down, its x-intercept keeps moving, yet the little triangle doesn't change at all. So k is not the intercept."
   },
   "stage": 3,
   "seeds": [],
@@ -815,7 +813,7 @@
   "callbacks": [
    10
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -830,16 +828,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "求根公式只能背；补的角块是 b²/4 而不是 b²",
-   "en": ""
+   "zh": "求根公式只能死记硬背；补的角块是 b 方。",
+   "en": "The quadratic formula can only be memorised; the corner you add is b squared."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "x 方加 b x 的面积图，把长条对半分、一半挪到上面，就只差一个边长二分之 b 的角；补上它就是正方形，开个方就解出 x，求根公式就是这样推出来的。",
+   "en": "In the area picture of x squared plus b x, split the strip in half and move one half to the top: only a corner with side b over two is missing. Fill it and you have a square, take the square root and you have x. That's where the quadratic formula comes from."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "角上补 b 方：b 方是四乘四，角上只空着二乘二，大了四倍，塞不进去；整条长条不分开，补一个 b 方也还缺一条 b x。",
+   "en": "Adding b squared to the corner: b squared is four by four but the gap is only two by two, four times too big. Without splitting the strip, adding b squared still leaves a b x strip missing."
   },
   "stage": 3,
   "seeds": [],
@@ -851,7 +849,7 @@
    4,
    5
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -866,16 +864,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "y=(x−2)² 的顶点在 x=−2",
-   "en": ""
+   "zh": "看到 x 减一，就说顶点在 x 等于负一。",
+   "en": "Seeing x minus one, you say the vertex is at x equals minus one."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "平方不会是负数，最小是零；y 等于 a 乘 x 减 h 的平方加 k 里，括号等于零的地方就是顶点，x 等于 h，这时 y 等于 k；a 只管开口宽窄，不动顶点。",
+   "en": "A square is never negative; its smallest value is zero. In y equals a times x minus h squared plus k, the vertex is where the bracket is zero: x equals h, and there y equals k. The a only changes how wide it opens, not where the vertex is."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "y 等于 x 方减二 x 加三，式子里的负二和三都不是顶点；点二，三在曲线上，却在半山腰。配方成 x 减一的平方加二，才看出顶点是一，二。",
+   "en": "In y equals x squared minus two x plus three, neither minus two nor three is the vertex. The point two, three is on the curve, but halfway up the side. Completing the square gives x minus one squared plus two, and the vertex one, two."
   },
   "stage": 3,
   "seeds": [],
@@ -884,7 +882,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -899,16 +897,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "三角形越大 sin 越大",
-   "en": ""
+   "zh": "三角形画得越大，sin 三十度也越大。",
+   "en": "The bigger you draw the triangle, the bigger sin 30° gets."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "三十度的直角三角形翻过来拼一个，正好是等边三角形，对边是这条边的一半，也就是斜边的一半；放大缩小只是同一个形状，所以 sin 三十度永远是二分之一。",
+   "en": "Flip a 30-degree right triangle over and put the two together and you get an equilateral triangle: the opposite side is half of one side, so half the hypotenuse. Enlarging or shrinking keeps the same shape, so sin 30° is always one half."
   },
   "non_example": {
-   "zh": "边长放大 2 倍，面积变 4 倍，比值不变",
-   "en": ""
+   "zh": "边长放大两倍，面积变成四倍；面积会跟着大小变，对边除以斜边这个比值不会。",
+   "en": "Double the sides and the area becomes four times as big. Area changes with size; the ratio opposite over hypotenuse doesn't."
   },
   "stage": 3,
   "seeds": [],
@@ -919,7 +917,7 @@
   "callbacks": [
    10
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -934,16 +932,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "+2 就是往右 2",
-   "en": ""
+   "zh": "加二就是往右移两格。",
+   "en": "Plus two means shift right by two."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "y 等于 f 括号 x 加二，在 x 处取到的是 f 在 x 加二处的值；原来要走到 a 才出现的值，现在走到 a 减二就出现了，每个值都提前两格，所以整条曲线左移两格。",
+   "en": "y equals f of x plus two takes, at x, the value f has at x plus two. A value that used to appear at a now appears at a minus two. Every value shows up two units early, so the whole curve shifts two units left."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "y 等于 f 括号 x，在外面再加二：加在外面改的是 y，曲线往上移两格，方向和符号一致；只有加在括号里才左右移。",
+   "en": "y equals f of x, plus two outside: adding outside changes y, so the curve moves up two, the same way as the sign. Only adding inside the bracket moves it sideways."
   },
   "stage": 4,
   "seeds": [],
@@ -952,7 +950,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -967,16 +965,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "log(a+b) = log a + log b",
-   "en": ""
+   "zh": "二加四的对数，等于二的对数加四的对数。",
+   "en": "The log of two plus four equals the log of two plus the log of four."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "y 等于二的 x 次方这张图，顺着读是指数，倒着读就是对数：以二为底八的对数问的是二要乘几次才到八；横轴走一格纵轴翻一倍，所以纵轴上乘起来，横轴上就加起来。",
+   "en": "Read the graph of y equals two to the x forwards and you get powers; read it backwards and you get logs. Log base two of eight asks how many times you multiply by two to reach eight. One step right doubles y, so multiplying on the y-axis means adding on the x-axis."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "二加四是六，在曲线上找到六，横轴只走了两格半多一点，不是三格；三格对应的是八，也就是二乘四。",
+   "en": "Two plus four is six. Find six on the curve: x is only a bit over two and a half, not three. Three steps give eight, which is two times four."
   },
   "stage": 4,
   "seeds": [],
@@ -985,7 +983,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1000,16 +998,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "弧度只是另一种单位，与弧长无关",
-   "en": ""
+   "zh": "弧度只是度数的另一种写法，和弧长没有关系。",
+   "en": "Radians are just another way of writing degrees, with nothing to do with arc length."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "在半径为一的圆上，走过的弧长就是转过的弧度；点匀速绕圆走，它的高度是正弦，把走过的路摊平在横轴上，高度就画成曲线；圆一圈一圈地转，高度一遍遍重复，所以是波浪。",
+   "en": "On a circle of radius one, the arc you walk is the angle in radians. Walk round at a steady pace: your height is the sine. Lay the distance walked flat along the x-axis and the height traces a curve. The circle repeats every lap, so the curve repeats: a wave."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "横轴改用度数，走同样长的路，横轴却要记到三百六十，波浪被拉得几乎是平的：高度和走过的路不再一比一。",
+   "en": "Use degrees on the x-axis and the same walk is stretched out to three hundred sixty: the wave is almost flat, because height and distance walked are no longer one to one."
   },
   "stage": 4,
   "seeds": [],
@@ -1018,7 +1016,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1037,12 +1035,12 @@
    "en": "Pairing first with last only works for sums that start at one, like one up to a hundred."
   },
   "insight": {
-   "zh": "把一个和画成一级一级的台阶，再复制一份转半圈拼上，就是一个长方形；每排都是首项加末项，一共项数那么多排，所以和是项数乘首项加末项再除以二。",
-   "en": "Draw the sum as a staircase of dots, copy it, turn the copy half a turn and fit it on: you get a rectangle. Every row is first term plus last term, there are as many rows as terms, so the sum is the number of terms times first plus last, divided by two."
+   "zh": "把一个等差数列摞成一级一级的积木台阶，像削峰填谷那样，把高的那头匀给矮的那头，台阶会摊成一面平墙，高度正好是首项加末项的一半；所以和等于项数乘这个平均高度。",
+   "en": "Stack an arithmetic series as a staircase of blocks and level it like peaks into valleys: the tall end fills the short end and the stairs become a flat wall, exactly as high as the average of the first and last terms. So the sum is the number of terms times that average height."
   },
   "non_example": {
-   "zh": "一加二加四加八每级多得不一样，转半圈拼上，有的排九个点、有的排六个点，拼不成长方形。",
-   "en": "In one plus two plus four plus eight the steps aren't equal: flip and fit, and some rows have nine dots while others have six. No rectangle."
+   "zh": "一、二、四、八每级多得不一样：首尾平均是四点五，可摊平只有三点七五。",
+   "en": "One, two, four, eight grow by different amounts: the first-and-last average is four and a half, but the levelled wall is only three and three quarters."
   },
   "stage": 4,
   "seeds": [],
@@ -1054,7 +1052,7 @@
    31,
    39
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1087,7 +1085,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1102,16 +1100,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "角块为什么能丢：dx 越小，角块占比越小",
-   "en": ""
+   "zh": "角上那一小块是硬丢掉的，所以二 x 只是个近似。",
+   "en": "The little corner is just thrown away, so two x is only an approximation."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "边长 x 的正方形草坪往外长，就像右边、上边各有一把长 x 的滚筒刷往外推；刷过的就是新长的面积，所以面积每秒长二 x。两把刷子在角上补出的小方块，推得越短小得越快。",
+   "en": "A square lawn of side x growing outward is like two rollers, each x long, pushing out from the right and top edges. What they sweep is the new area, so the area grows at two x per second. The little square they leave at the corner shrinks much faster the shorter the push."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "推得不短的时候角块丢不得：推出 x 那么远，角块和一条一样大。",
+   "en": "When the push isn't short the corner can't be dropped: push out as far as x and the corner is as big as a strip."
   },
   "stage": 4,
   "seeds": [],
@@ -1125,7 +1123,7 @@
    29,
    39
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1140,16 +1138,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "向量的和的长度 = 长度之和",
-   "en": ""
+   "zh": "和的长度等于长度的和：一支长四、一支长三，加起来长七。",
+   "en": "The length of the sum is the sum of the lengths: one arrow is 4 long, the other 3, so together they are 7 long."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "向量只管长度和方向，平移到哪里都是同一个；向量 a 加向量 b 就是先走 a 再接着走 b，把 b 的尾巴接到 a 的头上，从起点指到终点的那支箭头就是和。两种顺序拼在一起围成平行四边形，所以平行四边形法则就是两次首尾相接。",
+   "en": "A vector only cares about its length and direction, so it is the same vector wherever you slide it. a plus b means walk a, then walk b: put the tail of b on the tip of a, and the arrow from the start to the end is the sum. The two orders together make a parallelogram, so the parallelogram rule is just tip-to-tail done twice."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "只有两支箭头方向相同时长度才正好相加：向右三格再向右两格是五格；一拐弯，直着走过去就比七短，向右四格再向上三格只有五。",
+   "en": "Lengths add only when the two arrows point the same way: 3 right then 2 right is 5. Once the path turns a corner, the straight line is shorter: 4 right then 3 up is only 5, not 7."
   },
   "stage": 4,
   "seeds": [],
@@ -1158,7 +1156,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1173,16 +1171,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "\"虚数是不存在的数\"",
-   "en": ""
+   "zh": "虚数是不存在的数，是硬编出来凑答案的。",
+   "en": "Imaginary numbers don't really exist; they were made up to force an answer."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "乘负一是让箭头绕零转半圈；如果乘法也要能表示转九十度，那个数乘两次就是转半圈，也就是乘负一，所以它的平方必须是负一，这就是 i。i 不在数轴上，数轴要扩成一个平面，乘 i 就是整个平面转九十度。",
+   "en": "Times negative one turns an arrow half a turn around zero. If multiplication is also to turn by ninety degrees, doing that number twice is a half turn, which is times negative one, so its square must be negative one: that is i. i is not on the number line, so the line grows into a plane, and multiplying by i turns the whole plane by ninety degrees."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "乘 i 不是加 i：三加 i 再加 i 是往上挪一格，到三加二 i，箭头没有转；三加 i 乘 i 才转到负一加三 i。",
+   "en": "Times i is not plus i: 3 + i plus i just moves up one square to 3 + 2i, and the arrow doesn't turn; 3 + i times i turns to −1 + 3i."
   },
   "stage": 4,
   "seeds": [],
@@ -1193,7 +1191,7 @@
   "callbacks": [
    15
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1208,16 +1206,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "矩阵乘法可以交换（呼应 #2）",
-   "en": ""
+   "zh": "矩阵只是四个数排成的一张表，跟拉、转、推没什么关系。",
+   "en": "A matrix is just four numbers in a table, with nothing to do with stretching, turning or pushing."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "二乘二的矩阵把整个平面像橡皮膜一样一起变形；平面上画一座小房子，地板方向和墙的方向各放一支箭头，矩阵的第一列写着地板箭头去了哪，第二列写着墙箭头去了哪。放大、横拉、转九十度、推斜，每一个动作都只是这两支箭头换了地方。",
+   "en": "A 2×2 matrix deforms the whole plane at once, like a rubber sheet. Draw a little house with one arrow along the floor and one up the wall: the first column says where the floor arrow goes, the second where the wall arrow goes. Scaling, stretching, turning and shearing are all just those two arrows moving."
   },
   "non_example": {
-   "zh": "先转再拉 ≠ 先拉再转",
-   "en": ""
+   "zh": "把同样四个数按行来读：地板去 (2,1)、墙去 (0,1)，房子歪到另一边，和按列读的样子完全不同。",
+   "en": "Read the same four numbers by rows: the floor goes to (2,1) and the wall to (0,1), and the house leans the other way, nothing like reading by columns."
   },
   "stage": 4,
   "seeds": [],
@@ -1225,10 +1223,8 @@
    "cn": "高二拓展"
   },
   "series": null,
-  "callbacks": [
-   2
-  ],
-  "phase": "planned",
+  "callbacks": [],
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1276,16 +1272,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "\"连续 5 次反面，下次一定是正面\"（赌徒谬误）；\"10 次一定是 5 次\"",
-   "en": ""
+   "zh": "连着五次反面，下一次一定该是正面了；抛十次就该是五次正面。",
+   "en": "After five tails in a row, the next one has to be heads; ten flips should give exactly five heads."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "概率二分之一不是说十次里一定五次正面，而是说抛得越多，正面出现的频率越会稳定在二分之一附近；前面的乱跳被后面越来越多的次数冲淡，靠的是次数多，不是后面去补前面。",
+   "en": "A probability of one half doesn't mean exactly five heads in ten flips. It means the more you flip, the more the share of heads settles near one half. The early jumps get diluted by ever more flips; it's the large number that does it, not later flips making up for earlier ones."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "这一千次里，刚连着出了五个反面的情况有三十一回，下一次是正面的只有十五回，差不多一半：硬币不记得前面出过什么。",
+   "en": "In these thousand flips, five tails in a row happened thirty-one times, and the next flip was heads only fifteen of those times, about half: the coin doesn't remember what came before."
   },
   "stage": 3,
   "seeds": [],
@@ -1294,7 +1290,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1309,16 +1305,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "条件概率 = 原来的概率；P(A|B) = P(B|A)",
-   "en": ""
+   "zh": "条件概率等于原来的概率，或者凭感觉说：另一个不是男就是女，所以是二分之一。",
+   "en": "A conditional probability equals the plain probability, or by gut feeling: the other child is a boy or a girl, so it's one half."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "条件概率就是把\"已知\"不可能的情况划掉，在剩下的样本空间里重新数：两个孩子有男男、男女、女男、女女四种一样可能的情况；已知至少一个男孩，划掉女女，剩下三格里两个都是男孩只占一格，所以是三分之一。",
+   "en": "Conditional probability means crossing out the cases the given information rules out and counting again in what's left. Two children: boy-boy, boy-girl, girl-boy, girl-girl, all equally likely. Given at least one boy, cross out girl-girl; of the three cells left, only one is two boys, so the answer is one third."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "如果知道的是\"老大是男孩\"，划掉的是下面一整行，剩下男男、男女两格，这时才是二分之一：条件不同，剩下的样本空间就不同。",
+   "en": "If what you know is \"the older one is a boy\", the whole bottom row is crossed out, leaving boy-boy and boy-girl, and only then is it one half: a different condition leaves a different sample space."
   },
   "stage": 4,
   "seeds": [],
@@ -1327,7 +1323,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1342,16 +1338,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "每个格子落球机会一样（等可能偏差）",
-   "en": ""
+   "zh": "每个格子落球的机会一样，球该落得差不多平。",
+   "en": "Every slot is equally likely, so the balls should land roughly flat."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "每个球在每颗钉子上往左往右各一半，所以每一条路的机会都一样；落进哪一格只看往右拐了几次，通向中间格子的路最多（一、六、十五、二十、十五、六、一），所以球堆成中间高两边低的钟形。",
+   "en": "At every peg a ball goes left or right with equal chance, so every route is equally likely. Which slot it lands in depends only on how many rights it took, and the middle slots have the most routes (1, 6, 15, 20, 15, 6, 1), so the balls pile into a bell shape."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "如果七格机会一样，一百二十八个球每格该有十八个左右；实际最边上只落了三个和两个，中间一格有三十九个。",
+   "en": "If the seven slots were equally likely, 128 balls would give about eighteen each; in fact the outer slots got three and two, and the middle got thirty-nine."
   },
   "stage": 4,
   "seeds": [],
@@ -1360,7 +1356,7 @@
   },
   "series": null,
   "callbacks": [],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  },
  {
@@ -1375,16 +1371,16 @@
    "en": ""
   },
   "misconception": {
-   "zh": "\"数列和函数是两回事\"；高阶等差数列只能背题型",
-   "en": ""
+   "zh": "数列和函数是两回事；差的差是常数这种题只能背题型。",
+   "en": "Sequences and functions are different worlds; 'the second difference is constant' is just a problem type to memorise."
   },
   "insight": {
-   "zh": "",
-   "en": ""
+   "zh": "一辆车第 n 秒停在 n 平方的位置，路标是 0、1、4、9、16、25：每秒走的路是相邻路标的距离 1、3、5、7、9，像速度；这些距离每秒多 2，像加速度。路标越来越稀、却稀得很均匀，这个均匀就是二阶差分是常数，正对应导数 2x 和 2。",
+   "en": "A car stops at n squared after n seconds, so the signposts are 0, 1, 4, 9, 16, 25. Each second it covers the gap between neighbouring posts, 1, 3, 5, 7, 9, like a speed; those gaps grow by 2 each second, like an acceleration. The posts spread out, but evenly: that evenness is the constant second difference, matching the derivatives 2x and 2."
   },
   "non_example": {
-   "zh": "",
-   "en": ""
+   "zh": "二的 n 次方 1、2、4、8、16，每秒走的路还是 1、2、4、8，越拉越开，怎么差都不会变成常数。",
+   "en": "Powers of two, 1, 2, 4, 8, 16: the gaps are 1, 2, 4, 8 again, spreading faster and faster, never constant however many times you take differences."
   },
   "stage": 4,
   "seeds": [],
@@ -1396,7 +1392,7 @@
    29,
    31
   ],
-  "phase": "planned",
+  "phase": "coming",
   "youtube": null
  }
 ]
