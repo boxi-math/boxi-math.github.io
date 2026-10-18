@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make Ten: Why Split the 5 in 8+5? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .kid button { font-size: 16px; padding: 8px 14px; min-height: 44px; min-width: 44px; }
+  .kid .num { font-family: var(--math); font-size: 22px; min-width: 1.3em; text-align: center; color: var(--fg); font-weight: 700; }
+  .kid .plus { font-family: var(--math); font-size: 20px; color: var(--fg); }
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .explain .mathline { font-size: 26px; line-height: 1.6; }
+  .explain .mathline .sm { font-family: var(--font); font-size: 14px; color: var(--muted); margin-right: 6px; }
+  .na { border-bottom: 3px solid var(--a); padding: 0 2px; }
+  .nb { border-bottom: 3px solid var(--b); padding: 0 2px; }
+  .nh { background: var(--soft); border-bottom: 3px solid var(--hl); padding: 0 4px; border-radius: 4px 4px 0 0; }
+  .term { font: inherit; color: var(--fg); background: transparent; border: 0; border-radius: 4px 4px 0 0; padding: 0 4px; min-height: 0; border-bottom: 3px solid var(--tc, var(--line)); }
+  .term:hover { background: var(--soft); }
+  .term.on { color: var(--fg); background: var(--soft); outline: 2px solid var(--hl); }
+  .op { margin: 0 2px; }
+  .guess { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 2px 0 10px; font-size: 14px; color: var(--muted); }
+  .guess button { font-size: 17px; min-width: 44px; min-height: 44px; padding: 6px 10px; font-family: var(--math); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  @media (max-width: 560px) {
+    body[data-step="1"] .stage canvas.main, body[data-step="2"] .stage canvas.main { height: 230px; }
+    #cAB > span[data-t] { display: none; }
+    .kid button { min-width: 40px; padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools">
+      <button class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="ten frame"></canvas>
+      <div class="controls kid" id="c1">
+        <button id="count" data-t="countB"></button><button id="recount" data-t="again"></button>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <button id="jin" data-t="jin"></button><button id="jout" data-t="jout"></button>
+      </div>
+      <div class="controls kid" id="cAB">
+        <span data-t="numbers"></span>
+        <button data-d="a-" aria-label="first number minus one">−</button><span class="num" id="va"></span><button data-d="a+" aria-label="first number plus one">+</button>
+        <span class="plus">+</span>
+        <button data-d="b-" aria-label="second number minus one">−</button><span class="num" id="vb"></span><button data-d="b+" aria-label="second number plus one">+</button>
+      </div>
+      <div class="controls kid" id="cP">
+        <span data-t="tryT"></span>
+        <button data-p="8,5">8 + 5</button><button data-p="9,4">9 + 4</button><button data-p="7,6">7 + 6</button><button data-p="6,8">6 + 8</button><button data-p="3,4">3 + 4</button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba } = Play;
+const D = {
+  title: { en: "Make Ten: Why Split the 5 in 8+5?", zh: "凑十：为什么 8+5 先拆 5？" },
+  eyebrow: { en: "Boxi Math · Try it · #1", zh: "Boxi Math · 动手试试 · #1" },
+  intro: { en: "There are eight eggs in the egg box, and here come five more. How many in all? Count, then make ten, then write it down.",
+           zh: "蛋盒里放了八个蛋，又拿来五个，一共几个？先数一数，再凑十，最后写成算式。" },
+  s1: { en: "Count up", zh: "往上数" }, s2: { en: "Make ten", zh: "凑十" }, s3: { en: "Number sentence", zh: "写成算式" },
+  reset: { en: "Reset", zh: "重置" },
+  countB: { en: "Count one more", zh: "再数一个" }, again: { en: "Count again", zh: "重新数" },
+  jin: { en: "Jump one in", zh: "跳进去一个" }, jout: { en: "Jump one out", zh: "跳出来一个" },
+  numbers: { en: "Numbers:", zh: "换数：" }, tryT: { en: "Try:", zh: "试试：" },
+  v1: { en: "Ten frame · counting up", zh: "十格框 · 往上数" }, v2: { en: "Ten frame · make ten", zh: "十格框 · 凑十" }, v3: { en: "Ten frame and number line", zh: "十格框和数轴" },
+  tag1: { en: "tap to count", zh: "点一下数一个" }, tag2: { en: "drag or tap a dot", zh: "拖动或点圆点" }, tag3: { en: "tap a number below", zh: "点下面的数" },
+  inF: { en: "in the frame", zh: "框里" }, outF: { en: "outside", zh: "框外" }, allF: { en: "in all", zh: "一共" },
+  resT: { en: "Make ten first: split the five into two and three", zh: "先凑十：把五拆成两个和三个" },
+  resN: { en: "Split the five into two and three, fill up a ten first, and thirteen shows at a glance, with nothing lost.",
+          zh: "把五拆成两个和三个，先填满一个十，十三就一眼看得出来，一个也没少。" },
+  moreS: { en: "Why is nothing lost when we split the five?", zh: "为什么把五拆开，一个也没少？" },
+  moreP: { en: "Eight plus five equals eight plus two plus three, which is ten plus three. The two are the dots that jump in, the ten is the full frame, and the three are the dots left outside; both sides of the equals sign have exactly the same dots.",
+           zh: "八加五等于八加二加三，等于十加三。二是跳进框里的两个点，十是装满的框，三是框外剩下的点；等号两边的点一个不多、一个不少。" },
+  moreQ: { en: "Next question: a ten frame is two rows of five. What about five rows of two: is that the same?",
+           zh: "下一个问题：十格框是两排五个。换成五排两个，一样多吗？" },
+  foot: { en: "Green dots are the first number, brown dots are the second. Tap or drag on the picture; on a focused picture, arrow keys also work (step 1: → counts, step 2: ← jumps in, → jumps out, step 3: arrows change the numbers).",
+          zh: "绿点是第一个数，棕点是第二个数。在图上点或拖；选中图后也能用方向键（第 1 步：→ 数一个；第 2 步：← 跳进去，→ 跳出来；第 3 步：方向键换数）。" },
+  emptyLbl: { en: "empty", zh: "空格" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+let a = 8, b = 5, step = 1, counted = 0, inFrame = [], guess = null, focus = null, dirty = true, L = null, dots = [];
+
+function rebuild() {
+  dots = Array.from({ length: b }, (_, i) => ({ i, p: null, tgt: null, p0: null, t: 1, arc: 0, drag: null, released: false }));
+  inFrame = []; counted = 0; guess = null; focus = null;
+}
+const room = () => 10 - a;                 // empty boxes at the start
+const fit = () => Math.min(b, 10 - a);     // how many can jump in
+const sum = () => a + b;
+
+// ---------- layout ----------
+function layout(w, h) {
+  const extra = step === 3 ? 150 : 58;
+  let s = Math.min((w - 28) / 10.6, (h - 50 - extra) / 2, 58);
+  s = Math.max(s, 16);
+  const x0 = (w - 10.6 * s) / 2, y0 = 46 + Math.max(0, (h - 50 - 2 * s - extra) / 2);
+  return { s, x0, y0, r: s * 0.36, tx: x0 + 5.6 * s };
+}
+const cellP = (k) => [L.x0 + (k % 5 + 0.5) * L.s, L.y0 + (Math.floor(k / 5) + 0.5) * L.s];
+function slotP(i) {
+  if (b <= 5) return [L.tx + (i + 0.5) * L.s, L.y0 + L.s];
+  return [L.tx + (i % 5 + 0.5) * L.s, L.y0 + (Math.floor(i / 5) + 0.5) * L.s];
+}
+const slotTop = (i) => b <= 5 || i < 5;    // label above (true) or below
+function target(d) {
+  if (d.drag) return d.drag;
+  const j = inFrame.indexOf(d.i);
+  return j >= 0 ? cellP(a + j) : slotP(d.i);
+}
+
+function animate(dt) {
+  if (!L) return false;
+  let moving = false;
+  dots.forEach((d) => {
+    const T = target(d);
+    if (!d.p || d.drag) { d.p = T.slice(); d.tgt = T.slice(); d.t = 1; return; }
+    if (Math.hypot(T[0] - d.tgt[0], T[1] - d.tgt[1]) > 0.5) {
+      d.p0 = d.p.slice(); d.tgt = T.slice(); d.t = Play.reduced ? 1 : 0;
+      d.arc = d.released ? 0 : Math.min(1.1 * L.s, 0.3 * Math.hypot(T[0] - d.p[0], T[1] - d.p[1]));
+    }
+    d.released = false;
+    if (d.t < 1) {
+      d.t = Math.min(1, d.t + dt / 0.45);
+      const u = d.t, e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
+      d.p = [d.p0[0] + (d.tgt[0] - d.p0[0]) * e, d.p0[1] + (d.tgt[1] - d.p0[1]) * e - Math.sin(Math.PI * e) * d.arc];
+      moving = true;
+    } else d.p = d.tgt.slice();
+  });
+  return moving;
+}
+
+// ---------- drawing ----------
+function circle(x, p, r, fill, stroke, lw, dash) {
+  x.beginPath(); x.arc(p[0], p[1], r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
+}
+function pill(x, s, cx, cy, size) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 16, h = size + 10;
+  x.beginPath(); x.roundRect ? x.roundRect(cx - w / 2, cy - h / 2, w, h, 8) : x.rect(cx - w / 2, cy - h / 2, w, h);
+  x.fillStyle = rgba(color("--hl"), 0.32); x.fill(); x.strokeStyle = color("--hl"); x.lineWidth = 2; x.stroke();
+  Play.text(x, s, cx, cy + 0.5, { size, weight: 750, halo: false });
+}
+
+function draw(x, w, h) {
+  const nl = layout(w, h);
+  if (!L || nl.s !== L.s || nl.x0 !== L.x0 || nl.y0 !== L.y0) { L = nl; dots.forEach((d) => { d.p = null; }); animate(0); }
+  const { s, x0, y0, r } = L, mu = color("--muted"), A = color("--a"), B = color("--b"), HL = color("--hl"), NO = color("--no");
+  const k = inFrame.length, nIn = a + k, isFull = nIn === 10;
+  const F = focus;
+  const on = (kind) => !F || { A: ["a", "ten", "sum"], K: ["b", "k", "ten", "sum"], R: ["b", "r", "sum"] }[kind].includes(F);
+
+  // frame
+  x.fillStyle = color("--soft"); x.fillRect(x0, y0, 5 * s, 2 * s);
+  for (let c = nIn; c < 10; c++) {
+    const p = cellP(c);
+    if (step === 2 && k < fit()) x.fillStyle = rgba(HL, 0.22);
+    else if (step >= 2 && k === b && nIn < 10) x.fillStyle = rgba(NO, 0.12);
+    else continue;
+    x.fillRect(p[0] - s / 2 + 1, p[1] - s / 2 + 1, s - 2, s - 2);
+  }
+  x.strokeStyle = rgba(mu, 0.75); x.lineWidth = 1.5; x.beginPath();
+  for (let c = 0; c <= 5; c++) { x.moveTo(x0 + c * s, y0); x.lineTo(x0 + c * s, y0 + 2 * s); }
+  for (let q = 0; q <= 2; q++) { x.moveTo(x0, y0 + q * s); x.lineTo(x0 + 5 * s, y0 + q * s); }
+  x.stroke();
+  if (step >= 2 && k === b && nIn < 10) {           // non-example: frame can't be filled
+    x.strokeStyle = NO; x.lineWidth = 2; x.setLineDash([5, 4]); x.strokeRect(x0 - 3, y0 - 3, 5 * s + 6, 2 * s + 6); x.setLineDash([]);
+    Play.text(x, (10 - nIn) + " " + t(D.emptyLbl), x0 + 2.5 * s, y0 - 16, { size: 15, weight: 700, color: NO });
+  }
+  if (isFull) {
+    x.strokeStyle = HL; x.lineWidth = F === "ten" ? 5 : 3.5; x.strokeRect(x0 - 4, y0 - 4, 5 * s + 8, 2 * s + 8);
+    pill(x, "10", x0 + 2.5 * s, y0 - 20, 17);
+  }
+
+  // where moved dots came from
+  if (step >= 2) dots.forEach((d) => { if (inFrame.includes(d.i)) circle(x, slotP(d.i), r, null, rgba(B, 0.5), 1.5, [3, 3]); });
+
+  // green dots
+  for (let c = 0; c < a; c++) {
+    circle(x, cellP(c), r, rgba(A, on("A") ? 1 : 0.28));
+    if (F && on("A")) circle(x, cellP(c), r + 4, null, HL, 3);
+  }
+  // brown dots (the dragged one last)
+  [...dots].sort((p, q) => (p.drag ? 1 : 0) - (q.drag ? 1 : 0)).forEach((d) => {
+    if (!d.p) return;
+    const kind = inFrame.includes(d.i) ? "K" : "R";
+    circle(x, d.p, d.drag ? r * 1.12 : r, rgba(B, on(kind) ? 1 : 0.28));
+    if (F && on(kind)) circle(x, d.p, r + 4, null, HL, 3);
+  });
+
+  // counting up (step 1)
+  if (step === 1) for (let i = 0; i < counted; i++) {
+    const p = slotP(i), up = slotTop(i);
+    circle(x, p, r + 4, null, HL, 3);
+    Play.text(x, String(a + i + 1), p[0], p[1] + (up ? -1 : 1) * (r + 13), { size: 15, weight: 750 });
+  }
+
+  // bracket: the second number = in + out
+  const rr = b - k;
+  if (step >= 2 && k > 0 && rr > 0 && !dots.some((d) => d.drag)) {
+    const xs = dots.map((d) => d.p[0]), xa = Math.min(...xs) - r * 0.6, xb = Math.max(...xs) + r * 0.6, yb = y0 + 2 * s + 16;
+    x.strokeStyle = B; x.lineWidth = 2; x.beginPath();
+    x.moveTo(xa, yb - 9); x.lineTo(xa, yb); x.lineTo(xb, yb); x.lineTo(xb, yb - 9); x.stroke();
+    Play.text(x, `${k} + ${rr} = ${b}`, (xa + xb) / 2, yb + 15, { size: 16, weight: 750, color: B });
+  }
+
+  if (step === 3) numberLine(x, w);
+}
+
+function numberLine(x, w) {
+  const { s, x0, y0 } = L, B = color("--b"), A = color("--a"), HL = color("--hl"), fg = color("--fg"), mu = color("--muted");
+  const xl = x0 + 0.2 * s, xr = x0 + 10.4 * s, ux = (xr - xl) / 20, yl = y0 + 2 * s + 108;
+  const X = (n) => xl + n * ux;
+  x.strokeStyle = mu; x.lineWidth = 1.5; x.beginPath(); x.moveTo(xl, yl); x.lineTo(xr, yl);
+  for (let n = 0; n <= 20; n++) { const tk = n % 5 ? 4 : 7; x.moveTo(X(n), yl - tk); x.lineTo(X(n), yl + tk); }
+  x.stroke();
+  // hops
+  const hops = sum() > 10 ? [[a, 10, "k"], [10, sum(), "r"]] : [[a, sum(), "b"]];
+  const placed = [];
+  hops.forEach(([p, q, kind]) => {
+    if (q <= p) return;
+    const len = (q - p) * ux, hh = Math.min(40, 10 + len * 0.3), cx = (X(p) + X(q)) / 2, hot = focus === kind || (focus === "b" && kind !== "b");
+    x.beginPath(); x.moveTo(X(p), yl); x.quadraticCurveTo(cx, yl - 2 * hh, X(q), yl);
+    x.strokeStyle = B; x.lineWidth = hot ? 4.5 : 2.5; x.stroke();
+    const lbl = "+" + (q - p); x.font = "700 15px Inter, system-ui, sans-serif";
+    const lw = x.measureText(lbl).width + 6;
+    let ly = yl - hh - 12;
+    while (placed.some((o) => Math.abs(o.x - cx) < (o.w + lw) / 2 && Math.abs(o.y - ly) < 17)) ly -= 17;
+    placed.push({ x: cx, y: ly, w: lw });
+    Play.text(x, lbl, cx, ly, { size: 15, weight: 750, color: B });
+  });
+  // points
+  circle(x, [X(a), yl], 6.5, A, focus === "a" ? HL : null, 3);
+  if (sum() > 10) circle(x, [X(10), yl], 4.5, fg, focus === "ten" ? HL : null, 3);
+  circle(x, [X(sum()), yl], 7, HL, fg, focus === "sum" ? 3 : 1.5);
+  // labels under the line, specials first, no overlaps
+  const labels = [{ n: a, c: A, w: 750 }, ...(sum() > 10 ? [{ n: 10, c: fg, w: 750 }] : []), { n: sum(), c: fg, w: 800 }];
+  [0, 5, 10, 15, 20].forEach((n) => labels.push({ n, c: mu, w: 500, opt: true }));
+  const rows = [[], []];
+  labels.forEach((o) => {
+    x.font = `${o.w} 14px Inter, system-ui, sans-serif`;
+    const lw = x.measureText(String(o.n)).width + 6, cx = X(o.n);
+    const free = (row) => rows[row].every((q) => Math.abs(q.x - cx) >= (q.w + lw) / 2);
+    const row = free(0) ? 0 : !o.opt && free(1) ? 1 : -1;
+    if (row < 0 || rows.flat().some((q) => q.n === o.n)) return;
+    rows[row].push({ x: cx, w: lw, n: o.n });
+    Play.text(x, String(o.n), cx, yl + 19 + row * 18, { size: 14, weight: o.w, color: o.c });
+  });
+}
+
+// ---------- actions ----------
+function nextOut() { return dots.find((d) => !inFrame.includes(d.i)); }
+function jumpIn(d) {
+  d = d || nextOut();
+  if (!d || inFrame.includes(d.i) || inFrame.length >= room()) return false;
+  inFrame.push(d.i); render(); return true;
+}
+function jumpOut(d) {
+  if (!inFrame.length) return false;
+  const i = d ? d.i : inFrame[inFrame.length - 1], j = inFrame.indexOf(i);
+  if (j < 0) return false;
+  inFrame.splice(j, 1); render(); return true;
+}
+function fillAll() { while (inFrame.length < fit()) inFrame.push(nextOut().i); }
+function countNext() { if (counted < b) { counted++; render(); } }
+function setAB(na, nb) {
+  a = Play.clamp(na, 1, 9); b = Play.clamp(nb, 1, 9);
+  rebuild(); if (step === 3) fillAll(); render();
+}
+
+let grab = null;
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!L) return false;
+    if (step === 1) { countNext(); return false; }
+    if (step !== 2) return false;
+    let best = null, bd = L.r * 1.7;
+    dots.forEach((d) => { const q = Math.hypot(d.p[0] - px, d.p[1] - py); if (q < bd) { bd = q; best = d; } });
+    if (!best) return false;
+    grab = { d: best, sx: px, sy: py, moved: false, wasIn: inFrame.includes(best.i) };
+    return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    if (Math.hypot(px - grab.sx, py - grab.sy) > 6) grab.moved = true;
+    if (grab.moved) {
+      grab.d.drag = [Play.clamp(px, L.r, cvEl.clientWidth - L.r), Play.clamp(py, L.r, cvEl.clientHeight - L.r)];
+      dirty = true;
+    }
+  },
+  up() {
+    if (!grab) return;
+    const g = grab, d = g.d; grab = null;
+    if (!g.moved) { g.wasIn ? jumpOut(d) : jumpIn(d); return; }
+    const [px, py] = d.drag, m = L.s * 0.4;
+    const inside = px > L.x0 - m && px < L.x0 + 5 * L.s + m && py > L.y0 - m && py < L.y0 + 2 * L.s + m;
+    d.drag = null; d.released = true;
+    if (g.wasIn && !inside) jumpOut(d);
+    else if (!g.wasIn && inside) jumpIn(d);
+    dirty = true;
+  },
+});
+Play.keys(cvEl, {
+  ArrowRight: () => (step === 1 ? countNext() : step === 2 ? jumpOut() : setAB(a, b + 1)),
+  ArrowLeft: () => (step === 1 ? (counted && (counted--, render())) : step === 2 ? jumpIn() : setAB(a, b - 1)),
+  ArrowUp: () => step === 3 && setAB(a + 1, b),
+  ArrowDown: () => step === 3 && setAB(a - 1, b),
+  " ": () => step === 1 && countNext(),
+  Enter: () => step === 1 && countNext(),
+});
+
+// ---------- text ----------
+const N = (n, c) => `<span class="${c}">${n}</span>`;
+function term(n, f, col) { return `<button class="term${focus === f ? " on" : ""}" data-f="${f}" style="--tc:var(${col})">${n}</button>`; }
+const OP = (s) => `<span class="op">${s}</span>`;
+
+function explain1() {
+  const done = counted === b, list = Array.from({ length: counted }, (_, i) => a + i + 1).join(", ");
+  let out = `<div class="kicker">${t({ en: "Step 01 · count up", zh: "第 1 步 · 往上数" })}</div>
+    <h2>${t({ en: "Count up one at a time", zh: "一个一个往上数" })}</h2>
+    <div class="mathline">${N(a, "na")} + ${N(b, "nb")} = ${done ? N(sum(), "nh") : "?"}</div>
+    <p>${t({ en: "Don't count yet. Just make a guess in your head. Then tap the picture: each tap counts one brown dot.", zh: "先别数，在心里估一估。然后点图：点一下，数一个棕色的点。" })}</p>`;
+  if (counted) out += `<p class="big">${t({ en: `Counting up from ${a}: `, zh: `从 ${a} 往上数：` })}<strong>${list}</strong></p>`;
+  if (done) {
+    out += `<p>${t({ en: `That's right, but it takes ${b} counts, and it's easy to slip.`, zh: `数对了，可是要数 ${b} 下，数多了容易乱。` })}</p>`;
+    if (sum() > 10) out += `<p>${t({ en: `Little sister worries that breaking the ${b} apart will lose a few. Go to step 2 and check.`, zh: `妹妹担心，把 ${b} 拆开，会少掉几个。到第 2 步看看。` })}</p>`;
+  }
+  return out;
+}
+
+function explain2() {
+  const k = inFrame.length, rr = b - k, nIn = a + k, need = room() - k;
+  let out = `<div class="kicker">${t({ en: "Step 02 · make ten", zh: "第 2 步 · 凑十" })}</div>
+    <h2>${t({ en: "How many should jump in to fill the frame?", zh: "跳几个过去，框就满了？" })}</h2>
+    <p>${t({ en: "Drag a brown dot into an empty box, or tap it. Tap a brown dot in the frame to send it back.", zh: "把棕色的点拖进空格，或者点一下它。点框里的棕点，它就跳回去。" })}</p>`;
+  if (sum() >= 10 && k === 0) {
+    out += `<div class="guess"><span>${t({ en: "Guess first:", zh: "先猜：" })}</span>` +
+      Array.from({ length: b }, (_, i) => `<button data-g="${i + 1}" class="${guess === i + 1 ? "on" : ""}">${i + 1}</button>`).join("") + `</div>`;
+    if (guess != null) out += `<p class="big">${guess === room()
+      ? t({ en: `Yes! ${room()} empty ${room() === 1 ? "box, so 1 jumps" : "boxes, so " + room() + " jump"} in. Now drag ${room() === 1 ? "it" : "them"}.`, zh: `对！空着 ${room()} 格，跳 ${room()} 个就满。拖过去试试。` })
+      : t({ en: "Count the empty boxes, then drag and see.", zh: "数一数空格，再拖过去看看。" })}</p>`;
+  }
+  out += `<div class="mathline"><span class="sm">${t(D.inF)}</span>${N(a, "na")}${k ? ` + ${N(k, "nb")}` : ""} = ${nIn === 10 ? N(10, "nh") : nIn}<br>` +
+    `<span class="sm">${t(D.outF)}</span>${N(rr, "nb")}` +
+    (nIn === 10 ? `<br><span class="sm">${t(D.allF)}</span>${N(10, "nh")} + ${rr} = ${N(sum(), "nh")}` : "") + `</div>`;
+  if (nIn === 10 && rr > 0) {
+    out += `<p class="big">${t({ en: `${k} ${k === 1 ? "jumps" : "jump"} in, and the frame is full. Not one empty box. A full ten frame is one ten.`, zh: `跳 ${k} 个过去，十格框正好装满，一格不空。装满的十格框，就是一个十。` })}</p>
+      <p>${t({ en: `The ${b} became ${k} and ${rr}. Put together, it's still ${b}. One ten and ${rr} more: you can see ${sum()} at a glance.`, zh: `${b} 拆成了 ${k} 个和 ${rr} 个，合起来还是 ${b} 个。一个十，再加 ${rr} 个，一眼就能看出是 ${sum()}。` })}</p>`;
+  } else if (nIn === 10) {
+    out += `<p class="big">${t({ en: "The frame is full: exactly one ten, nothing left outside.", zh: "框正好装满：就是一个十，框外一个也不剩。" })}</p>`;
+  } else if (rr === 0) {
+    out += `<p class="big"><span class="tag-no">${t({ en: "Not full.", zh: "装不满。" })}</span> ${t({ en: `${a} plus ${b} is less than ten and doesn't fill the frame, so making ten doesn't help; just count.`, zh: `${a} 加 ${b} 不到十，十格框装不满，凑十帮不上忙，直接数就好。` })}</p>`;
+  } else if (k > 0) {
+    out += `<p>${t({ en: `${need} empty ${need === 1 ? "box" : "boxes"} left.`, zh: `还空着 ${need} 格。` })}</p>`;
+  }
+  return out;
+}
+
+function explain3() {
+  const k = fit(), rr = b - k, S = sum();
+  const ta = term(a, "a", "--a"), tb = term(b, "b", "--b"), tk = term(k, "k", "--b"), tr = term(rr, "r", "--b"), tt = term(10, "ten", "--hl"), ts = term(S, "sum", "--hl");
+  let h, eq, p;
+  if (S > 10) {
+    h = { en: `${a} + ${b} is the same as 10 + ${rr}`, zh: `${a} + ${b} 和 10 + ${rr} 一样多` };
+    eq = `${ta}${OP("+")}${tb}${OP("=")}${ta.replace('data-f="a"', 'data-f="a" tabindex="-1"')}${OP("+")}${tk}${OP("+")}${tr}${OP("=")}${tt}${OP("+")}${tr.replace('data-f="r"', 'data-f="r" tabindex="-1"')}${OP("=")}${ts}`;
+    const kIn = k === 1 ? "The 1 is the dot that jumps in" : "The " + k + " are the dots that jump in";
+    const rOut = rr === 1 ? "the 1 is the dot left outside" : "the " + rr + " are the dots left outside";
+    p = { en: `${kIn}, the 10 is the full frame, and ${rOut}. On the number line, hop ${k} from ${a} to 10, then ${rr} more to ${S}.`,
+          zh: `${k} 是跳进框里的点，10 是装满的框，${rr} 是框外剩下的点。在数轴上，从 ${a} 跳 ${k} 格到 10，再跳 ${rr} 格到 ${S}。` };
+  } else if (S === 10) {
+    h = { en: `${a} + ${b} fills the frame exactly`, zh: `${a} + ${b} 正好装满一个框` };
+    eq = `${ta}${OP("+")}${tb}${OP("=")}${tt}`;
+    p = { en: `All ${b} jump in and the frame is full. On the number line, hop ${b} from ${a} to 10.`, zh: `${b} 个全跳进去，框正好满。在数轴上，从 ${a} 跳 ${b} 格到 10。` };
+  } else {
+    h = { en: `${a} + ${b} doesn't reach ten`, zh: `${a} + ${b} 不到十` };
+    eq = `${ta}${OP("+")}${tb}${OP("=")}${ts}`;
+    p = { en: `${a} plus ${b} is less than ten and doesn't fill the frame, so making ten doesn't help; just count. On the number line it is one hop of ${b}, from ${a} to ${S}.`,
+          zh: `${a} 加 ${b} 不到十，十格框装不满，凑十帮不上忙，直接数就好。在数轴上，从 ${a} 一下跳 ${b} 格到 ${S}。` };
+  }
+  return `<div class="kicker">${t({ en: "Step 03 · number sentence", zh: "第 3 步 · 写成算式" })}</div>
+    <h2>${t(h)}</h2>
+    ${S < 10 ? `<p><span class="tag-no">${t({ en: "Making ten doesn't help here.", zh: "这里用不上凑十。" })}</span></p>` : ""}
+    <div class="mathline">${eq}</div>
+    <p class="note">${t({ en: "Tap a number to see it in the picture.", zh: "点一个数，看它在图里是哪些点。" })}</p>
+    <p class="big">${t(p)}</p>
+    <p>${t({ en: "The equals sign doesn't mean work it out. It means both sides are the same.", zh: "等号的意思不是算出来，是两边一样多。" })}</p>`;
+}
+
+function render() {
+  el("explain").innerHTML = step === 1 ? explain1() : step === 2 ? explain2() : explain3();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  el("c1").hidden = step !== 1; el("c2").hidden = step !== 2;
+  el("va").textContent = a; el("vb").textContent = b;
+  el("count").disabled = counted >= b; el("recount").disabled = counted === 0;
+  el("jin").disabled = inFrame.length >= fit(); el("jout").disabled = inFrame.length === 0;
+  document.querySelectorAll("#cP [data-p]").forEach((q) => q.classList.toggle("on", q.dataset.p === a + "," + b));
+  dirty = true;
+}
+function resultLine(p, q) {
+  const k = 10 - p, rr = q - k;
+  return `${p} + ${q} = ${p} + ${k} + ${rr} = 10 + ${rr} = ${p + q}`;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), f = e.target.closest("[data-f]");
+  if (g) { guess = +g.dataset.g; render(); }
+  if (f) { focus = focus === f.dataset.f ? null : f.dataset.f; render(); }
+});
+el("count").onclick = countNext;
+el("recount").onclick = () => { counted = 0; render(); };
+el("jin").onclick = () => jumpIn();
+el("jout").onclick = () => jumpOut();
+document.querySelectorAll("#cAB [data-d]").forEach((q) => (q.onclick = () => {
+  const dd = q.dataset.d, s = dd[1] === "+" ? 1 : -1;
+  dd[0] === "a" ? setAB(a + s, b) : setAB(a, b + s);
+}));
+document.querySelectorAll("#cP [data-p]").forEach((q) => (q.onclick = () => { const [p, r] = q.dataset.p.split(",").map(Number); setAB(p, r); }));
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n; focus = null; L = null;
+  if (n === 1) { inFrame = []; counted = 0; }
+  if (n === 2) { inFrame = []; guess = null; }
+  if (n === 3) fillAll();
+  render();
+});
+el("reset").onclick = () => { a = 8; b = 5; rebuild(); nav.set(1); };
+el("resM").textContent = resultLine(8, 5);
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (animate(dt)) dirty = true;
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+rebuild();
+nav.set(1);
+</script>
+</body>
+</html>

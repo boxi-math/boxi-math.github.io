@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Is 3×4 the Same as 4×3? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.2em; text-align: center; color: var(--fg); }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .choices button { min-height: 40px; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .dim { opacity: .45; }
+  .mathline b { color: var(--hl); }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="dot array"></canvas>
+      <div class="controls" id="c1">
+        <span data-t="countRow"></span>
+        <button class="big" id="cntL" data-t="countL"></button>
+        <button class="big" id="cntR" data-t="countR"></button>
+        <button class="small" id="clear1" data-t="clear"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="big turn" data-t="turn"></button>
+        <input id="ang" type="range" min="0" max="90" value="0" aria-label="turn">
+        <span class="val" id="angVal"></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><span data-t="have"></span><button data-d="a-">−</button><b id="aVal"></b><button data-d="a+">+</button></span>
+        <span class="stepper"><span data-t="take"></span><button data-d="b-">−</button><b id="bVal"></b><button data-d="b+">+</button></span>
+        <button class="big" id="takeBtn"></button>
+        <button id="swapBtn" data-t="swap"></button>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="stepper"><span data-t="rowsW"></span><button data-d="r-">−</button><b id="rVal" class="cA"></b><button data-d="r+">+</button></span>
+        <span class="stepper"><span data-t="eachW"></span><button data-d="c-">−</button><b id="cVal" class="cB"></b><button data-d="c+">+</button></span>
+        <button class="big turn" data-t="turn"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resMath"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "Is 3×4 the Same as 4×3?", zh: "3×4 和 4×3 一样大？" },
+  eyebrow: { en: "Boxi Math · Try it · #2", zh: "Boxi Math · 动手试试 · #2" },
+  intro: { en: "Count two dot arrays, turn one around, then see why subtraction can't swap.", zh: "数两个点阵，把点阵转一转，再看看减法为什么不能换顺序。" },
+  s1: { en: "Count", zh: "数一数" }, s2: { en: "Turn it", zh: "转一转" }, s3: { en: "Take away?", zh: "减法呢？" }, s4: { en: "Number sentence", zh: "写成算式" },
+  reset: { en: "Reset", zh: "重置" },
+  countRow: { en: "Count a row:", zh: "数一排：" }, countL: { en: "Left", zh: "左边" }, countR: { en: "Right", zh: "右边" }, clear: { en: "Start over", zh: "重新数" },
+  turn: { en: "Turn", zh: "转一下" }, pause: { en: "Pause", zh: "暂停" },
+  have: { en: "Dots", zh: "有" }, take: { en: "Take away", zh: "拿走" },
+  takeB: { en: "Take away", zh: "拿走" }, putB: { en: "Put back", zh: "放回" }, swap: { en: "Swap order", zh: "换顺序" },
+  rowsW: { en: "Rows", zh: "排数" }, eachW: { en: "In each row", zh: "每排" },
+  v1: { en: "Three fours and four threes", zh: "三个四和四个三" }, v2: { en: "The same dots, turned", zh: "同一堆点，转一转" },
+  v3: { en: "Take away", zh: "拿走" }, v4: { en: "Rows and in each row", zh: "排数和每排几个" },
+  tag1: { en: "tap a picture to count", zh: "点图来数" }, tag2: { en: "drag to turn · tap a dot", zh: "拖动来转 · 点一个点" },
+  tag3: { en: "tap to take away", zh: "点图拿走" }, tag4: { en: "drag to turn", zh: "拖动来转" },
+  resT: { en: "Turn the array: the rows and the dots in each row swap, and the dots stay the same dots.", zh: "把点阵转一下：排数和每排几个对调了，点还是那些点。" },
+  resN: { en: "Subtraction can't swap: five take away two leaves three, but two take away five isn't possible.", zh: "减法不能换顺序：五个拿走两个剩三个，两个要拿走五个根本不够拿。" },
+  moreS: { en: "Does it work for any numbers?", zh: "换成别的数也行吗？" },
+  moreP: { en: "Yes. Six rows of seven works too: turn it, and the count stays the same. Any array of dots, turned a quarter turn, becomes an array with the rows and the dots in each row swapped. Turning moves dots, it never adds or removes one. So the two multiplications count the very same dots.",
+           zh: "行。换成六排七个也一样，转一转，个数不变。任何点阵转九十度，都变成排数和每排几个对调的点阵。转只是挪动点，一个也不加、一个也不拿。所以两个乘法数的是同一堆点。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then use the arrow keys (← → turn or count, Enter takes away).",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键（← → 转或数一排，回车拿走）。" },
+  guessQ: { en: "Which has more dots?", zh: "哪边点多？" },
+  gL: { en: "Left", zh: "左边多" }, gR: { en: "Right", zh: "右边多" }, gS: { en: "The same", zh: "一样多" },
+  rowsLbl: { en: "rows", zh: "排" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · guess first", zh: "第 1 步 · 先猜一猜" },
+       h: { en: "3 rows of 4, and 4 rows of 3", zh: "三排四个，和四排三个" },
+       p: { en: "Some kids say: three fours and four threes are different things, so they might not be the same amount. What do you think?",
+            zh: "有同学说：三个四和四个三是两回事，所以不一定一样多。你觉得呢？" } },
+  2: { kicker: { en: "Step 02 · turn it", zh: "第 2 步 · 转一转" },
+       h: { en: "Turn the whole array", zh: "把整个点阵转过来" },
+       p: { en: "Drag on the picture or press Turn. Tap a dot to make it gold and watch where it goes.",
+            zh: "在图上拖动，或者按「转一下」。点一个点让它变金色，看它转到哪里。" } },
+  3: { kicker: { en: "Step 03 · not every sign can swap", zh: "第 3 步 · 不是都能换" },
+       h: { en: "But subtraction doesn't work like this", zh: "可是减法就不行" },
+       p: { en: "Take some dots away. Then swap the order and try again.", zh: "拿走几个点。再换一下顺序，试一试。" } },
+  4: { kicker: { en: "Step 04 · number sentence", zh: "第 4 步 · 写成算式" },
+       h: { en: "The number of rows is one number; how many in each row is the other", zh: "排数是一个数，每排几个，是另一个数" },
+       p: { en: "Change the rows and the dots in each row, then turn it.", zh: "改一改排数和每排几个，再转一转。" } },
+};
+Play.i18n(D);
+
+const L1 = 3, R1 = 4;            // step 1: left = 3 rows of 4, right = 4 rows of 3 (script numbers)
+const MAXN = 7, MAXS = 9, HALF = Math.PI / 2;
+let step = 1, cnt = [0, 0], guess = -1;
+let R = 3, C = 4, theta = 0, target = 0, goal = HALF, tagged = 0;
+let a = 5, b = 2, took = 0, takeTo = 0;
+let dirty = true, dragInfo = null, hit = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+const plus = (n, k) => Array(n).fill(k).join(" + ");
+const sumStr = (rows, each) => rows > 1 ? `${plus(rows, each)} = ${rows * each}` : String(rows * each);
+
+// dot positions of an R x C array, centred at 0, turned by angle th (counter-clockwise on screen)
+function dots(rows, each, p, th) {
+  const out = [], cs = Math.cos(th), sn = Math.sin(th);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < each; c++) {
+    const x = (c - (each - 1) / 2) * p, y = (r - (rows - 1) / 2) * p;
+    out.push([x * cs + y * sn, -x * sn + y * cs]);
+  }
+  return out;
+}
+// read rows / dots-in-each-row straight off the picture at a resting angle
+function readArray(rows, each, th) {
+  const ps = dots(rows, each, 1, th), ys = new Set(ps.map((q) => Math.round(q[1] * 2)));
+  return { n: ps.length, rows: ys.size, each: ys.size ? ps.length / ys.size : 0 };
+}
+function circle(x, cx, cy, r, fill, stroke, dash) {
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = 1.6; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
+}
+function band(x, x0, y0, w, h, col) {
+  x.fillStyle = col; x.beginPath();
+  if (x.roundRect) x.roundRect(x0, y0, w, h, h / 2); else x.rect(x0, y0, w, h);
+  x.fill();
+}
+
+// ---------- step 1 ----------
+function layout1(w, h) {
+  const p = Math.max(16, Math.min(40, (w - 100) / 9.5, (h - 140) / 4));
+  return { p, r: p * 0.32, cy: 46 + (h - 46 - 40) / 2, cx: [w * 0.27, w * 0.73] };
+}
+function draw1(x, w, h) {
+  const { p, r, cy, cx } = layout1(w, h), A = color("--a"), NO = color("--no");
+  const top = cy - 1.5 * p - r - 18, bot = cy + 1.5 * p + r + 24;
+  [[L1, R1], [R1, L1]].forEach(([rows, each], k) => {
+    const x0 = cx[k], hw = (each - 1) / 2 * p, done = cnt[k];
+    for (let i = 0; i < rows; i++) {
+      const y = cy + (i - (rows - 1) / 2) * p;
+      if (i < done) band(x, x0 - hw - r - 5, y - r - 5, 2 * hw + 2 * r + 10, 2 * r + 10, rgba(color("--hl"), 0.3));
+      for (let c = 0; c < each; c++) {
+        const px = x0 + (c - (each - 1) / 2) * p;
+        if (k === 1 && i >= done) circle(x, px, y, r, null, rgba(NO, 0.8), [3, 3]);
+        else circle(x, px, y, r, A);
+      }
+    }
+    const lx = Math.max(12, x0 - hw - r - 18);
+    Play.text(x, String(rows), lx, cy, { size: 20, weight: 700, color: color(k ? "--b" : "--a") });
+    Play.text(x, t({ en: `${each} in each row`, zh: `每排 ${each} 个` }), x0, top, { size: 13, weight: 650, color: color(k ? "--a" : "--b") });
+    const s = done === 0 ? "?" : sumStr(done, each);
+    Play.text(x, s, x0, bot, { size: 15, weight: 700, color: done === rows ? color("--fg") : color("--muted") });
+  });
+}
+function count(k) { const max = k ? R1 : L1; if (cnt[k] < max) cnt[k]++; render(); }
+
+// ---------- steps 2 and 4: the turning array ----------
+function layout2(w, h) {
+  const p = Math.max(12, Math.min(44, (Math.min(w - 120, h - 110)) / Math.max(R, C), (Math.min(w, h - 40) - 24) / Math.hypot(R, C)));
+  return { p, r: Math.min(p * 0.32, 15), cx: w / 2, cy: 52 + (h - 52 - 40) / 2 };
+}
+function draw2(x, w, h) {
+  const { p, r, cx, cy } = layout2(w, h), A = color("--a");
+  const ps = dots(R, C, p, theta);
+  hit = { ps, cx, cy, p };
+  ps.forEach((q, i) => {
+    if (i === tagged) circle(x, cx + q[0], cy + q[1], r + 1.5, color("--hl"), color("--fg"));
+    else circle(x, cx + q[0], cy + q[1], r, A);
+  });
+  // labels belong to the resting orientation nearest to the current angle; they fade out mid-turn
+  const turned = theta > HALF / 2, rest = readArray(R, C, turned ? HALF : 0);
+  const cz = Math.abs(Math.cos(2 * theta)), al = clamp(2 * cz - 1, 0, 1);
+  const hw = (rest.each - 1) / 2 * p + r, hh = (rest.rows - 1) / 2 * p + r;
+  x.globalAlpha = al;
+  const rowsCol = color(turned ? "--b" : "--a"), eachCol = color(turned ? "--a" : "--b");
+  const lx = Math.max(22, cx - hw - 28);
+  Play.text(x, String(rest.rows), lx, cy - 9, { size: 22, weight: 700, color: rowsCol });
+  Play.text(x, t(D.rowsLbl), lx, cy + 13, { size: 13, color: rowsCol });
+  Play.text(x, t({ en: `${rest.each} in each row`, zh: `每排 ${rest.each} 个` }), cx, Math.max(40, cy - hh - 18), { size: 14, weight: 650, color: eachCol });
+  Play.text(x, sumStr(rest.rows, rest.each), cx, h - 22, { size: 16, weight: 700 });
+  x.globalAlpha = clamp(1 - 2 * cz, 0, 1);
+  Play.text(x, t({ en: `${ps.length} dots`, zh: `${ps.length} 个点` }), cx, h - 22, { size: 16, weight: 700, color: color("--muted") });
+  x.globalAlpha = 1;
+}
+function turnClick() {
+  if (Math.abs(target - theta) > 1e-4) { target = theta; return syncTurn(); }    // pause
+  if (theta < 1e-4) goal = HALF; else if (theta > HALF - 1e-4) goal = 0;
+  target = goal;
+  if (Play.reduced) theta = target;
+  render();
+}
+function syncTurn() {
+  const moving = Math.abs(target - theta) > 1e-4;
+  document.querySelectorAll(".turn").forEach((bt) => (bt.textContent = t(moving ? D.pause : D.turn)));
+  $("ang").value = Math.round(theta / HALF * 90);
+  $("angVal").textContent = Math.round(theta / HALF * 90) + "°";
+  dirty = true;
+}
+
+// ---------- step 3: subtraction ----------
+function draw3(x, w, h) {
+  const n = Math.max(a, b, 1), p = Math.min(44, (w - 40) / n), r = Math.min(p * 0.34, 15);
+  const cy = h * 0.58, x0 = w / 2 - (n - 1) / 2 * p, A = color("--a"), NO = color("--no");
+  const gone = Math.min(a, b), short = Math.max(0, b - a);
+  for (let i = 0; i < a; i++) {
+    const px = x0 + i * p;
+    if (i >= a - gone) {
+      x.globalAlpha = 1 - 0.75 * took;
+      circle(x, px, cy - 80 * took, r, took > 0 ? NO : A);
+      x.globalAlpha = 1;
+      if (took > 0.5) circle(x, px, cy, r, null, rgba(color("--muted"), 0.5), [2, 4]);
+    } else circle(x, px, cy, r, A);
+  }
+  if (short && took > 0) {
+    x.globalAlpha = took;
+    for (let i = a; i < b; i++) circle(x, x0 + i * p, cy, r + 2, null, NO, [4, 3]);
+    const mid = x0 + (a + b - 1) / 2 * p;
+    Play.text(x, t({ en: `${short} missing`, zh: `还差 ${short} 个` }), mid, cy + r + 22, { size: 14, weight: 700, color: NO });
+    x.globalAlpha = 1;
+  }
+  const eq = took < 1 ? `${a} − ${b} = ?` : short ? `${a} − ${b}  ✗` : `${a} − ${b} = ${a - b}`;
+  Play.text(x, eq, w / 2, h - 26, { size: 20, weight: 700, color: took === 1 && short ? NO : color("--fg") });
+  Play.text(x, t({ en: `${a} dots`, zh: `${a} 个点` }), w / 2, 46, { size: 14, color: color("--muted") });
+}
+function takeClick() { takeTo = takeTo ? 0 : 1; if (Play.reduced) took = takeTo; render(); }
+
+function draw(x, w, h) {
+  if (step === 1) draw1(x, w, h); else if (step === 3) draw3(x, w, h); else draw2(x, w, h);
+}
+
+// ---------- explain panel ----------
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>`;
+  if (step === 1) {
+    const left = L1 * R1, right = R1 * L1, ans = left > right ? 0 : left < right ? 1 : 2;
+    html += `<p><strong>${t(D.guessQ)}</strong></p><div class="choices">` +
+      [D.gL, D.gR, D.gS].map((g, i) => `<button data-g="${i}" class="${guess === i ? (i === ans ? "right" : "wrong") : ""}">${t(g)}</button>`).join("") + `</div>`;
+    if (guess >= 0) {
+      const both = cnt[0] === L1 && cnt[1] === R1;
+      html += `<div class="mathline">${t({ en: "Left", zh: "左边" })}: ${cnt[0] ? sumStr(cnt[0], R1) : "?"}<br>${t({ en: "Right", zh: "右边" })}: ${cnt[1] ? sumStr(cnt[1], L1) : "?"}</div>`;
+      html += both
+        ? `<p>${guess === ans ? "" : `<span class="tag-no">${t({ en: "Not quite.", zh: "猜错了。" })}</span> `}${t({ en: `Both are <strong>${left}</strong>. But we had to set it up and count all over again. Is there a faster way? Go to step 2.`, zh: `两边都是 <strong>${left}</strong>。可是我们重新摆了一次，又数了一遍。有没有更快的办法？看第 2 步。` })}</p>`
+        : `<p>${t({ en: "Now tap each picture to count it, one row at a time.", zh: "现在点图，一排一排地数。" })}</p>`;
+    }
+  } else if (step === 2 || step === 4) {
+    const before = readArray(R, C, 0), after = readArray(R, C, HALF), turned = theta > HALF / 2;
+    const line = (o, colRows, colEach, on) => `<span class="${on ? "" : "dim"}"><span class="${colRows}">${o.rows}</span> ${t({ en: "rows of", zh: "排，每排" })} <span class="${colEach}">${o.each}</span>${Play.lang === "zh" ? " 个：" : ": "}${plus(o.rows, o.each)} = <b>${o.n}</b></span>`;
+    if (step === 2) {
+      html += `<div class="mathline">${line(before, "cA", "cB", !turned)}<br>${line(after, "cB", "cA", turned)}</div>`;
+      html += `<p>${before.n === after.n ? t({ en: "Nothing added, nothing taken away. It just faces a new way.", zh: "一个点没加，一个点没拿，只是换了一个方向。" }) : ""}</p>`;
+    } else {
+      html += `<div class="mathline"><span class="cA">${R}</span> × <span class="cB">${C}</span> = <span class="cB">${C}</span> × <span class="cA">${R}</span> = <b>${R * C}</b><br>` +
+        `<span class="${turned ? "dim" : ""}"><span class="cA">${R}</span> × <span class="cB">${C}</span> = ${plus(R, C)}</span><br>` +
+        `<span class="${turned ? "" : "dim"}"><span class="cB">${C}</span> × <span class="cA">${R}</span> = ${plus(C, R)}</span></div>`;
+      html += `<p class="note">${t({ en: "Six rows of seven works too. Turn it, and the count stays the same.", zh: "换成六排七个也一样，转一转，个数不变。" })}</p>`;
+    }
+  } else {
+    const fwd = a >= b ? `${a} − ${b} = ${a - b}` : `${a} − ${b} ✗`, back = b >= a ? `${b} − ${a} = ${b - a}` : `${b} − ${a} ✗`;
+    if (took === 1 || takeTo === 1) {
+      html += `<div class="mathline">${fwd}<br><span class="dim">${back}</span></div>`;
+      html += b > a
+        ? `<p><span class="tag-no">${t({ en: "There aren't enough.", zh: "根本不够拿。" })}</span> ${t({ en: "You can't swap the order.", zh: "顺序换不了。" })}</p>`
+        : a === b ? `<p>${t({ en: "Nothing left. Now try a different number.", zh: "一个不剩。换个数再试试。" })}</p>`
+        : `<p>${t({ en: `${a} take away ${b} leaves ${a - b}. Press “Swap order”: can ${b} take away ${a}?`, zh: `${a} 个拿走 ${b} 个，剩 ${a - b} 个。按「换顺序」：${b} 个能拿走 ${a} 个吗？` })}</p>`;
+    }
+    html += `<p class="note">${t({ en: "Turning works for multiplying: the dots just face a new way. Taking away can't be turned around.", zh: "乘法能转：点只是换了方向。拿走这件事，转不过来。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  $("aVal").textContent = a; $("bVal").textContent = b; $("rVal").textContent = R; $("cVal").textContent = C;
+  $("takeBtn").textContent = t(takeTo ? D.putB : D.takeB);
+  $("resMath").textContent = `${L1} × ${R1} = ${R1} × ${L1} = ${L1 * R1}`;
+  syncTurn();
+}
+$("explain").addEventListener("click", (e) => { const g = e.target.closest("[data-g]"); if (g) { guess = +g.dataset.g; render(); } });
+
+// ---------- input ----------
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n;
+  if (n === 2) { R = L1; C = R1; }
+  if (Play.reduced) theta = target;
+  render();
+});
+$("cntL").onclick = () => count(0);
+$("cntR").onclick = () => count(1);
+$("clear1").onclick = () => { cnt = [0, 0]; render(); };
+document.querySelectorAll(".turn").forEach((bt) => (bt.onclick = turnClick));
+$("ang").oninput = (e) => { theta = target = clamp(+e.target.value, 0, 90) / 90 * HALF; render(); };
+$("takeBtn").onclick = takeClick;
+$("swapBtn").onclick = () => { [a, b] = [b, a]; took = takeTo = 0; render(); };
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, d = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") a = clamp(a + d, 0, MAXS);
+  if (k[0] === "b") b = clamp(b + d, 0, MAXS);
+  if (k[0] === "a" || k[0] === "b") took = takeTo = 0;
+  if (k[0] === "r") R = clamp(R + d, 1, MAXN);
+  if (k[0] === "c") C = clamp(C + d, 1, MAXN);
+  tagged = Math.min(tagged, R * C - 1);
+  render();
+}));
+
+const ang = (px, py) => Math.atan2(py - (hit ? hit.cy : 0), px - (hit ? hit.cx : 0));
+Play.drag(cv, {
+  down(px, py) {
+    if (step === 1) { count(px < main.w / 2 ? 0 : 1); return false; }
+    if (step === 3) { takeClick(); return false; }
+    dragInfo = { x: px, y: py, phi: ang(px, py), moved: false };
+    return true;
+  },
+  move(px, py) {
+    if (!dragInfo) return;
+    if (Math.hypot(px - dragInfo.x, py - dragInfo.y) > 6) dragInfo.moved = true;
+    if (!dragInfo.moved) return;
+    const phi = ang(px, py);
+    let d = phi - dragInfo.phi; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
+    dragInfo.phi = phi;
+    theta = target = clamp(theta - d, 0, HALF);
+    render();
+  },
+  up() {
+    if (!dragInfo) return;
+    if (!dragInfo.moved && hit) {          // a tap: choose the gold dot
+      let best = -1, bd = hit.p * 0.6;
+      hit.ps.forEach((q, i) => { const dd = Math.hypot(hit.cx + q[0] - dragInfo.x, hit.cy + q[1] - dragInfo.y); if (dd < bd) { bd = dd; best = i; } });
+      if (best >= 0) tagged = best;
+    } else {
+      target = theta < HALF / 2 ? 0 : HALF; goal = target ? 0 : HALF;
+      if (Play.reduced) theta = target;
+    }
+    dragInfo = null; render();
+  },
+});
+const nudge = (d) => {
+  if (step === 1) return count(d > 0 ? 1 : 0);
+  if (step === 3) { [a, b] = [b, a]; took = takeTo = 0; return render(); }
+  theta = target = clamp(theta - d * HALF / 9, 0, HALF); render();
+};
+Play.keys(cv, {
+  ArrowLeft: () => nudge(-1), ArrowRight: () => nudge(1), ArrowUp: () => nudge(-1), ArrowDown: () => nudge(1),
+  Enter: () => (step === 3 ? takeClick() : step === 1 ? count(cnt[0] < L1 ? 0 : 1) : turnClick()),
+  " ": () => (step === 3 ? takeClick() : step === 1 ? count(cnt[0] < L1 ? 0 : 1) : turnClick()),
+});
+$("reset").onclick = () => {
+  cnt = [0, 0]; guess = -1; R = L1; C = R1; theta = target = 0; goal = HALF; tagged = 0; a = 5; b = 2; took = takeTo = 0;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => (dirty = true));
+
+Play.loop((dt) => {
+  if (Math.abs(target - theta) > 1e-4) {
+    const sp = HALF / 1.4 * dt;
+    theta = Math.abs(target - theta) <= sp ? target : theta + Math.sign(target - theta) * sp;
+    if (theta === target) render(); else syncTurn();
+  }
+  if (took !== takeTo) {
+    took = clamp(took + Math.sign(takeTo - took) * dt / 0.6, 0, 1);
+    if (Math.abs(took - takeTo) < 1e-3) took = takeTo;
+    if (took === takeTo) render();
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

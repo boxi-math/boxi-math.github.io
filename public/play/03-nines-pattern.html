@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Hidden Diagonal in the Nines Table · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 40px; min-width: 44px; font-weight: 650; }
+  .controls .val { font-family: var(--font); font-size: 15px; min-width: 4.5em; font-weight: 650; }
+  .mathline b.ta { color: var(--a); } .mathline b.on { color: var(--b); }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools">
+      <button class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0"></canvas>
+      <div class="controls" id="c1">
+        <button id="markT" data-t="markT"></button>
+        <button id="markO" data-t="markO"></button>
+      </div>
+      <div class="controls" id="cRows" hidden>
+        <button id="less" aria-label="fewer rows">−</button><span class="val" id="rowsVal"></span><button id="more" aria-label="more rows">+</button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button id="take"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <button id="play"></button>
+        <span data-t="before"></span><input id="move" type="range" min="0" max="100" value="0" aria-label="move the dots"><span data-t="after"></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <button id="d1" data-t="nines"></button><button id="d2" data-t="eights"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" id="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "The Hidden Diagonal in the Nines Table", zh: "乘法口诀里藏着的“斜线”" },
+  eyebrow: { en: "Boxi Math · Try it · #3", zh: "Boxi Math · 动手试试 · #3" },
+  intro: { en: "Hunt for the pattern in the nines, then build it out of dots: rows of ten, one dot taken off each row.",
+           zh: "先在九的口诀里找规律，再用圆点摆出来：一排十个，每排拿掉一个。" },
+  s1: { en: "Find it", zh: "找规律" }, s2: { en: "Ten minus one", zh: "十少一" }, s3: { en: "Break a ten", zh: "拆开一个十" }, s4: { en: "Eights?", zh: "八呢？" },
+  reset: { en: "Reset", zh: "重置" },
+  markT: { en: "Mark the tens", zh: "圈出十位" }, markO: { en: "Mark the ones", zh: "圈出个位" },
+  take: { en: "Take one off each row", zh: "每排拿掉一个" }, put: { en: "Put them back", zh: "放回去" },
+  playB: { en: "Move the dots", zh: "挪一挪" }, pause: { en: "Pause", zh: "暂停" }, again: { en: "Again", zh: "再来" },
+  before: { en: "before", zh: "挪之前" }, after: { en: "after", zh: "挪之后" },
+  nines: { en: "Nines: take 1", zh: "九：拿掉 1 个" }, eights: { en: "Eights: take 2", zh: "八：拿掉 2 个" },
+  tapTag: { en: "tap a number", zh: "点一个数" }, dragTag: { en: "drag up or down", zh: "上下拖动" },
+  v1: { en: "The nines table", zh: "九的口诀" }, v2: { en: "Rows of ten", zh: "一排一个十" }, v3: { en: "All from one ten", zh: "都从一个十里拿" }, v4: { en: "Eight is ten minus two", zh: "八比十少二" },
+  resT: { en: "Nine is ten minus one", zh: "九就是十少一" },
+  resN: { en: "Each extra row brings one more ten and takes away one more dot, so the tens go up by one and the ones go down by one.",
+          zh: "每多一排，多一个十、也多拿掉一个点，所以十位加一、个位减一。" },
+  moreS: { en: "Nines on ten fingers", zh: "十根手指算九" },
+  moreP: { en: "Hold up both hands and count the ten fingers from the left. For nine times three, bend down the third finger from the left. Two fingers are left of it, the tens; seven are right of it, the ones: twenty-seven. The bent finger is the dot taken away. Try nine times seven and nine times eight.",
+           zh: "张开双手，十根手指从左数起。算九乘三，就把左边数第三根手指弯下去。弯下的手指左边有两根，是十位；右边有七根，是个位：二十七。弯下去的那根，就是拿掉的那个点。换九乘七、九乘八，再试一试。" },
+  foot: { en: "Drag up or down on the picture, or use the arrow keys, to change the number of rows. Enter or space does the step's action.",
+          zh: "在图上上下拖动，或用方向键，改变排数。回车或空格做这一步的动作。" },
+};
+const W = {
+  tens: { en: "tens", zh: "十位" }, ones: { en: "ones", zh: "个位" },
+  rowsOne: { en: "row", zh: "排" }, rowsMany: { en: "rows", zh: "排" },
+  ten: { en: "ten", zh: "个十" }, tensW: { en: "tens", zh: "个十" },
+};
+const rowsWord = (k) => Play.lang === "zh" ? `${k} 排` : `${k} ${k === 1 ? t(W.rowsOne) : t(W.rowsMany)}`;
+const tensWord = (k) => Play.lang === "zh" ? `${k} 个十` : `${k} ${k === 1 ? t(W.ten) : t(W.tensW)}`;
+
+Play.i18n(D);
+
+let step = 1, n = 4, take = 0, takeOn = false, mv = 0, playing = false, d = 2, sel = 0, markT = false, markO = false, dirty = true;
+const cv = document.getElementById("main");
+const $ = (id) => document.getElementById(id);
+const tens = (v) => Math.floor(v / 10), ones = (v) => v % 10;
+const per = () => (step === 4 ? 10 - d : 9);           // dots left in a row
+const val = (k) => per() * k;                           // running total after k rows
+
+// ---------- layout ----------
+function lay(w, h) {
+  const top = 34, bot = 36, side = 12;
+  const tw = Math.min(124, Math.max(96, w * 0.24));
+  const g = Math.max(12, Math.min(34, (h - top - bot) / 9, (w - tw - side * 2) / 10));
+  const ax = side + Math.max(0, (w - tw - side * 2 - 10 * g) / 2);
+  const fs = clamp(g * 0.62, 14, 20), dw = fs * 0.64;
+  return { top, g, ax, ay: top, tx: w - tw + 6, fs, dw, w, h, tw };
+}
+const dotXY = (L, r, c) => [L.ax + (c + 0.5) * L.g, L.ay + (r + 0.5) * L.g];
+
+function dot(x, X, Y, r, fill) { x.beginPath(); x.arc(X, Y, r, 0, 7); x.fillStyle = fill; x.fill(); }
+function ring(x, X, Y, r, col) { x.beginPath(); x.arc(X, Y, r - 1.5, 0, 7); x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash([3, 3]); x.stroke(); x.setLineDash([]); }
+function rrect(x, X, Y, w, h, r) { x.beginPath(); x.roundRect ? x.roundRect(X, Y, w, h, r) : x.rect(X, Y, w, h); }
+
+// one table entry: tens digit and ones digit drawn apart so each can take its own colour
+function entry(x, L, k, y, o = {}) {
+  const v = val(k), tx = L.tx + L.dw * 0.5, ox = L.tx + L.dw * 1.5;
+  const al = o.alpha ?? 1;
+  if (o.box) {
+    rrect(x, L.tx - 5, y - L.fs * 0.72, L.dw * 2 + 10, L.fs * 1.44, 6);
+    x.fillStyle = rgba(color("--hl"), 0.22); x.fill(); x.strokeStyle = color("--hl"); x.lineWidth = 1.5; x.stroke();
+  }
+  if (o.hide) { Play.text(x, "?", L.tx + L.dw, y, { size: L.fs, weight: 700, color: color("--hl") }); return; }
+  const tc = o.tc || color("--fg"), oc = o.oc || color("--fg");
+  if (tens(v) > 0) Play.text(x, String(tens(v)), tx, y, { size: L.fs, weight: 700, color: rgba(tc, al) });
+  else if (o.zero) Play.text(x, "0", tx, y, { size: L.fs, weight: 500, color: rgba(color("--muted"), 0.5 * al) });
+  Play.text(x, String(ones(v)), ox, y, { size: L.fs, weight: 700, color: rgba(oc, al) });
+}
+
+// ---------- step 1: the column alone ----------
+function drawTable(x, w, h) {
+  const top = 36, g = (h - top - 12) / 9, fs = clamp(g * 0.6, 15, 24), dw = fs * 0.64;
+  const labW = fs * 3.4, diffW = 150, total = labW + 12 + dw * 2 + 18 + diffW;
+  const x0 = Math.max(8, (w - total) / 2), L = { tx: x0 + labW + 12, dw, fs };
+  const ys = (k) => top + (k - 0.5) * g;
+  const A = color("--a"), B = color("--b");
+  // diagonal lines through the digits
+  const line = (dx, col) => {
+    x.beginPath();
+    for (let k = 1; k <= 9; k++) { const X = L.tx + dx, Y = ys(k); k === 1 ? x.moveTo(X, Y) : x.lineTo(X, Y); }
+    x.strokeStyle = rgba(col, 0.45); x.lineWidth = fs * 1.15; x.lineCap = "round"; x.lineJoin = "round"; x.stroke(); x.lineCap = "butt";
+  };
+  if (markT) line(dw * 0.5, A);
+  if (markO) line(dw * 1.5, B);
+  for (let k = 1; k <= 9; k++) {
+    const y = ys(k);
+    Play.text(x, `9 × ${k} =`, L.tx - 12, y, { size: fs * 0.8, align: "right", color: color("--muted") });
+    entry(x, L, k, y, { box: k === sel, zero: markT, tc: markT ? A : null, oc: markO ? B : null });
+  }
+  if (sel >= 2) {   // what changed from the line above
+    const a = val(sel - 1), b = val(sel), dt = tens(b) - tens(a), dn = ones(b) - ones(a);
+    const sx = L.tx + dw * 2 + 18, y = ys(sel) - g * 0.5;
+    const s = (q) => (q > 0 ? "+" : q < 0 ? "−" : "±") + Math.abs(q);
+    Play.text(x, `${t(W.tens)} ${s(dt)}`, sx, y - fs * 0.45, { size: 14, weight: 700, align: "left", color: A });
+    Play.text(x, `${t(W.ones)} ${s(dn)}`, sx, y + fs * 0.55, { size: 14, weight: 700, align: "left", color: B });
+    x.beginPath(); x.moveTo(sx - 6, ys(sel - 1) + 4); x.lineTo(sx - 6, ys(sel) - 4);
+    x.strokeStyle = color("--muted"); x.lineWidth = 1.2; x.stroke();
+  } else if (sel === 1) {
+    Play.text(x, t({ en: "the first one", zh: "第一个" }), L.tx + dw * 2 + 18, ys(1), { size: 13, align: "left", color: color("--muted") });
+  }
+  return { top, g };
+}
+
+// ---------- steps 2–4: dots + column side by side ----------
+function drawDots(x, w, h) {
+  const L = lay(w, h), r = L.g * 0.34, A = color("--a"), B = color("--b"), NO = color("--no"), mu = color("--muted");
+  const gone = step === 4 ? d : 1;
+  // hint for the next row
+  if (n < 9) for (let c = 0; c < 10; c++) { const [X, Y] = dotXY(L, n, c); ring(x, X, Y, r * 0.6, rgba(mu, 0.35)); }
+  if (step === 3) {
+    const b = n - 1, ease = mv * mv * (3 - 2 * mv);
+    const [bx, by] = dotXY(L, b, 0);
+    x.setLineDash([6, 4]); x.strokeStyle = color("--hl"); x.lineWidth = 2;
+    rrect(x, bx - L.g * 0.5 + 1, by - L.g * 0.5 + 1, L.g * 10 - 2, L.g - 2, 6); x.stroke(); x.setLineDash([]);
+    // empty spots: the gap at the end of each row, and the spots the movers leave behind
+    for (let rr = 0; rr < n; rr++) { const [X, Y] = dotXY(L, rr, 9); ring(x, X, Y, r, rgba(NO, 0.8)); }
+    for (let c = 10 - n; c < 9; c++) { const [X, Y] = dotXY(L, b, c); ring(x, X, Y, r, rgba(NO, 0.8 * ease)); }
+    for (let rr = 0; rr < b; rr++) for (let c = 0; c < 9; c++) { const [X, Y] = dotXY(L, rr, c); dot(x, X, Y, r, A); }
+    for (let c = 0; c <= 9 - n; c++) { const [X, Y] = dotXY(L, b, c); dot(x, X, Y, r, B); }
+    for (let j = 0; j < b; j++) {            // mover j: bottom row, column 8 − j → row j, column 9
+      const p = dotXY(L, b, 8 - j), q = dotXY(L, j, 9), lift = Math.sin(Math.PI * ease) * L.g * 0.6;
+      dot(x, p[0] + (q[0] - p[0]) * ease + lift, p[1] + (q[1] - p[1]) * ease, r, ease > 0.5 ? A : B);
+    }
+  } else {
+    const tk = step === 4 ? 1 : take;
+    for (let rr = 0; rr < n; rr++) for (let c = 0; c < 10; c++) {
+      const [X, Y] = dotXY(L, rr, c);
+      if (c < 10 - gone || tk === 0) dot(x, X, Y, r, A);
+      else { if (tk < 1) dot(x, X, Y, r, rgba(NO, 1 - tk)); ring(x, X, Y, r, rgba(NO, 0.85 * Math.max(tk, 0.2))); }
+    }
+  }
+  // the column, lined up with the rows: line k is the total after k rows
+  const cap = step === 3 && mv < 1;
+  for (let k = 1; k <= 9; k++) {
+    const y = L.ay + (k - 0.5) * L.g, on = k <= n;
+    const st = step === 3 && k === n && !cap;
+    entry(x, L, k, y, { alpha: on ? 1 : 0.4, box: k === n, hide: cap && k === n, tc: st ? A : null, oc: st ? B : null });
+    if (step === 4 && k >= 2) {
+      const a = val(k - 1), v = val(k), up = tens(v) - tens(a), dn = ones(v) - ones(a), bad = up !== 1;
+      Play.text(x, (dn > 0 ? "+" : "−") + Math.abs(dn), L.tx + L.dw * 2 + 8, y, { size: 13, weight: 650, align: "left", color: rgba(bad ? NO : B, on ? 1 : 0.5) });
+      if (bad) { x.beginPath(); x.ellipse(L.tx + L.dw, y, L.dw * 1.25, L.fs * 0.78, 0, 0, 7); x.strokeStyle = NO; x.lineWidth = 2; x.stroke(); }
+    }
+  }
+  // caption under the dots
+  const cy = Math.min(h - 14, L.ay + Math.min(n + 1, 9) * L.g + 14);
+  let s;
+  if (step === 2) s = take < 1 ? `${tensWord(n)} = ${10 * n}` : `${tensWord(n)} − ${n} = ${9 * n}`;
+  else if (step === 3) s = mv < 1 ? `${tensWord(n)} − ${n} = ?` : `${tensWord(n - 1)} + ${10 - n} = ${9 * n}`;
+  else s = `${tensWord(n)} − ${n * d} = ${n * (10 - d)}`;
+  Play.text(x, s, L.ax + 5 * L.g, cy, { size: 15, weight: 700 });
+  return L;
+}
+
+const canvas = Play.canvas(cv, (x, w, h) => { if (step === 1) drawTable(x, w, h); else drawDots(x, w, h); });
+
+// ---------- words ----------
+const STEP = {
+  1: () => ({
+    kicker: { en: "Step 01 · hunt first", zh: "观察 01 / 先找一找" },
+    h: { en: "Is there a pattern in this column?", zh: "这列数有规律吗？" },
+    p: { en: "<span class='tag-no'>“Times tables make no sense, you just learn them by heart.”</span><br>Look hard at the column and hunt for it first. Then tap a number to see what changed from the one above.",
+         zh: "<span class='tag-no'>“口诀没道理，只能死记硬背。”</span><br>你盯着这列数，先找一找。再点一个数，看它比上面那个变了什么。" },
+    after: markT && markO ? { en: "The tens go up by one, and the ones go down by one. Every time. <strong>Why?</strong> Go to step 02.", zh: "十位一直加一，个位一直减一，一次都不差。<strong>为什么？</strong>看第 02 步。" }
+         : { en: "Try the two buttons under the column.", zh: "试试下面两个按钮。" },
+  }),
+  2: () => ({
+    kicker: { en: "Step 02 · rows of ten", zh: "观察 02 / 一排一个十" },
+    h: { en: "Fill every row up to ten. Each row is one ten.", zh: "每一排都补满十个，一排就是一个十。" },
+    p: { en: "Now take the last dot off every row. Each row has nine left. Drag up or down to add rows.",
+         zh: "再把每排最后一个拿掉，一排就剩九个。上下拖动，加几排试试。" },
+    after: take < 1 ? null : { en: "Each extra row adds one more ten, and takes away one more dot.", zh: "每多一排，就多一个十，也多拿掉一个点。" },
+  }),
+  3: () => ({
+    kicker: { en: "Step 03 · break one ten", zh: "观察 03 / 拆开一个十" },
+    h: { en: `Nine times ${n}? Guess the tens and the ones.`, zh: `九乘 ${n} 呢？猜猜十位是几，个位是几？` },
+    p: { en: `Taking ${n} from ${n} tens means breaking open one ten. Move the dots: the bottom row fills the gaps above it.`,
+         zh: `${n} 个十里拿掉 ${n} 个，就要拆开一个十。挪一挪：最下面一排去补上面的空。` },
+    after: mv < 1 ? null : { en: `That leaves ${tensWord(n - 1)} and ${10 - n} more: ${9 * n}.`, zh: `剩下 ${n - 1} 个十，还有 ${10 - n} 个，就是 ${9 * n}。` },
+  }),
+  4: () => ({
+    kicker: { en: "Step 04 · a non-example", zh: "观察 04 / 换成八" },
+    h: { en: "What about the eights?", zh: "八的口诀呢？" },
+    p: d === 2 ? { en: "Eight is two less than ten, so each row loses two. The ones drop by two each time, and at eight times six they run out: the tens stay the same.",
+                   zh: "八比十少二，每排拿掉两个。个位每次少二，到八乘六，就不够减了：十位没有加一。" }
+               : { en: "Nine is one less than ten, so each row loses one. The tens go up by one, and the ones go down by one, all the way to 81.",
+                   zh: "九比十少一，每排拿掉一个。十位加一、个位减一，一直到 81 都不断。" },
+    after: { en: "So up one, down one belongs to nine, because nine is one less than ten.", zh: "所以加一减一，是九才有的，因为九比十少一。" },
+  }),
+};
+
+function mathLine() {
+  if (step === 1) {
+    const k = Math.max(sel, 2), a = 9 * (k - 1), b = 9 * k;
+    return sel >= 2 ? `${a} + 9 = ${a} + 10 − 1 = ${b}` : "";
+  }
+  if (step === 2) return take < 1 ? `10 × ${n} = ${10 * n}` : `10 × ${n} − ${n} = ${10 * n} − ${n} = <b>${9 * n}</b>`;
+  if (step === 3) {
+    const l1 = `9 × ${n} = 10 × ${n} − ${n} = ${10 * n} − ${n} = ${mv < 1 ? "?" : `${n > 1 ? `<b class="ta">${n - 1}</b>` : ""}<b class="on">${10 - n}</b>`}`;
+    if (mv < 1) return l1;
+    return l1 + `<br><span style="font-size:15px">${t(W.tens)}: ${n} − 1 = <b class="ta">${n - 1}</b> · ${t(W.ones)}: 10 − ${n} = <b class="on">${10 - n}</b></span>`;
+  }
+  const m = 10 - d, v = m * n;
+  return `${m} × ${n} = 10 × ${n} − ${d} × ${n} = ${10 * n} − ${d * n} = <b>${v}</b>`;
+}
+
+function render() {
+  const s = STEP[step](), ex = $("explain"), ml = mathLine();
+  ex.innerHTML = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>` +
+    (ml ? `<div class="mathline">${ml}</div>` : "") + (s.after ? `<p>${t(s.after)}</p>` : "") +
+    (step === 3 && mv >= 1 ? `<p class="note">${t({ en: "The tens are one less than the rows, and the ones plus the rows make ten.", zh: "十位比排数少一，个位和排数合起来是十。" })}</p>` : "");
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(step === 1 ? D.tapTag : D.dragTag);
+  $("c1").hidden = step !== 1; $("cRows").hidden = step === 1;
+  ["c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 2 !== step));
+  $("markT").classList.toggle("on", markT); $("markO").classList.toggle("on", markO);
+  $("markT").setAttribute("aria-pressed", markT); $("markO").setAttribute("aria-pressed", markO);
+  $("rowsVal").textContent = rowsWord(n);
+  $("less").disabled = n <= 1; $("more").disabled = n >= 9;
+  $("take").textContent = t(takeOn ? D.put : D.take);
+  $("play").textContent = t(playing ? D.pause : mv >= 1 ? D.again : D.playB);
+  $("move").value = Math.round(mv * 100);
+  $("d1").classList.toggle("on", d === 1); $("d2").classList.toggle("on", d === 2);
+  const k = n;
+  const dd = step === 4 ? d : 1, m = 10 - dd, takeS = dd === 1 ? `${k}` : `${dd} × ${k}`;
+  $("resT").textContent = dd === 1 ? t(D.resT) : t({ en: "Eight is ten minus two", zh: "八是十少二" });
+  $("resM").textContent = `${m} × ${k} = 10 × ${k} − ${takeS} = ${10 * k} − ${dd * k} = ${m * k}`;
+  cv.setAttribute("aria-label", step === 1 ? t({ en: "the nines table, 9 to 81", zh: "九的口诀，9 到 81" })
+    : t({ en: `${n} rows of ten dots, ${step === 4 ? d : 1} taken from each row, total ${n * (10 - (step === 4 ? d : 1))}`, zh: `${n} 排、每排十个点，每排拿掉 ${step === 4 ? d : 1} 个，一共 ${n * (10 - (step === 4 ? d : 1))} 个` }));
+  dirty = true;
+}
+
+// ---------- input ----------
+function setRows(k) {
+  k = clamp(Math.round(k), 1, 9);
+  if (k === n) return;
+  n = k;
+  if (step === 3) { mv = 0; playing = false; }
+  render();
+}
+function setSel(k) { sel = clamp(k, 1, 9); render(); }
+function action() {
+  if (step === 1) { if (!markT) markT = true; else if (!markO) markO = true; else markT = markO = false; render(); }
+  else if (step === 2) toggleTake();
+  else if (step === 3) togglePlay();
+  else { d = 3 - d; render(); }
+}
+function toggleTake() { takeOn = !takeOn; if (Play.reduced) take = takeOn ? 1 : 0; render(); }
+function togglePlay() {
+  if (Play.reduced) { mv = mv >= 1 ? 0 : 1; playing = false; render(); return; }
+  if (playing) playing = false; else { if (mv >= 1) mv = 0; playing = true; }
+  render();
+}
+function rowAt(y) {
+  const r = cv.getBoundingClientRect();
+  if (step === 1) { const top = 36, g = (r.height - top - 12) / 9; return Math.ceil((y - top) / g); }
+  const L = lay(r.width, r.height); return Math.ceil((y - L.ay) / L.g);
+}
+Play.drag(cv, {
+  down: (x, y) => { const k = rowAt(y); if (step === 1) { if (k >= 1 && k <= 9) setSel(k); return false; } setRows(k); return true; },
+  move: (x, y) => setRows(rowAt(y)),
+});
+Play.keys(cv, {
+  ArrowUp: () => (step === 1 ? setSel((sel || 2) - 1) : setRows(n - 1)),
+  ArrowDown: () => (step === 1 ? setSel(sel + 1) : setRows(n + 1)),
+  ArrowLeft: () => (step === 1 ? setSel((sel || 2) - 1) : setRows(n - 1)),
+  ArrowRight: () => (step === 1 ? setSel(sel + 1) : setRows(n + 1)),
+  Enter: action, " ": action,
+});
+$("markT").onclick = () => { markT = !markT; render(); };
+$("markO").onclick = () => { markO = !markO; render(); };
+$("less").onclick = () => setRows(n - 1);
+$("more").onclick = () => setRows(n + 1);
+$("take").onclick = toggleTake;
+$("play").onclick = togglePlay;
+$("move").oninput = (e) => { playing = false; mv = clamp(e.target.value / 100, 0, 1); render(); };
+$("d1").onclick = () => { d = 1; render(); };
+$("d2").onclick = () => { d = 2; render(); };
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s;
+  if (s === 2) { takeOn = false; take = 0; }
+  if (s === 3) { mv = 0; playing = false; }
+  if (s === 4) d = 2;
+  render();
+});
+$("reset").onclick = () => { n = 4; sel = 0; markT = markO = false; takeOn = false; take = 0; mv = 0; playing = false; d = 2; nav.set(1); };
+Play.onTheme(() => (dirty = true));
+
+Play.loop((dt) => {
+  if (step === 2) {
+    const goal = takeOn ? 1 : 0;
+    if (take !== goal) { const was = take; take = goal > take ? Math.min(1, take + dt * 1.6) : Math.max(0, take - dt * 1.6); if ((was < 1) !== (take < 1) || take === goal) render(); dirty = true; }
+  }
+  if (step === 3 && playing) {
+    mv = Math.min(1, mv + dt / 1.8); $("move").value = Math.round(mv * 100);
+    if (mv >= 1) { playing = false; render(); }
+    dirty = true;
+  }
+  if (dirty) { dirty = false; canvas.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
