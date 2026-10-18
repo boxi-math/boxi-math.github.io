@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Do Fractions Need a Common Denominator? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .kid button { font-size: 15px; min-height: 44px; min-width: 44px; padding: 8px 12px; }
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .kid button.on, .choices button.on, .ftab.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { font-size: 14px; min-height: 40px; text-align: left; }
+  .choices button.ok { border-color: var(--a); box-shadow: inset 0 0 0 2px var(--a); }
+  .choices button.bad { border-color: var(--no); box-shadow: inset 0 0 0 2px var(--no); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 24px; }
+  .na { border-bottom: 3px solid var(--a); padding: 0 2px; }
+  .nb { border-bottom: 3px solid var(--b); padding: 0 2px; }
+  .eq { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-family: var(--math); font-size: 26px; margin: 4px 0 10px; }
+  .eq .frac { font-size: 1em; }
+  .eq span.hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 4px; color: var(--fg); }
+  .ne { color: var(--no); }
+  .ftab { font-size: 13px; min-height: 40px; }
+  .pairs button { font-family: var(--math); font-size: 16px; }
+  .kid .lbl { white-space: nowrap; }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 9px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="number line from 0 to 1"></canvas>
+      <div class="controls kid" id="c1">
+        <button id="attach" data-t="attachB"></button><button id="put" data-t="putB"></button>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <span class="lbl" data-t="stepT"></span><span id="nBtns"></span>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <span class="pairs" id="pBtns"></span><button id="cut"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "Why Do Fractions Need a Common Denominator?", zh: "通分：为什么要找公分母？" },
+  eyebrow: { en: "Boxi Math · Try it · #7", zh: "Boxi Math · 动手试试 · #7" },
+  intro: { en: "A book: half of it read on Saturday, a third on Sunday. Is that two fifths in all? Walk it on the number line, then find one small step that measures both.",
+           zh: "一本书，周六读了二分之一，周日读了三分之一，一共是五分之二吗？在数轴上走一走，再找一种能把两段都量完的小格子。" },
+  s1: { en: "Is it 2/5?", zh: "是 2/5 吗？" }, s2: { en: "Same small step", zh: "同一种小格" }, s3: { en: "Add the tops", zh: "分子相加" },
+  reset: { en: "Reset", zh: "重置" },
+  attachB: { en: "Go another third", zh: "再走三分之一" }, putB: { en: "Put 2/5 on the line", zh: "把 2/5 放上数轴" }, hideB: { en: "Hide 2/5", zh: "收起 2/5" },
+  stepT: { en: "Cut 0 to 1 into:", zh: "把 0 到 1 切成：" },
+  v1: { en: "Number line · walk 1/2, then 1/3", zh: "数轴 · 先走 1/2，再走 1/3" }, v2: { en: "Number line · one small step", zh: "数轴 · 同一种小格" }, v3: { en: "Fraction bars and number line", zh: "分数条和数轴" },
+  tag1: { en: "drag the brown third", zh: "拖动棕色的三分之一" }, tag2: { en: "drag the gold step", zh: "拖动金色小格" }, tag3: { en: "drag the gold handle", zh: "拖动金色把手" },
+  resT: { en: "Same unit first, then add the tops", zh: "先换成同一个单位，再加分子" },
+  resN: { en: "1/6 measures both 1/2 and 1/3 exactly: the half holds 3 sixths, the third holds 2. Five sixths in all, to the right of one half, not two fifths.",
+          zh: "1/6 能把 1/2 和 1/3 都正好量完：二分之一是 3 个六分之一，三分之一是 2 个。一共六分之五，在二分之一右边，不是五分之二。" },
+  moreS: { en: "Why not just add the tops and add the bottoms?", zh: "为什么不能分子加分子、分母加分母？" },
+  moreP: { en: "The bottom number names the unit: halves, thirds, sixths. Adding 2 and 3 doesn't give a unit at all; fifths have nothing to do with either stretch. Tops can only be added when they count the same unit, so first rename both fractions with a number both bottoms fit into evenly. Any such number works (6, 12, 18 …); the smallest one just keeps the numbers small.",
+           zh: "分母说的是单位：二分之一、三分之一、六分之一。把 2 和 3 加起来，得不到任何单位；五分之一跟这两段都没关系。只有数的是同一种单位，分子才能相加，所以先把两个分数换成同一个分母，这个分母要让两个分母都能整切进去。这样的数都行（6、12、18……），用最小的那个，数字最小。" },
+  moreQ: { en: "Next question: adding means switching to the same unit first. But what about multiplying? What does two thirds times three fourths even mean?",
+           zh: "下一个问题：加法要先换成同一个单位。那乘法呢？三分之二乘四分之三，是什么意思？" },
+  foot: { en: "Green is the first stretch, brown the second, red is a wrong spot, gold is what you move. Drag on the picture; on a focused picture, arrow keys work too (step 1: arrows move the third, Enter attaches it, Space shows 2/5; step 2: ← → change the step; step 3: ← → count, ↑ ↓ change the sum).",
+          zh: "绿色是第一段，棕色是第二段，红色是错的位置，金色是你能动的。在图上拖；选中图后也能用方向键（第 1 步：方向键挪三分之一，回车接上，空格放 2/5；第 2 步：← → 换小格；第 3 步：← → 数格子，↑ ↓ 换算式）。" },
+  ch: [{ en: "Yes, it is 2/5", zh: "是，等于 2/5" }, { en: "No, it is something else", zh: "不是，是别的数" }],
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a) || 1);
+const lcm = (a, b) => (a / gcd(a, b)) * b;
+const FR = (p, q) => `<span class="frac"><span>${p}</span><span>${q}</span></span>`;
+const HEIGHT = { 1: 215, 2: 245, 3: 312 };
+const PAIRS = [[1, 2, 1, 3], [1, 2, 1, 4], [1, 3, 1, 4], [1, 3, 1, 6], [2, 3, 1, 4], [1, 2, 1, 8], [1, 4, 1, 5]];
+const NS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const B0 = 0.6, LIFT = 60;
+
+let step = 1, dirty = true;
+let bx = B0, lift = 1, snap = null, show25 = false, f25 = 0, pick = -1;  // step 1
+let n = 2;                                                              // step 2
+let pi = 0, cut = false, m = 0, focus = null;                           // step 3
+const attached = () => Math.abs(bx - 0.5) < 1e-6 && lift === 0;
+
+// ---------- geometry ----------
+function geo(w, h) {
+  const len = Math.min(w - 64, 560), xl = (w - len) / 2, xr = xl + len;
+  const yl = step === 1 ? h - 62 : step === 2 ? 128 : 212;
+  return { xl, xr, yl, len, X: (v) => xl + v * len, w, h };
+}
+let Gm = null;
+
+// ---------- drawing helpers ----------
+function circle(x, cx, cy, r, fill, stroke, lw, dash) {
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
+}
+function textW(x, s, size, weight) { x.font = `${weight || 700} ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width; }
+// labels in rows: each {x, s, c, bg}; overlapping ones move to the next row (dir -1 = up, +1 = down)
+function labels(x, list, y0, size, dir) {
+  const placed = [], step = (dir || -1) * (size + 8);
+  list.forEach((o) => {
+    const lw = textW(x, o.s, size, 750) + 10;
+    let cx = clamp(o.x, lw / 2 + 4, Gm.w - lw / 2 - 4), row = 0;
+    while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
+    placed.push({ x: cx, w: lw, row });
+    const y = y0 + row * step;
+    if (o.bg) {
+      x.fillStyle = o.bg; x.beginPath();
+      x.roundRect ? x.roundRect(cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6) : x.rect(cx - lw / 2, y - size * 0.75, lw, size * 1.5);
+      x.fill();
+    }
+    Play.text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
+  });
+}
+// base line 0..1 with N equal pieces
+function line(x, N, hot) {
+  const { xl, xr, yl, X } = Gm, mu = color("--muted"), fg = color("--fg");
+  x.strokeStyle = mu; x.lineWidth = 2; x.beginPath(); x.moveTo(xl, yl); x.lineTo(xr, yl); x.stroke();
+  for (let i = 0; i <= N; i++) {
+    const tk = i === 0 || i === N ? 11 : 8, h = hot && hot(i);
+    x.beginPath(); x.moveTo(X(i / N), yl - tk); x.lineTo(X(i / N), yl + tk);
+    x.strokeStyle = h ? color("--hl") : mu; x.lineWidth = h ? 3.5 : 1.8; x.stroke();
+  }
+  Play.text(x, "0", xl - 16, yl, { size: 16, weight: 700, color: fg });
+  Play.text(x, "1", xr + 16, yl, { size: 16, weight: 700, color: fg });
+}
+function arrow(x, x0, x1, y, col, lw) {
+  x.strokeStyle = col; x.fillStyle = col; x.lineWidth = lw || 3.5; x.lineCap = "round";
+  x.beginPath(); x.moveTo(x0, y - 6); x.lineTo(x0, y + 6); x.moveTo(x0, y); x.lineTo(x1 - 6, y); x.stroke();
+  x.beginPath(); x.moveTo(x1 + 1, y); x.lineTo(x1 - 10, y - 7); x.lineTo(x1 - 10, y + 7); x.closePath(); x.fill();
+  x.lineCap = "butt";
+}
+function vguide(x, xx, y0, y1, col) {
+  x.strokeStyle = rgba(col, 0.65); x.lineWidth = 1.5; x.setLineDash([4, 4]);
+  x.beginPath(); x.moveTo(xx, y0); x.lineTo(xx, y1); x.stroke(); x.setLineDash([]);
+}
+function cross(x, cx, cy, r, col) {
+  x.strokeStyle = col; x.lineWidth = 3; x.beginPath();
+  x.moveTo(cx - r, cy - r); x.lineTo(cx + r, cy + r); x.moveTo(cx + r, cy - r); x.lineTo(cx - r, cy + r); x.stroke();
+}
+// a bar from v0 to v1 cut every 1/N (offset from v0), filled with col
+function seg(x, v0, v1, N, y, hgt, col, alpha) {
+  const { X } = Gm, mu = color("--muted");
+  x.fillStyle = rgba(col, alpha ?? 0.7); x.fillRect(X(v0), y, X(v1) - X(v0), hgt);
+  x.strokeStyle = mu; x.lineWidth = 1.5; x.beginPath();
+  for (let k = 1; v0 + k / N < v1 - 1e-9; k++) { x.moveTo(X(v0 + k / N), y); x.lineTo(X(v0 + k / N), y + hgt); }
+  x.stroke(); x.strokeRect(X(v0), y, X(v1) - X(v0), hgt);
+}
+function box(x, v0, v1, y, hgt) {
+  const { X } = Gm; x.strokeStyle = color("--hl"); x.lineWidth = 3; x.strokeRect(X(v0) - 1, y - 1, X(v1) - X(v0) + 2, hgt + 2);
+}
+
+function draw(x, w, h) {
+  Gm = geo(w, h);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x);
+}
+
+// ---------- step 1: walk, then try 2/5 ----------
+function hopBY() { return Gm.yl - 34 - lift * LIFT; }
+function draw1(x) {
+  const { X, yl } = Gm, A = color("--a"), B = color("--b"), NO = color("--no");
+  const yh = yl - 34, on = attached();
+  // the wrong answer: five pieces, take two
+  if (f25 > 0) {
+    x.globalAlpha = f25;
+    x.fillStyle = rgba(NO, 0.22); x.fillRect(Gm.xl, yl - 7, X(2 / 5) - Gm.xl, 14);
+    x.strokeStyle = rgba(NO, 0.7); x.lineWidth = 1.8; x.beginPath();
+    for (let i = 1; i < 5; i++) { x.moveTo(X(i / 5), yl); x.lineTo(X(i / 5), yl + 13); }
+    x.stroke(); x.globalAlpha = 1;
+  }
+  line(x, 2);
+  // hop A: 0 -> 1/2
+  arrow(x, X(0), X(0.5), yh, A);
+  // hop B with its own three-part ruler
+  const by = hopBY(), b0 = X(bx), b1 = X(bx + 1 / 3);
+  x.fillStyle = rgba(B, 0.18); x.fillRect(b0, by + 7, b1 - b0, 7);
+  x.strokeStyle = rgba(B, 0.8); x.lineWidth = 1.5; x.beginPath();
+  for (let i = 0; i <= 3; i++) { x.moveTo(X(bx + i / 9), by + 7); x.lineTo(X(bx + i / 9), by + 14); }
+  x.stroke();
+  arrow(x, b0, b1, by, B);
+  labels(x, [{ x: X(0.25), s: "1/2", c: A }], yh - 20, 17);
+  labels(x, [{ x: (b0 + b1) / 2, s: "1/3", c: B }], by - 20, 17);
+  // where the walk stops
+  const below = [];
+  if (on) {
+    vguide(x, X(5 / 6), yh + 8, yl - 10, B);
+    circle(x, X(5 / 6), yl, 7, color("--surface"), B, 3);
+    below.push({ x: X(5 / 6), s: "?", c: B });
+  }
+  circle(x, X(0.5), yl, 6, A, color("--surface"), 2);
+  if (f25 > 0) {
+    x.globalAlpha = f25;
+    circle(x, X(2 / 5), yl, 8, NO, color("--surface"), 2);
+    x.globalAlpha = 1;
+    below.push({ x: X(2 / 5), s: on ? "2/5 ✕" : "2/5", c: rgba(NO, f25) });
+    below.push({ x: X(0.5), s: "1/2", c: A });
+  }
+  labels(x, below, yl + 30, 16, 1);
+}
+
+// ---------- step 2: find one small step ----------
+function cellsInfo(i, N) {
+  // cell i spans [i/N, (i+1)/N]; first stretch [0, 1/2], second [1/2, 5/6]
+  if ((i + 1) * 2 <= N) return "A";
+  if (i * 2 >= N && (i + 1) * 6 <= 5 * N) return "B";
+  if (i * 2 < N && N < (i + 1) * 2) return "X";
+  if (i * 6 < 5 * N && 5 * N < (i + 1) * 6) return "X";
+  return "";
+}
+function draw2(x) {
+  const { X, yl, len } = Gm, A = color("--a"), B = color("--b"), NO = color("--no"), HL = color("--hl"), fg = color("--fg");
+  const fit = n % 6 === 0, pw = len / n;
+  // cells
+  for (let i = 0; i < n; i++) {
+    const k = cellsInfo(i, n), x0 = X(i / n);
+    if (k === "A" || k === "B") { x.fillStyle = rgba(k === "A" ? A : B, 0.32); x.fillRect(x0, yl - 8, pw, 16); }
+    if (k === "X") { x.fillStyle = rgba(NO, 0.16); x.fillRect(x0, yl - 8, pw, 16); x.strokeStyle = NO; x.lineWidth = 2; x.setLineDash([3, 3]); x.strokeRect(x0 + 1, yl - 8, pw - 2, 16); x.setLineDash([]); }
+  }
+  line(x, n, (i) => fit && (i * 2 === n || i * 6 === 5 * n));
+  // stretch ends that miss a tick
+  [[1 / 2, n % 2 === 0], [5 / 6, fit]].forEach(([v, ok]) => {
+    if (!ok) { x.strokeStyle = NO; x.lineWidth = 2.5; x.beginPath(); x.moveTo(X(v), yl - 14); x.lineTo(X(v), yl + 14); x.stroke(); }
+  });
+  // hops
+  const yh = yl - 40;
+  arrow(x, X(0), X(0.5), yh, A); arrow(x, X(0.5), X(5 / 6), yh, B);
+  labels(x, [{ x: X(0.25), s: n % 2 === 0 ? `1/2 = ${n / 2}/${n}` : "1/2", c: A }, { x: X(2 / 3), s: n % 3 === 0 ? `1/3 = ${n / 3}/${n}` : "1/3", c: B }], yh - 20, 15);
+  // counts
+  if (fit && pw >= 15) for (let i = 0; i < (5 * n) / 6; i++) Play.text(x, String(i + 1), X(i / n) + pw / 2, yl + 21, { size: 13, weight: 700, color: i < n / 2 ? A : B });
+  if (fit) circle(x, X(5 / 6), yl, 8, HL, fg, 1.5);
+  circle(x, X(0.5), yl, 5, A, color("--surface"), 2);
+  // the gold step (draggable)
+  const ys = yl + 48;
+  x.fillStyle = rgba(HL, 0.55); x.fillRect(X(0), ys - 8, pw, 16);
+  x.strokeStyle = HL; x.lineWidth = 2; x.strokeRect(X(0), ys - 8, pw, 16);
+  circle(x, X(1 / n), ys, 11, HL, fg, 1.5);
+  labels(x, [{ x: X(1 / n) + 30, s: `1/${n}`, c: fg }], ys, 15);
+  if (fit) labels(x, [{ x: X(5 / 6), s: n === 6 ? "5/6" : `${(5 * n) / 6}/${n} = 5/6`, c: fg, bg: rgba(HL, 0.35) }], ys + 32, 15);
+}
+
+// ---------- step 3: rename, then add the tops ----------
+function pairInfo() {
+  const [a, b, c, d] = PAIRS[pi], L = lcm(b, d), p = (a * L) / b, q = (c * L) / d, s = p + q, g = gcd(s, L);
+  return { a, b, c, d, L, p, q, s, g, va: a / b, vs: s / L, ma: a + c, mb: b + d };
+}
+function draw3(x) {
+  const { X, yl, len } = Gm, A = color("--a"), B = color("--b"), NO = color("--no"), HL = color("--hl"), fg = color("--fg"), mu = color("--muted");
+  const P = pairInfo(), { a, b, c, d, L, p, q, s, g, va, vs } = P, pw = len / L;
+  // fraction bars: first, second, joined
+  const yA = 34, yB = 64, yJ = 98, bh = 22;
+  [[yA, a / b, b, A, cut ? `${p}/${L}` : `${a}/${b}`], [yB, c / d, d, B, cut ? `${q}/${L}` : `${c}/${d}`]].forEach(([y, v, N, col, s0]) => {
+    x.fillStyle = color("--soft"); x.fillRect(Gm.xl, y, len, bh);
+    seg(x, 0, v, cut ? L : N, y, bh, col);
+    x.strokeStyle = mu; x.lineWidth = 1.5; x.beginPath();
+    for (let k = Math.round(v * (cut ? L : N)) + 1; k < (cut ? L : N); k++) { const xx = X(k / (cut ? L : N)); x.moveTo(xx, y); x.lineTo(xx, y + bh); }
+    x.stroke(); x.strokeRect(Gm.xl, y, len, bh);
+    Play.text(x, s0, X(v) + 6, y + bh / 2, { size: 14, weight: 750, color: col, align: "left" });
+  });
+  x.fillStyle = color("--soft"); x.fillRect(Gm.xl, yJ, len, bh);
+  seg(x, 0, va, cut ? L : b, yJ, bh, A); seg(x, va, vs, cut ? L : d, yJ, bh, B);
+  x.strokeStyle = mu; x.lineWidth = 1.5; x.strokeRect(Gm.xl, yJ, len, bh);
+  if (focus === "A") { box(x, 0, va, yA, bh); box(x, 0, va, yJ, bh); }
+  if (focus === "B") { box(x, 0, c / d, yB, bh); box(x, va, vs, yJ, bh); }
+  if (focus === "S") box(x, 0, vs, yJ, bh);
+  Play.text(x, cut ? `${s}/${L}` : "?", X(vs) + 6, yJ + bh / 2, { size: 14, weight: 750, color: fg, align: "left" });
+  // number line, cut into L
+  for (let i = 0; i < Math.min(m, L); i++) { x.fillStyle = rgba(i < p ? A : i < s ? B : mu, 0.32); x.fillRect(X(i / L), yl - 8, pw, 16); }
+  line(x, L, (i) => focus === "L");
+  if (focus === "A" || focus === "B" || focus === "S") {
+    const [v0, v1] = focus === "A" ? [0, va] : focus === "B" ? [va, vs] : [0, vs];
+    x.strokeStyle = HL; x.lineWidth = 3; x.strokeRect(X(v0), yl - 9, X(v1) - X(v0), 18);
+  }
+  if (pw >= 15) for (let i = 0; i < m; i++) Play.text(x, String(i + 1), X(i / L) + pw / 2, yl + 21, { size: 13, weight: 700, color: i < p ? A : i < s ? B : mu });
+  // hops
+  const yh = yl - 34;
+  arrow(x, X(0), X(va), yh, A); arrow(x, X(va), X(vs), yh, B);
+  vguide(x, X(vs), yJ + bh, yh - 10, fg);
+  const top = [{ x: X(va / 2), s: `${a}/${b} = ${p}/${L}`, c: A }, { x: X((va + vs) / 2), s: `${c}/${d} = ${q}/${L}`, c: B }];
+  const done = m === s, mv = P.ma / P.mb;
+  if (done) {
+    circle(x, X(mv), yl, 7, color("--surface"), rgba(NO, 0.55), 2.5, [3, 3]);
+    cross(x, X(mv), yl, 5, rgba(NO, 0.55));
+    top.push({ x: X(mv), s: `${P.ma}/${P.mb} ✕`, c: rgba(NO, 0.75) });
+  }
+  labels(x, top, yh - 20, 15);
+  circle(x, X(va), yl, 5, A, color("--surface"), 2);
+  if (done) circle(x, X(vs), yl, 8, HL, fg, 1.5);
+  // counting handle
+  const hx = X(m / L), hy = yl + 50;
+  x.strokeStyle = HL; x.lineWidth = 2.5; x.beginPath(); x.moveTo(hx, yl + 10); x.lineTo(hx, hy - 11); x.stroke();
+  circle(x, hx, hy, 11, HL, fg, 1.5);
+  if (m > 0) labels(x, [{ x: hx, s: done && g > 1 ? `${m}/${L} = ${s / g}/${L / g}` : `${m}/${L}`, c: fg, bg: done ? rgba(HL, 0.35) : null }], hy + 27, 15);
+}
+
+// ---------- state changes ----------
+function setB(v, l) { bx = clamp(v, 0, 2 / 3); lift = clamp(l, 0, 1); snap = null; dirty = true; }
+function doAttach() {
+  if (Play.reduced) { bx = 0.5; lift = 0; snap = null; render(); } else snap = { x: 0.5, l: 0 };
+}
+function toggle25() { show25 = !show25; if (Play.reduced) f25 = show25 ? 1 : 0; render(); }
+function setN(v) { const nn = clamp(v, 2, 12); if (nn !== n) { n = nn; render(); } }
+function setM(v) { const L = pairInfo().L, nm = clamp(v, 0, L); if (nm !== m) { m = nm; render(); } }
+function setPair(i) { pi = (i + PAIRS.length) % PAIRS.length; m = 0; focus = null; render(); }
+
+let grab = null;
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!Gm) return false;
+    const { X, xl, xr, yl } = Gm;
+    if (step === 1) {
+      const by = hopBY();
+      if (px > X(bx) - 18 && px < X(bx + 1 / 3) + 18 && py > by - 34 && py < by + 22) {
+        grab = { dx: (px - xl) / (xr - xl) - bx, dy: py - by }; snap = null; return true;
+      }
+      return false;
+    }
+    if (px < xl - 24 || px > xr + 24) return false;
+    if (step === 2 && py > yl + 26 && py < yl + 72) { grab = {}; setN(Math.round(1 / Math.max((px - xl) / (xr - xl), 0.01))); return true; }
+    if (step === 3 && py > yl - 20 && py < yl + 72) { grab = {}; setM(Math.round(((px - xl) / (xr - xl)) * pairInfo().L)); return true; }
+    return false;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const { xl, xr, yl } = Gm, v = (px - xl) / (xr - xl);
+    if (step === 1) setB(v - grab.dx, (yl - 34 - (py - grab.dy)) / LIFT);
+    else if (step === 2) setN(Math.round(1 / Math.max(v, 0.01)));
+    else setM(Math.round(v * pairInfo().L));
+  },
+  up() {
+    if (!grab) return;
+    grab = null;
+    if (step === 1 && Math.abs(bx - 0.5) < 0.08 && lift < 0.5) doAttach();
+    render();
+  },
+});
+Play.keys(cvEl, {
+  ArrowRight: () => (step === 1 ? (setB(bx + 1 / 30, lift), render()) : step === 2 ? setN(n + 1) : setM(m + 1)),
+  ArrowLeft: () => (step === 1 ? (setB(bx - 1 / 30, lift), render()) : step === 2 ? setN(n - 1) : setM(m - 1)),
+  ArrowUp: () => (step === 1 ? (setB(bx, lift + 0.25), render()) : step === 3 && setPair(pi - 1)),
+  ArrowDown: () => (step === 1 ? (setB(bx, lift - 0.25), render()) : step === 3 && setPair(pi + 1)),
+  Enter: () => step === 1 && doAttach(),
+  " ": () => step === 1 && toggle25(),
+});
+
+// ---------- explanations ----------
+function explain1() {
+  const on = attached(), both = on && show25;
+  let out = `<div class="kicker">${t({ en: "Step 01 · guess first", zh: "第 1 步 · 先猜" })}</div>
+    <h2>${t({ en: "A book: half of it read on Saturday, a third on Sunday. Is that two fifths in all?", zh: "一本书，周六读了二分之一，周日读了三分之一，一共是五分之二吗？" })}</h2>
+    <div class="mathline"><span class="na">${FR(1, 2)}</span> + <span class="nb">${FR(1, 3)}</span> = <span class="ne">${FR(2, 5)}${both ? " ✕" : " ?"}</span></div>
+    <p>${t({ en: "A younger cousin is quick to answer: tops together, bottoms together. One plus one, two plus three.", zh: "表弟算得飞快：分子加分子，分母加分母，一加一，二加三。" })}</p>
+    <div class="choices">${D.ch.map((c, i) => `<button data-c="${i}" class="${pick === i ? "on" : ""}${both && pick === i ? (i === 1 ? " ok" : " bad") : ""}">${t(c)}</button>`).join("")}</div>`;
+  if (!on && !show25) {
+    out += `<p class="big">${t({ en: "Same number line as last time. Start at zero and go one half. Then go another third: drag the brown third down so it starts where the half ends, and see where we stop.", zh: "还是上一集那条数轴。从零出发，先走二分之一。接着再走三分之一：把棕色的三分之一拖下来，接在二分之一的末端，看看停在哪里。" })}</p>`;
+  } else if (on && !show25) {
+    out += `<p class="big">${t({ en: "We stop to the right of one half. Of course: we kept walking forward.", zh: "停在了二分之一的右边。当然：我们一直在往前走。" })}</p>
+      <p>${t({ en: "If the answer were two fifths, let's put two fifths on the line too. Cut zero to one into five parts and take two.", zh: "如果答案是五分之二，我们把五分之二也放上来。把零到一切成五份，取两份。" })}</p>`;
+  } else if (!on) {
+    out += `<p class="big">${t({ en: "Two fifths: cut zero to one into five parts and take two. It lands just left of one half.", zh: "五分之二：把零到一切成五份，取两份。它落在二分之一的左边一点。" })}</p>
+      <p>${t({ en: "Now go another third from one half and compare.", zh: "现在从二分之一再走三分之一，比一比。" })}</p>`;
+  } else {
+    out += `<p class="big"><span class="tag-no">${t({ en: "Wait. Two fifths is smaller than one half.", zh: "咦？五分之二比二分之一还小。" })}</span></p>
+      <p>${t({ en: "We added a whole stretch and ended up further back? That can't happen. So 1/2 + 1/3 is not 2/5.", zh: "多加了一段，反而往回走了，这不可能。所以 1/2 + 1/3 不是 2/5。" })}</p>
+      <p>${t({ en: "Go to step 2: what small step measures both stretches?", zh: "到第 2 步：用什么小格能把两段都量完？" })}</p>`;
+  }
+  return out;
+}
+
+function explain2() {
+  const fa = n % 2 === 0, fb = n % 3 === 0, fit = fa && fb;
+  const part = (len) => {   // how many 1/n steps a stretch of length 1/len holds
+    if (n % len === 0) return `<strong>${n / len}</strong>`;
+    const lo = Math.floor(n / len);
+    return t({ en: `between ${lo} and ${lo + 1}`, zh: `${lo} 到 ${lo + 1} 之间` });
+  };
+  let out = `<div class="kicker">${t({ en: "Step 02 · same small step", zh: "第 2 步 · 同一种小格" })}</div>
+    <h2>${t({ en: "Is there one small step that measures both stretches exactly?", zh: "有没有一种小格子，能把两段都正好量完？" })}</h2>
+    <p>${t({ en: "The trouble is that the two stretches use different units: one is in halves, the other in thirds. Drag the gold step (or tap a number) to cut zero to one into equal parts.", zh: "问题出在，两段用的单位不一样，一个是二分之一，一个是三分之一。拖动金色小格（或点下面的数），把零到一平均切开。" })}</p>
+    <div class="mathline">${t({ en: "step", zh: "小格" })} = ${FR(1, n)}</div>
+    <p>${fa ? "✓" : `<span class="tag-no">✕</span>`} <span class="na">${FR(1, 2)}</span> ${t({ en: "holds", zh: "里有" })} ${part(2)} ${t({ en: "steps", zh: "格" })}</p>
+    <p>${fb ? "✓" : `<span class="tag-no">✕</span>`} <span class="nb">${FR(1, 3)}</span> ${t({ en: "holds", zh: "里有" })} ${part(3)} ${t({ en: "steps", zh: "格" })}</p>`;
+  if (fit) {
+    const k = n / 6;
+    out += `<p class="big">${t({ en: `One half is exactly ${n / 2} of these steps, one third exactly ${n / 3}. Count with the same step: ${n / 2}, then ${n / 3} more, ${5 * k} in all.`,
+                              zh: `二分之一正好是 ${n / 2} 格，三分之一正好是 ${n / 3} 格。用同一种小格来数：${n / 2} 格，再 ${n / 3} 格，一共 ${5 * k} 格。` })}</p>
+      <div class="mathline">${FR(n / 2, n)} + ${FR(n / 3, n)} = ${FR(5 * k, n)}${k > 1 ? " = " + FR(5, 6) : ""}</div>
+      <p>${t(k === 1 ? { en: "Six is the smallest number of parts that both 2 and 3 fit into evenly. Try 12 as well: it works too, the numbers are just bigger.", zh: "六是二和三都能整切进去的最小份数。也试试十二：一样行，只是数字大一些。" }
+                     : { en: `${n} works too, because 6 fits into it. The answer is the same point: five sixths.`, zh: `${n} 也行，因为它能被 6 整切。答案还是同一个点：六分之五。` })}</p>`;
+  } else if (fb && !fa) {
+    out += `<p>${t({ en: "One third fits, but one half doesn't land on a tick, so the second stretch starts in the middle of a step.", zh: "三分之一能量完，可二分之一没落在刻度上，第二段从一个小格中间开始。" })}</p>`;
+  } else {
+    out += `<p>${t({ en: "Red dashed steps get cut by the end of a stretch. Try another number.", zh: "红色虚线的小格被某一段的端点切开了。换一个数试试。" })}</p>`;
+  }
+  return out;
+}
+
+function explain3() {
+  const P = pairInfo(), { a, b, c, d, L, p, q, s, g } = P;
+  const h = (f) => (focus === f ? "hot" : "");
+  const eq = `<div class="eq"><span class="${h("A")}">${FR(a, `<span class="${h("L")}">${b}</span>`)}</span> + <span class="${h("B")}">${FR(c, `<span class="${h("L")}">${d}</span>`)}</span> =
+    <span class="${h("A")}">${FR(p, `<span class="${h("L")}">${L}</span>`)}</span> + <span class="${h("B")}">${FR(q, `<span class="${h("L")}">${L}</span>`)}</span> =
+    <span class="${h("S")}">${FR(s, `<span class="${h("L")}">${L}</span>`)}</span>${g > 1 ? " = " + FR(s / g, L / g) : ""}</div>`;
+  const tabs = [["L", { en: "common unit", zh: "公分母" }], ["A", { en: "first stretch", zh: "第一段" }], ["B", { en: "second stretch", zh: "第二段" }], ["S", { en: "sum", zh: "和" }]];
+  let out = `<div class="kicker">${t({ en: "Step 03 · add the tops", zh: "第 3 步 · 分子相加" })}</div>
+    <h2>${t({ en: `Why ${L}? Because both ${b} and ${d} fit evenly into ${L} parts.`, zh: `为什么是 ${L}？因为 ${b} 和 ${d} 都能整切进 ${L} 份里。` })}</h2>${eq}
+    <div class="choices">${tabs.map(([k, s0]) => `<button class="ftab${focus === k ? " on" : ""}" data-f="${k}">${t(s0)}</button>`).join("")}</div>`;
+  if (focus === "L") out += `<p class="big">${t({ en: `${L} is a number of parts that both ${b} and ${d} divide into evenly (the common denominator). Every gold tick is one step of 1/${L}.`, zh: `${L} 是 ${b} 和 ${d} 都能整切进去的份数（公分母）。每一条金色刻度是一格 1/${L}。` })}</p>`;
+  if (focus === "A") out += `<p class="big">${t({ en: `${a}/${b} gets renamed ${p}/${L}: the first stretch holds ${p} steps of 1/${L}.`, zh: `${a}/${b} 换成 ${p}/${L}：第一段里有 ${p} 个 1/${L}。` })}</p>`;
+  if (focus === "B") out += `<p class="big">${t({ en: `${c}/${d} becomes ${q}/${L}: the second stretch holds ${q} steps of 1/${L}.`, zh: `${c}/${d} 换成 ${q}/${L}：第二段里有 ${q} 个 1/${L}。` })}</p>`;
+  if (focus === "S") out += `<p class="big">${t({ en: `Once the units match, we can simply add the tops: ${p} + ${q} = ${s}. The bottom stays ${L}: the unit doesn't change.`, zh: `单位一样了，分子才能直接相加：${p} + ${q} = ${s}。分母还是 ${L}：单位没变。` })}</p>`;
+  if (m < s) {
+    out += `<p>${t({ en: `Drag the gold handle and count with the same step: ${p}, then ${q} more. Counted so far: ${m}.`, zh: `拖动金色把手，用同一种小格来数：${p} 格，再 ${q} 格。已经数了 ${m} 格。` })}</p>`;
+  } else if (m === s) {
+    out += `<p class="big">${t({ en: `${s} steps in all: ${s}/${L}${g > 1 ? ` = ${s / g}/${L / g}` : ""}. It is to the right of ${a}/${b}. Add a stretch, move forward a stretch.`,
+                                zh: `一共 ${s} 格，就是 ${s}/${L}${g > 1 ? ` = ${s / g}/${L / g}` : ""}。它在 ${a}/${b} 的右边：加了一段，就往前走了一段。` })}</p>
+      <p><span class="tag-no">${t({ en: `Tops + bottoms would say ${P.ma}/${P.mb}`, zh: `分子加分子、分母加分母会得 ${P.ma}/${P.mb}` })}</span> ${t({ en: `, the faded red dot: left of ${a}/${b}, further back than where we started the second stretch.`, zh: `，就是那个淡红点：在 ${a}/${b} 左边，比第二段的起点还靠后。` })}</p>`;
+  } else {
+    out += `<p>${t({ en: `${m - s} too many: the second stretch ends at step ${s}.`, zh: `多数了 ${m - s} 格：第二段在第 ${s} 格结束。` })}</p>`;
+  }
+  return out;
+}
+
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("put").textContent = t(show25 ? D.hideB : D.putB);
+  el("put").classList.toggle("on", show25);
+  el("attach").disabled = attached();
+  el("nBtns").innerHTML = NS.map((j) => `<button data-n="${j}" class="${j === n ? "on" : ""}">${j}</button>`).join(" ");
+  el("pBtns").innerHTML = PAIRS.map(([a, b, c, d], i) => `<button data-p="${i}" class="${i === pi ? "on" : ""}">${a}/${b} + ${c}/${d}</button>`).join(" ");
+  const L = pairInfo().L;
+  el("cut").textContent = t(cut ? { en: "Bars: back to the old cuts", zh: "分数条：回到原来的切法" } : { en: `Bars: cut both into ${L}`, zh: `分数条：都切成 ${L} 份` });
+  cvEl.style.height = HEIGHT[step] + "px";
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-c]"), f = e.target.closest("[data-f]");
+  if (c) { pick = +c.dataset.c; render(); }
+  if (f) { focus = focus === f.dataset.f ? null : f.dataset.f; render(); }
+});
+el("attach").onclick = doAttach;
+el("put").onclick = toggle25;
+el("nBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-n]"); if (b) setN(+b.dataset.n); });
+el("pBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (b) setPair(+b.dataset.p); });
+el("cut").onclick = () => { cut = !cut; render(); };
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; focus = null; render(); });
+el("reset").onclick = () => {
+  bx = B0; lift = 1; snap = null; show25 = false; f25 = 0; pick = -1; n = 2; pi = 0; cut = false; m = 0; focus = null; nav.set(1);
+};
+(() => { const P = pairInfo(); el("resM").innerHTML = `${FR(P.a, P.b)} + ${FR(P.c, P.d)} = ${FR(P.p, P.L)} + ${FR(P.q, P.L)} = ${FR(P.s, P.L)}`; })();
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (snap) {
+    const k = Math.min(1, dt * 9);
+    bx += (snap.x - bx) * k; lift += (snap.l - lift) * k;
+    if (Math.abs(bx - snap.x) < 0.002 && lift < 0.01) { bx = snap.x; lift = snap.l; snap = null; render(); }
+    dirty = true;
+  }
+  const want = show25 ? 1 : 0;
+  if (f25 !== want) { f25 = want > f25 ? Math.min(1, f25 + dt * 3) : Math.max(0, f25 - dt * 3); dirty = true; }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

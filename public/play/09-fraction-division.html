@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Dividing by a Fraction Means Flip and Multiply · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .kid button { font-size: 15px; min-height: 44px; min-width: 44px; padding: 8px 12px; }
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .kid button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .kid button .frac { font-size: .9em; }
+  .choices button { font-size: 14px; min-height: 40px; text-align: left; }
+  .choices button.ok { border-color: var(--a); box-shadow: inset 0 0 0 2px var(--a); }
+  .choices button.bad { border-color: var(--no); box-shadow: inset 0 0 0 2px var(--no); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 22px; }
+  .na { border-bottom: 3px solid var(--a); padding: 0 2px; }
+  .myth { color: var(--no); font-weight: 650; }
+  .myth.x { text-decoration: line-through; text-decoration-thickness: 2px; }
+  .eq { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-family: var(--math); font-size: 24px; margin: 2px 0 8px; }
+  .eq .frac { font-size: .82em; }
+  .eq button.tm { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 6px; padding: 0 3px; min-height: 0; line-height: inherit; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
+  .eq button.tm.hot { background: var(--soft); outline: 2px solid var(--hl); text-decoration: none; }
+  .grp { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .grp > span { color: var(--muted); }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 8px; } .eq { font-size: 21px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="number line"></canvas>
+      <div class="controls kid" id="c1">
+        <button id="minus" aria-label="one piece fewer">−</button><button id="plus" aria-label="one piece more">+</button>
+        <span id="c1v"></span>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <span data-t="byT"></span><span class="grp" id="dBtns2"></span>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <span class="grp"><span data-t="lenT"></span><span id="aBtns"></span></span>
+        <span class="grp"><span data-t="byT"></span><span id="dBtns3"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p><p data-t="moreR"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "Why Dividing by a Fraction Means Flip and Multiply", zh: "分数除法为什么“颠倒相乘”" },
+  eyebrow: { en: "Boxi Math · Try it · #9", zh: "Boxi Math · 动手试试 · #9" },
+  intro: { en: "A ribbon six meters long, cut into pieces two thirds of a meter each. How many pieces? Guess first, then measure on the number line.",
+           zh: "六米长的彩带，每三分之二米剪一段，能剪几段？先猜一猜，再在数轴上量一量。" },
+  s1: { en: "Bigger or smaller?", zh: "变大还是变小？" }, s2: { en: "Look inside 1", zh: "先看 1 里面" }, s3: { en: "Flip and multiply", zh: "颠倒相乘" },
+  reset: { en: "Reset", zh: "重置" },
+  byT: { en: "Divide by:", zh: "除以：" }, lenT: { en: "Length:", zh: "长度：" },
+  v1: { en: "Number line 0 to 6 · jumps of 2/3", zh: "数轴 0 到 6 · 每跳 2/3" },
+  v2: { en: "Number line · zoom in on 1", zh: "数轴 · 放大看 1" },
+  v3: { en: "Fraction bars and number line", zh: "分数条和数轴" },
+  tag1: { en: "drag the gold handle", zh: "拖动金色把手" }, tag2: { en: "drag the gold handle", zh: "拖动金色把手" }, tag3: { en: "drag the end of the ribbon", zh: "拖动彩带的末端" },
+  resT: { en: "Dividing by 2/3 asks how many 2/3s fit inside", zh: "除以 2/3，就是数里面有几个 2/3" },
+  resN: { en: "Every 1 holds exactly 3/2 of a 2/3, so 6 holds 6 × 3/2 = 9. Dividing doesn't always make things smaller. It depends on what you divide by.",
+          zh: "每个 1 里面正好有 3/2 个 2/3，所以 6 里面有 6 × 3/2 = 9 个。除法不一定让数变小，要看除的是什么数。" },
+  moreS: { en: "Why does this work for any fraction?", zh: "为什么对任何分数都成立？" },
+  moreP: { en: "To divide by p/q, cut every 1 into q equal parts. One p/q is p of those parts, so one 1 holds q ÷ p = q/p of them: that is p/q flipped. A number that has that many 1s holds that many times q/p. Nothing here depended on the numbers 2 and 3.",
+           zh: "除以 p/q：把每个 1 平均切成 q 份，一个 p/q 是其中 p 份，所以一个 1 里面有 q ÷ p = q/p 个，正好是 p/q 上下颠倒。有几个 1，就有几个 q/p。整个道理和 2、3 这两个数无关。" },
+  moreQ: { en: "Renaming with a common denominator says the same thing: 6 = 18/3, and 18 thirds in groups of 2 give 18 ÷ 2 = 9. That is the renaming from #7, and the 18 is just 6 × 3.",
+           zh: "通分说的是同一件事：6 = 18/3，18 个 1/3 两个一组，18 ÷ 2 = 9。这用的是 #7 的通分，18 就是 6 × 3。" },
+  moreR: { en: "Across these four episodes, we've really been doing one thing: measuring with a better unit.",
+           zh: "这四集，我们一直在做同一件事：换一个合适的单位去量。" },
+  foot: { en: "Green jumps are pieces of 2/3 that fit, brown is a leftover part of a jump, red is the wrong guess, gold is what you move. On a focused picture: step 1 ← → cut a piece; step 2 ← → move the handle, ↑ ↓ change the fraction; step 3 ← → change the length, ↑ ↓ change the fraction.",
+          zh: "绿色是放得下的整跳，棕色是一跳里剩下的一部分，红色是猜错的想法，金色是你能动的。选中图后：第 1 步 ← → 剪一段；第 2 步 ← → 挪把手，↑ ↓ 换分数；第 3 步 ← → 换长度，↑ ↓ 换分数。" },
+  ch: [{ en: "More than 6 pieces", zh: "比 6 段多" }, { en: "Fewer than 6 pieces", zh: "比 6 段少" }],
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a) || 1);
+const red = (n, d) => { const g = gcd(n, d); return [n / g, d / g]; };
+const FR = (p, q) => `<span class="frac"><span>${p}</span><span>${q}</span></span>`;
+const fr = (n, d) => { const [a, b] = red(n, d); return b === 1 ? String(a) : `${a}/${b}`; };          // canvas text
+const frH = (n, d) => { const [a, b] = red(n, d); return b === 1 ? String(a) : FR(a, b); };            // html
+const DIVS = [[2, 3], [3, 4], [1, 2], [2, 5], [3, 2], [4, 3]];
+const HEIGHT = { 1: 212, 2: 232, 3: 206 };
+
+let step = 1, dirty = true;
+let n = 5, pick = -1, seen9 = false;      // step 1: number of 2/3 pieces cut (0..9)
+let di = 0, j = 2;                        // step 2: divisor index, handle at j parts (of q per unit)
+let a = 6, focus = null;                  // step 3: dividend 1..6
+const P = () => DIVS[di][0], Q = () => DIVS[di][1];
+const R2 = () => (P() > Q() ? 2 : 1);     // step 2 zoom range: 0..1, or 0..2 when the jump is longer than 1
+
+// ---------- geometry ----------
+function geo(w, h, range) {
+  const len = Math.min(w - 64, 620), xl = (w - len) / 2, xr = xl + len;
+  return { xl, xr, w, h, X: (v) => xl + (v / range) * len, V: (px) => ((px - xl) / len) * range };
+}
+let Gm = null, yl = 0;
+
+// ---------- drawing helpers ----------
+function circle(x, cx, cy, r, fill, stroke, lw) {
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.stroke(); }
+}
+function textW(x, s, size) { x.font = `750 ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width; }
+// labels {x, s, c, bg}; bumped to a higher row on overlap, kept inside the canvas
+function labels(x, list, y0, size) {
+  const placed = [];
+  list.forEach((o) => {
+    const lw = textW(x, o.s, size) + 10;
+    const cx = clamp(o.x, lw / 2 + 4, Gm.w - lw / 2 - 4);
+    let row = 0;
+    while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
+    placed.push({ x: cx, w: lw, row });
+    const y = y0 - row * 24;
+    if (o.bg) {
+      x.fillStyle = o.bg; x.beginPath();
+      x.roundRect ? x.roundRect(cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6) : x.rect(cx - lw / 2, y - size * 0.75, lw, size * 1.5);
+      x.fill();
+    }
+    Play.text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
+  });
+}
+// number line 0..range; small ticks every 1/sub, big ticks + numbers at whole numbers
+function axis(x, range, sub, opt = {}) {
+  const { xl, xr, X } = Gm, mu = color("--muted"), fg = color("--fg");
+  x.strokeStyle = mu; x.lineWidth = 2; x.beginPath(); x.moveTo(xl, yl); x.lineTo(xr, yl); x.stroke();
+  x.beginPath();
+  for (let i = 0; i <= range * sub; i++) if (i % sub) { const sl = opt.subLen || 5; x.moveTo(X(i / sub), yl - sl); x.lineTo(X(i / sub), yl + sl); }
+  x.strokeStyle = opt.subHot ? color("--hl") : rgba(mu, 0.75); x.lineWidth = opt.subHot ? 2.5 : 1.3; x.stroke();
+  x.beginPath();
+  for (let i = 0; i <= range; i++) { x.moveTo(X(i), yl - 10); x.lineTo(X(i), yl + 10); }
+  x.strokeStyle = opt.unitHot ? color("--hl") : mu; x.lineWidth = opt.unitHot ? 3 : 2; x.stroke();
+  for (let i = 0; i <= range; i++) {
+    if (opt.unitHot && i > 0) labels(x, [{ x: X(i), s: String(i), c: fg, bg: rgba(color("--hl"), 0.35) }], yl + 22, 14);
+    else Play.text(x, String(i), X(i), yl + 22, { size: 14, weight: 700, color: fg });
+  }
+}
+// jump arc from value u to value v above the line
+function arc(x, u, v, col, opt = {}) {
+  const { X } = Gm, x0 = X(u), x1 = X(v), hh = Math.min((x1 - x0) * 0.42, opt.max || 40);
+  x.beginPath(); x.moveTo(x0, yl - 2);
+  x.bezierCurveTo(x0, yl - 2 - hh * 1.33, x1, yl - 2 - hh * 1.33, x1, yl - 2);
+  x.strokeStyle = col; x.lineWidth = opt.lw || 2.4; x.setLineDash(opt.dash || []); x.stroke(); x.setLineDash([]);
+  if (!opt.noHead) {
+    x.beginPath(); x.moveTo(x1 - 4, yl - 9); x.lineTo(x1, yl - 2); x.lineTo(x1 + 3, yl - 10);
+    x.strokeStyle = col; x.lineWidth = 2; x.stroke();
+  }
+  return { cx: (x0 + x1) / 2, top: yl - 2 - hh };
+}
+function handle(x, v, y) {
+  const hx = Gm.X(v), HL = color("--hl");
+  x.strokeStyle = HL; x.lineWidth = 2.5; x.beginPath(); x.moveTo(hx, yl + 32); x.lineTo(hx, y - 11); x.stroke();
+  circle(x, hx, y, 11, HL, color("--fg"), 1.5);
+}
+
+function draw(x, w, h) {
+  Gm = geo(w, h, step === 2 ? R2() : 6);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, w, h);
+}
+
+// step 1: cut 2/3 pieces off a 6 m ribbon
+function draw1(x) {
+  const { X, xl } = Gm, A = color("--a"), NO = color("--no"), B = color("--b"), HL = color("--hl"), fg = color("--fg");
+  yl = 124;
+  const col = n <= 5 ? NO : A, end = (2 * n) / 3, pw = X(2 / 3) - X(0);
+  // ribbon under the line
+  const ry = yl + 34;
+  x.fillStyle = rgba(B, 0.3); x.fillRect(xl, ry, X(6) - xl, 10);
+  for (let k = 0; k < n; k++) { x.fillStyle = rgba(col, k % 2 ? 0.45 : 0.75); x.fillRect(X((2 * k) / 3), ry, pw, 10); }
+  axis(x, 6, 3);
+  // where the ribbon ends
+  x.strokeStyle = rgba(HL, 0.9); x.lineWidth = 2; x.setLineDash([4, 4]);
+  x.beginPath(); x.moveTo(X(6), yl - 50); x.lineTo(X(6), ry + 10); x.stroke(); x.setLineDash([]);
+  const L = [];
+  for (let k = 0; k < n; k++) {
+    const c = arc(x, (2 * k) / 3, (2 * (k + 1)) / 3, col);
+    if (pw >= 18 || k === n - 1) Play.text(x, String(k + 1), c.cx, c.top - 10, { size: 13, weight: 700, color: col });
+  }
+  if (n > 0) circle(x, X(end), yl, 6, n === 9 ? HL : col, color("--surface"), 2);
+  L.push({ x: X(end), s: `${n} × 2/3 = ${fr(2 * n, 3)}`, c: n === 9 ? fg : col, bg: n === 9 ? rgba(HL, 0.35) : null });
+  labels(x, L, yl - 64, 15);
+  handle(x, end, yl + 66);
+}
+
+// step 2: how many p/q fit in 1
+function draw2(x) {
+  const { X } = Gm, A = color("--a"), B = color("--b"), C = color("--c"), HL = color("--hl"), fg = color("--fg");
+  const p = P(), q = Q(), R = R2();
+  yl = 130;
+  // the unit 0..1
+  x.fillStyle = rgba(C, 0.14); x.fillRect(X(0), yl - 12, X(1) - X(0), 24);
+  // covered part
+  x.fillStyle = rgba(HL, 0.4); x.fillRect(X(0), yl - 4, X(j / q) - X(0), 8);
+  axis(x, R, q, { subLen: 8 });
+  const full = Math.floor(j / p), r = j % p, tops = [];
+  for (let k = 0; k < full; k++) {
+    const c = arc(x, (k * p) / q, ((k + 1) * p) / q, A, { max: 46 });
+    tops.push({ x: c.cx, s: String(k + 1), c: A });
+  }
+  if (r > 0) {
+    const s = (full * p) / q, e = ((full + 1) * p) / q;
+    x.save(); x.beginPath(); x.rect(0, 0, Gm.xr + 6, Gm.h); x.clip();
+    const g = arc(x, s, e, rgba(B, 0.55), { max: 46, dash: [5, 5], noHead: true, lw: 1.8 });
+    x.restore();
+    x.strokeStyle = B; x.lineWidth = 6; x.beginPath(); x.moveTo(X(s), yl); x.lineTo(X(j / q), yl); x.stroke();
+    tops.push({ x: (X(s) + X(j / q)) / 2, s: fr(r, p), c: B, top: g.top });
+  }
+  const yT = yl - 46 - 12;
+  labels(x, tops, yT, 14);
+  handle(x, j / q, yl + 56);
+  if (j === q) labels(x, [{ x: X(1), s: t({ en: `1 holds ${fr(q, p)} of a ${p}/${q}`, zh: `1 里面有 ${fr(q, p)} 个 ${p}/${q}` }), c: fg, bg: rgba(HL, 0.35) }], yl + 86, 15);
+  else if (j > 0 && j !== R * q) labels(x, [{ x: X(j / q), s: fr(j, q), c: fg }], yl + 86, 14);
+}
+
+// step 3: a ÷ p/q on 0..6 with fraction bars
+function draw3(x) {
+  const { X, xl } = Gm, A = color("--a"), B = color("--b"), HL = color("--hl"), fg = color("--fg"), mu = color("--muted");
+  const p = P(), q = Q(), parts = a * q, groups = Math.ceil(parts / p);
+  yl = 142;
+  const by = 62, bh = 28;
+  // unit labels "q/p" above each unit
+  const U = [];
+  for (let i = 0; i < a; i++) U.push({ x: (X(i) + X(i + 1)) / 2, s: fr(q, p), c: focus === "inv" ? fg : color("--c"), bg: focus === "inv" ? rgba(HL, 0.35) : null });
+  labels(x, U, by - 14, 13);
+  // empty part of the 0..6 strip
+  x.fillStyle = color("--soft"); x.fillRect(xl, by, X(6) - xl, bh);
+  for (let g = 0; g < groups; g++) {
+    const s = (g * p) / q, e = Math.min(((g + 1) * p) / q, a), whole = (g + 1) * p <= parts;
+    x.fillStyle = whole ? rgba(A, g % 2 ? 0.32 : 0.62) : rgba(B, 0.4);
+    x.fillRect(X(s), by, X(e) - X(s), bh);
+  }
+  // part lines and unit lines
+  x.beginPath();
+  for (let i = 1; i < parts; i++) if (i % q) { x.moveTo(X(i / q), by + 3); x.lineTo(X(i / q), by + bh - 3); }
+  x.strokeStyle = focus === "parts" ? HL : color("--surface"); x.lineWidth = focus === "parts" ? 2.5 : 1.2; x.stroke();
+  x.beginPath();
+  for (let i = 0; i <= a; i++) { x.moveTo(X(i), by - 3); x.lineTo(X(i), by + bh + 3); }
+  x.strokeStyle = focus === "a" ? HL : fg; x.lineWidth = focus === "a" ? 3 : 1.8; x.stroke();
+  x.strokeStyle = mu; x.lineWidth = 1; x.strokeRect(xl, by, X(6) - xl, bh);
+  // group outlines and numbers
+  const gw = X(p / q) - X(0), every = gw >= 20 ? 1 : 5;
+  for (let g = 0; g < groups; g++) {
+    const s = (g * p) / q, e = Math.min(((g + 1) * p) / q, a), whole = (g + 1) * p <= parts;
+    if (!whole) { x.strokeStyle = B; x.lineWidth = 2; x.setLineDash([4, 3]); x.strokeRect(X(s) + 1, by + 1, X(e) - X(s) - 2, bh - 2); x.setLineDash([]); }
+    if (focus === "p" && g === 0) { x.strokeStyle = HL; x.lineWidth = 3; x.strokeRect(X(s), by - 2, X(e) - X(s), bh + 4); }
+  }
+  // number line with jumps under the bars
+  axis(x, 6, q, { unitHot: focus === "a", subHot: focus === "parts" });
+  x.fillStyle = rgba(color("--surface"), 0.55); x.fillRect(X(a) + 2, yl - 12, X(6) - X(a) + 30, 50);
+  for (let g = 0; g < groups; g++) {
+    const s = (g * p) / q, e = ((g + 1) * p) / q, whole = (g + 1) * p <= parts;
+    let c;
+    if (whole) c = arc(x, s, e, focus === "ans" ? HL : A, { max: 22, lw: focus === "ans" ? 3 : 2.2 });
+    else {
+      x.save(); x.beginPath(); x.rect(0, 0, X(a), Gm.h); x.clip();
+      c = arc(x, s, e, B, { max: 22, dash: [4, 4], noHead: true }); x.restore();
+      c.cx = (X(s) + X(a)) / 2;
+    }
+    const lab = whole ? String(g + 1) : fr(parts - g * p, p);
+    if (whole ? (g + 1) % every === 0 || g === groups - 1 || g === 0 : X(a) - X(s) > 22)
+      Play.text(x, lab, c.cx, c.top - 9, { size: 13, weight: 750, color: whole ? (focus === "ans" ? fg : A) : B });
+  }
+  handle(x, a, yl + 50);
+}
+
+// ---------- state ----------
+function setN(v) { const nn = clamp(v, 0, 9); if (nn === n) return; n = nn; if (n === 9) seen9 = true; render(); }
+function setJ(v) { const nj = clamp(v, 0, R2() * Q()); if (nj === j) return; j = nj; render(); }
+function setDiv(i) { di = (i + DIVS.length) % DIVS.length; j = P(); focus = null; render(); }
+function setA(v) { const na = clamp(v, 1, 6); if (na === a) return; a = na; render(); }
+
+let grab = false;
+Play.drag(cvEl, {
+  down(px) {
+    if (!Gm || px < Gm.xl - 24 || px > Gm.xr + 24) return false;
+    grab = true; move(px); return true;
+  },
+  move(px) { if (grab) move(px); },
+  up() { grab = false; },
+});
+function move(px) {
+  const v = Gm.V(px);
+  if (step === 1) setN(Math.round(v / (2 / 3)));
+  else if (step === 2) setJ(Math.round(v * Q()));
+  else setA(Math.round(v));
+}
+Play.keys(cvEl, {
+  ArrowRight: () => (step === 1 ? setN(n + 1) : step === 2 ? setJ(j + 1) : setA(a + 1)),
+  ArrowLeft: () => (step === 1 ? setN(n - 1) : step === 2 ? setJ(j - 1) : setA(a - 1)),
+  ArrowUp: () => step > 1 && setDiv(di + 1),
+  ArrowDown: () => step > 1 && setDiv(di - 1),
+});
+
+// ---------- explanations ----------
+function explain1() {
+  const used = fr(2 * n, 3);
+  let out = `<div class="kicker">${t({ en: "Step 01 · guess first", zh: "第 1 步 · 先猜" })}</div>
+    <h2>${t({ en: "A 6 m ribbon, cut into 2/3 m pieces. How many pieces?", zh: "6 米长的彩带，每 2/3 米剪一段，能剪几段？" })}</h2>
+    <div class="mathline">6 ÷ ${FR(2, 3)} = ?</div>
+    <p>${t({ en: "More than six pieces, or fewer? Pick one first.", zh: "比六段多，还是比六段少？你先选一个。" })}</p>
+    <div class="choices">${D.ch.map((c, i) => `<button data-c="${i}" class="${pick === i ? "on" : ""}${seen9 && pick === i ? (i === 0 ? " ok" : " bad") : ""}">${t(c)}</button>`).join("")}</div>
+    <p><span class="myth${seen9 ? " x" : ""}">${t({ en: "Dividing always makes it smaller?", zh: "除法一定让数变小？" })}</span>
+    ${t({ en: "Lin says: dividing makes things smaller, so it's fewer than six. Say five?", zh: "小林说：除法会让数变小，肯定不到六段。比如五段？" })}</p>
+    <div class="mathline"><span class="na">${n}</span> × ${FR(2, 3)} = ${frH(2 * n, 3)}</div>`;
+  if (n === 9) {
+    out += `<p class="big">${t({ en: "Nine pieces use up the ribbon exactly. Nine! More than six.", zh: "九段，正好把彩带剪完。九段！比六还大。" })}</p>
+      <p>${t({ en: "Division is asking: how many two thirds fit inside six? Go to step 2 to see why it is nine.", zh: "除法问的是：六里面有几个三分之二？到第 2 步看看为什么是九。" })}</p>`;
+  } else if (n === 0) {
+    out += `<p class="big">${t({ en: "Drag the gold handle to cut pieces of 2/3 from 0.", zh: "拖动金色把手，从 0 开始一段一段剪 2/3。" })}</p>`;
+  } else {
+    const left = fr(18 - 2 * n, 3);
+    out += `<p class="big">${t(n === 5
+      ? { en: "Five two thirds end to end don't even reach four. Six is still a long way off.", zh: "五个三分之二接起来，连四都不到，离六还远着呢。" }
+      : { en: `${n} ${n === 1 ? "piece reaches" : "pieces reach"} ${used}, and ${left} m of ribbon is still left.`, zh: `${n} 段到 ${used}，彩带还剩 ${left} 米。` })}</p>`;
+    out += `<p>${t(n <= 6
+      ? { en: `<span class="tag-no">Too few.</span> Even six pieces only reach 4. Keep cutting until the ribbon runs out.`, zh: `<span class="tag-no">太少了。</span>就算剪六段也只到 4。接着剪，剪到彩带用完。` }
+      : { en: "Keep cutting until the ribbon runs out.", zh: "接着剪，剪到彩带用完。" })}</p>`;
+  }
+  return out;
+}
+
+function explain2() {
+  const p = P(), q = Q(), d = FR(p, q), full = Math.floor(q / p), r = q % p;
+  const pos = j === 0 ? "0" : frH(j, q);
+  let out = `<div class="kicker">${t({ en: "Step 02 · look inside 1", zh: "第 2 步 · 先看 1 里面" })}</div>
+    <h2>${t({ en: `How many ${p}/${q}s fit inside 1?`, zh: `1 里面能放下几个 ${p}/${q}？` })}</h2>
+    <p>${t({ en: `Cut 0 to 1 into ${q} equal parts. One ${p}/${q} is ${p} of those parts. Drag the gold handle to measure.`, zh: `把 0 到 1 平均切成 ${q} 份，一个 ${p}/${q} 就是其中 ${p} 份。拖动金色把手去量。` })}</p>
+    <div class="mathline">${t({ en: `<span class="na">${pos}</span> holds ${frH(j, p)} of a ${d}`, zh: `<span class="na">${pos}</span> 里面有 ${frH(j, p)} 个 ${d}` })}</div>
+    <p>${t({ en: `${j} ${j === 1 ? "part" : "parts"} ÷ ${p} ${p === 1 ? "part" : "parts"} per jump = ${fr(j, p)} ${j === p ? "jump" : "jumps"}`, zh: `${j} 份 ÷ 每跳 ${p} 份 = ${fr(j, p)} 跳` })}</p>`;
+  if (j === q) {
+    out += `<p class="big">${t(p < q
+      ? { en: `${full === 1 ? "One fits" : full + " fit"}${r ? `, with ${r} ${r === 1 ? "part" : "parts"} left over, and that is ${fr(r, p)} of a ${p}/${q}` : ""}. So 1 holds ${fr(q, p)} of them.`,
+          zh: `放下 ${full} 个${r ? `，还剩 ${r} 份，正好是 ${fr(r, p)} 个 ${p}/${q}` : ""}。所以 1 里面有 ${fr(q, p)} 个。` }
+      : { en: `Not even one fits: 1 covers only ${q} of its ${p} parts. So 1 holds just ${q}/${p} of a ${p}/${q}.`,
+          zh: `一个都放不下：1 只盖住它 ${p} 份里的 ${q} 份。所以 1 里面只有 ${q}/${p} 个 ${p}/${q}。` })}</p>
+      <p>${t({ en: `Look: ${fr(q, p)} is ${p}/${q} turned upside down. Every unit is the same, so the next step counts all six.`, zh: `看：${fr(q, p)} 正好是 ${p}/${q} 上下颠倒。每一个 1 里面都一样，下一步把六个 1 一起数。` })}</p>`;
+  } else {
+    out += `<p class="big">${t({ en: "Guess first, then drag to 1. How many fit inside one?", zh: "先猜一下，再拖到 1：1 里面能放下几个？" })}</p>`;
+  }
+  return out;
+}
+
+function explain3() {
+  const p = P(), q = Q(), ans = frH(a * q, p), [an, ad] = red(a * q, p);
+  const tm = (f, s) => `<button class="tm${focus === f ? " hot" : ""}" data-f="${f}">${s}</button>`;
+  const eq1 = `<div class="eq">${tm("a", a)} ÷ ${FR(p, q)} = ${tm("a", a)} × ${tm("inv", FR(q, p))} = ${tm("ans", ans)}</div>`;
+  const eq2 = `<div class="eq">${a} ÷ ${FR(p, q)} = ${FR(tm("parts", a * q), q)} ÷ ${FR(tm("p", p), q)} = ${tm("parts", a * q)} ÷ ${tm("p", p)} = ${tm("ans", ans)}</div>`;
+  const what = {
+    a: { en: `${a} is the ${a} whole ${a === 1 ? "unit" : "units"} of ribbon.`, zh: `${a} 是彩带上的 ${a} 个 1。` },
+    inv: { en: `${fr(q, p)} is how many ${p}/${q}s fit in each 1, written above every unit.`, zh: `${fr(q, p)} 是每个 1 里面放得下几个 ${p}/${q}，写在每一格上面。` },
+    parts: { en: `${a * q} is the number of small parts: ${a} units × ${q} parts each. So ${a} = ${a * q}/${q}.`, zh: `${a * q} 是小格的个数：${a} 个 1，每个 ${q} 格。所以 ${a} = ${a * q}/${q}。` },
+    p: { en: `${p} is how many small parts make one ${p}/${q}: one group in the bar, one jump on the line.`, zh: `${p} 是一个 ${p}/${q} 有几小格：分数条里的一组，数轴上的一跳。` },
+    ans: { en: `${fr(a * q, p)} is the number of jumps: groups of ${p} in the bar.`, zh: `${fr(a * q, p)} 是跳的次数，也就是分数条里 ${p} 格一组的组数。` },
+  };
+  let out = `<div class="kicker">${t({ en: "Step 03 · flip and multiply", zh: "第 3 步 · 颠倒相乘" })}</div>
+    <h2>${t({ en: `Every 1 holds ${fr(q, p)} of a ${p}/${q}, so ${a} holds ${a} × ${fr(q, p)}`, zh: `每个 1 里有 ${fr(q, p)} 个 ${p}/${q}，${a} 里面就有 ${a} × ${fr(q, p)} 个` })}</h2>
+    ${eq1}
+    <p class="note">${t({ en: "Or rename first with a common denominator, then divide the tops:", zh: "或者先通分，再用分子相除：" })}</p>
+    ${eq2}
+    <p${focus ? ' class="big"' : ""}>${focus ? t(what[focus]) : t({ en: "Tap a number in the equations to see it in the picture.", zh: "点算式里的数，看它在图里是哪一部分。" })}</p>`;
+  if (ad !== 1) out += `<p>${t({ en: `The last jump doesn't fit whole: only ${fr(an % ad, ad)} of it (dashed).`, zh: `最后一跳放不下整个，只有 ${fr(an % ad, ad)} 跳（虚线）。` })}</p>`;
+  out += `<p>${t(p < q
+    ? { en: `<strong>Bigger than ${a}.</strong> Each ${p}/${q} is shorter than 1, so more than ${a} of them fit in ${a}.`, zh: `<strong>比 ${a} 大。</strong>每个 ${p}/${q} 都比 1 短，${a} 里面放得下的个数比 ${a} 多。` }
+    : { en: `<span class="tag-no">Smaller this time.</span> ${p}/${q} is bigger than 1, so each 1 only holds ${q}/${p} of one. The result only gets smaller when you divide by something bigger than one.`,
+        zh: `<span class="tag-no">这次变小了。</span>${p}/${q} 比 1 大，每个 1 里面只放得下 ${q}/${p} 个。只有除以比一大的数，结果才会变小。` })}</p>`;
+  return out;
+}
+
+function divBtns() {
+  return DIVS.map(([p, q], i) => `<button data-d="${i}" class="${i === di ? "on" : ""}" aria-label="${p}/${q}">${FR(p, q)}</button>`).join(" ");
+}
+
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("c1v").textContent = t({ en: `${n} ${n === 1 ? "piece" : "pieces"}`, zh: `${n} 段` });
+  el("dBtns2").innerHTML = divBtns(); el("dBtns3").innerHTML = divBtns();
+  el("aBtns").innerHTML = [1, 2, 3, 4, 5, 6].map((i) => `<button data-a="${i}" class="${i === a ? "on" : ""}">${i}</button>`).join(" ");
+  cvEl.style.height = HEIGHT[step] + "px";
+  cvEl.setAttribute("aria-label", step === 1 ? `number line 0 to 6, ${n} jumps of 2/3` : step === 2 ? `number line, ${j} of ${Q()} parts per unit, jumps of ${P()}/${Q()}` : `${a} divided by ${P()}/${Q()}`);
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-c]"), f = e.target.closest("[data-f]");
+  if (c) { pick = +c.dataset.c; render(); }
+  if (f) { focus = focus === f.dataset.f ? null : f.dataset.f; render(); }
+});
+el("minus").onclick = () => setN(n - 1);
+el("plus").onclick = () => setN(n + 1);
+el("aBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-a]"); if (b) setA(+b.dataset.a); });
+["dBtns2", "dBtns3"].forEach((id) => el(id).addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (b) setDiv(+b.dataset.d); }));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; focus = null; render(); });
+el("reset").onclick = () => { n = 5; pick = -1; seen9 = false; di = 0; j = 2; a = 6; focus = null; nav.set(1); };
+el("resM").innerHTML = `6 ÷ ${FR(2, 3)} = 6 × ${FR(3, 2)} = 9`;
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop(() => { if (dirty) { dirty = false; cv.redraw(); } });
+nav.set(1);
+</script>
+</body>
+</html>
