@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adding Vectors: Tip to Tail · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1 1 140px; }
+  .controls .grp input[type=range] { flex: 1 1 90px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 18px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 3px 0; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk .ok { color: var(--a); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed currentColor; margin-right: 5px; vertical-align: 3px; }
+  #c3 .grp { flex: 0 1 auto; }
+  .ca { color: var(--a); font-weight: 700; } .cc { color: var(--c); font-weight: 700; } .ch { color: var(--hl); font-weight: 700; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="coordinate grid with arrows"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span data-t="road"></span><button id="rCorner" data-t="corner"></button><button id="rStraight" data-t="straight"></button></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><button id="play"></button><input id="slR" type="range" min="0" max="1" step="0.01" aria-label="slide b"><span class="val" id="slV"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><button id="legs" data-t="legsB"></button></span>
+        <span class="grp"><span data-t="tryP"></span><button id="p31" data-t="pSlant"></button><button id="pSame" data-t="pSame"></button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">(<i>a</i>₁, <i>a</i>₂) + (<i>b</i>₁, <i>b</i>₂) = (<i>a</i>₁ + <i>b</i>₁, <i>a</i>₂ + <i>b</i>₂)</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Adding Vectors: Tip to Tail", zh: "向量加法：首尾相接" },
+  eyebrow: { en: "Boxi Math · Try it · #32", zh: "Boxi Math · 动手试试 · #32" },
+  intro: { en: "You leave home, walk four kilometres east, then three kilometres north. How far are you from home now? Test the guess on the map, then add arrows tip to tail yourself.",
+           zh: "你从家出门，往东走四公里，再往北走三公里，现在离家多远？先在地图上试试猜想，再亲手把箭头首尾相接。" },
+  s1: { en: "7 km from home?", zh: "离家七公里？" }, s2: { en: "Tip to tail", zh: "首尾相接" }, s3: { en: "Parallelogram", zh: "平行四边形" },
+  reset: { en: "Reset", zh: "重置" },
+  road: { en: "Route:", zh: "路线：" }, corner: { en: "4 east, 3 north", zh: "东 4、北 3" }, straight: { en: "3 right, 2 right", zh: "右 3、再右 2" },
+  legsB: { en: "Across & up", zh: "横走、竖走" },
+  tryP: { en: "Try:", zh: "试试：" }, pSlant: { en: "(3,1) and (1,2)", zh: "(3,1) 和 (1,2)" }, pSame: { en: "same direction", zh: "方向相同" },
+  playB: { en: "▶ Slide b", zh: "▶ 平移 b" }, pauseB: { en: "❚❚ Pause", zh: "❚❚ 暂停" }, againB: { en: "↺ Slide again", zh: "↺ 再滑一次" },
+  tag1: { en: "drag the corner and the end", zh: "拖动拐角和终点" }, tag2: { en: "drag the tips of a and b", zh: "拖动 a、b 的箭头" }, tag3: { en: "drag the tips of a and b", zh: "拖动 a、b 的箭头" },
+  resT: { en: "a plus b: walk a, then b. Across plus across, up plus up", zh: "a 加 b：先走 a 再走 b。横的加横的，竖的加竖的" },
+  resN: { en: "The sum is never longer than the lengths added up, |a + b| ≤ |a| + |b|. Lengths simply add only when the arrows point the same way.",
+          zh: "和的长度不会超过长度的和：|a + b| ≤ |a| + |b|。只有两支箭头方向相同时，长度才正好相加。" },
+  moreS: { en: "Why is the sum never longer than the lengths added up?", zh: "为什么和的长度不会超过长度的和？" },
+  moreP: { en: "Put b on the tip of a. Then a, b and a + b are the three sides of a triangle: a + b goes straight from the start to the end, while a then b takes a detour through the corner. Straight is the shortest way between two points, so |a + b| ≤ |a| + |b|. The two sides are equal only when there is no corner at all, which means a and b point the same way. For a right angle, Pythagoras gives the exact length: |(4, 0) + (0, 3)| = √(4² + 3²) = 5.",
+           zh: "把 b 接到 a 的头上，a、b、a + b 就是一个三角形的三条边：a + b 从起点直着走到终点，先走 a 再走 b 要绕过拐角。两点之间直着走最近，所以 |a + b| ≤ |a| + |b|。只有完全不拐弯，也就是 a、b 方向相同时，两边才相等。拐角是直角时，勾股定理给出准确的长度：|(4, 0) + (0, 3)| = √(4² + 3²) = 5。" },
+  moreQ: { en: "Next: turning an arrow by ninety degrees, could that be a multiplication too?", zh: "下次：把一支箭头转九十度，能不能也写成一次乘法？" },
+  foot: { en: "Green is a, blue is b, gold is a + b, red dashed is the lengths added up. Dashed arrows are slid copies: same length, same direction, same vector. On a focused picture, arrow keys move the ringed tip, space switches which tip, and in step 2 Enter plays the slide.",
+          zh: "绿色是 a，蓝色是 b，金色是 a + b，红色虚线是把长度直接相加。虚线箭头是平移过去的副本：长度、方向都没变，还是同一个向量。选中图后，方向键移动带圈的箭头，空格切换是哪一支，第 2 步按回车播放平移。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const par = (v) => (v < -EPS ? `(${fmt(v)})` : fmt(v));
+const hot = (s) => `<span class="hot">${s}</span>`;
+const add = (p, q) => [p[0] + q[0], p[1] + q[1]];
+const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
+const len = (v) => Math.hypot(v[0], v[1]);
+const same = (p, q) => Math.abs(p[0] - q[0]) < EPS && Math.abs(p[1] - q[1]) < EPS;
+const vs = (v) => `(${fmt(v[0])}, ${fmt(v[1])})`;
+const isInt = (x) => Math.abs(x - Math.round(x)) < 1e-9;
+const eqs = (x) => (isInt(x) ? "=" : "≈");
+// |v| written out: 4, or √(3² + 1²) ≈ 3.16
+function lenX(v) {
+  const L = len(v);
+  if (Math.abs(v[0]) < EPS || Math.abs(v[1]) < EPS) return fmt(L);
+  return `√(${par(v[0])}² + ${par(v[1])}²) ${eqs(L)} ${fmt(L)}`;
+}
+const lenS = (v) => (isInt(len(v)) ? fmt(len(v)) : "≈ " + fmt(len(v)));
+// a and b point the same way (equality case of |a+b| <= |a|+|b|)
+const sameWay = (a, b) => Math.abs(a[0] * b[1] - a[1] * b[0]) < EPS && a[0] * b[0] + a[1] * b[1] > 0;
+
+// ---------- state ----------
+let T, E, act1, tried;          // step 1: home → T (vector a) → E (vector b); a + b = E
+let A, B, act, sl, playing, legs;   // steps 2–3: a, b from the origin; sl = how far the copy of b has slid
+function init() {
+  T = [4, 0]; E = [4, 3]; act1 = "E"; tried = { move: false, straight: false };
+  A = [3, 1]; B = [1, 2]; act = "B"; sl = 0; playing = false; legs = true;
+}
+init();
+let step = 1, dirty = true;
+
+// ---------- view: equal units, content box x [-1.5, 7], y [-1.2, 5] ----------
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  const top = 30, cx0 = -1.5, cx1 = 7, cy0 = -1.2, cy1 = 5;
+  const u = Math.max(16, Math.min(W / (cx1 - cx0), (H - top) / (cy1 - cy0)));
+  const ox = W / 2 - ((cx0 + cx1) / 2) * u, oy = top + (H - top) / 2 + ((cy0 + cy1) / 2) * u;
+  return { W, H, u, xmin: -ox / u, xmax: (W - ox) / u, ymin: (oy - H) / u, ymax: oy / u, top,
+    X: (x) => ox + x * u, Y: (y) => oy - y * u, wx: (px) => (px - ox) / u, wy: (py) => (oy - py) / u };
+}
+// integer bounds that keep tips inside the picture and below the title strip
+function bnd(V) {
+  const m = 0.4;
+  return { x0: Math.ceil(V.xmin + m), x1: Math.floor(V.xmax - m), y0: Math.ceil(V.ymin + m), y1: Math.floor(V.ymax - m - V.top / V.u) };
+}
+const P = (V, p) => [V.X(p[0]), V.Y(p[1])];
+
+// ---------- labels that avoid each other and the arrows ----------
+let boxes = [], axisBoxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const inside = (bx) => bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2;
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick = null;
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (inside(bx) && !boxes.some((b) => hit(b, bx)) && !axisBoxes.some((b) => hit(b, bx))) { pick = c; break; }
+  }
+  if (!pick) {   // nothing free: the spot inside the picture that covers the least (crossing an axis beats crossing an arrow)
+    let best = Infinity;
+    for (const c of cands) {
+      const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+      if (!inside(bx)) continue;
+      const sc = 10 * boxes.filter((b) => hit(b, bx)).length + axisBoxes.filter((b) => hit(b, bx)).length;
+      if (sc < best) { best = sc; pick = c; }
+    }
+    if (!pick) pick = [clamp(cands[0][0], 40, W0 - 40), clamp(cands[0][1], 12, H0 - 12), cands[0][2]];
+  }
+  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
+  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+// keep labels off a drawn segment
+function reserveSeg(p, q, r = 4) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(L / 8));
+  for (let i = 0; i <= n; i++) reserve(p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n, r);
+}
+// label beside an arrow: both sides of the middle first, then nearer the ends
+function arrowLabel(x, s, p, q, col, size = 15) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  const c = [];
+  // the label grows away from the arrow: left-aligned on its right side, right-aligned on its left side
+  for (const d of [16, -16, 28, -28, 44, -44]) for (const f of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+    const mx = p[0] + dx * f + nx * d, my = p[1] + dy * f + ny * d, sx = nx * d;
+    c.push([mx, my, sx > 0.3 * Math.abs(d) ? "left" : sx < -0.3 * Math.abs(d) ? "right" : "center"]);
+  }
+  place(x, s, c, { color: col, size });
+}
+function pointLabel(x, s, p, col, size = 14) {
+  place(x, s, [[p[0] + 16, p[1] - 16, "left"], [p[0] - 16, p[1] - 16, "right"], [p[0] + 16, p[1] + 17, "left"], [p[0] - 16, p[1] + 17, "right"],
+    [p[0], p[1] - 26], [p[0], p[1] + 27], [p[0] + 22, p[1], "left"], [p[0] - 22, p[1], "right"]], { color: col, size });
+}
+
+// ---------- drawing ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 34 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (!inside(bx) || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+}
+function arrow(x, p, q, col, w = 3.5, dash = null, head = 13) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
+  if (L < 1) return;
+  const ux = dx / L, uy = dy / L, hd = Math.min(head, L * 0.6), e = [q[0] - ux * hd * 0.8, q[1] - uy * hd * 0.8];
+  x.strokeStyle = col; x.lineWidth = w; x.lineCap = "round"; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...e); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
+  x.fillStyle = col; x.beginPath(); x.moveTo(...q);
+  x.lineTo(q[0] - ux * hd - uy * hd * 0.5, q[1] - uy * hd + ux * hd * 0.5);
+  x.lineTo(q[0] - ux * hd + uy * hd * 0.5, q[1] - uy * hd - ux * hd * 0.5); x.closePath(); x.fill();
+  reserveSeg(p, q);
+}
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]);
+}
+// a ring round a draggable tip; the arrowhead stays visible inside it
+function ring(x, p, on) {
+  x.beginPath(); x.arc(p[0], p[1], on ? 15 : 13, 0, 2 * Math.PI);
+  x.strokeStyle = on ? color("--hl") : rgba(color("--hl"), 0.7); x.lineWidth = on ? 3 : 2; x.stroke();
+  reserve(p[0], p[1], on ? 17 : 15);
+}
+function house(x, p) {
+  const s = 11, col = color("--b");
+  x.fillStyle = rgba(col, 0.25); x.strokeStyle = col; x.lineWidth = 2; x.lineJoin = "round";
+  x.beginPath(); x.moveTo(p[0] - s, p[1] + 2); x.lineTo(p[0] - s, p[1] + 2 + s * 1.2); x.lineTo(p[0] + s, p[1] + 2 + s * 1.2); x.lineTo(p[0] + s, p[1] + 2);
+  x.lineTo(p[0], p[1] - s * 0.9); x.closePath(); x.fill(); x.stroke();
+  reserve(p[0], p[1] + 6, 15);
+  place(x, t({ en: "home", zh: "家" }), [[p[0] - 16, p[1] + 22, "right"], [p[0] + 16, p[1] + 22, "left"], [p[0] - 16, p[1] - 12, "right"]], { color: col, size: 14 });
+}
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, 30]];
+  axisBoxes = [[0, V.Y(0) - 3, w, V.Y(0) + 3], [V.X(0) - 3, 0, V.X(0) + 3, h]];   // labels stay off the axes; ticks don't check these
+  grid(x, V);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
+  ticks(x, V);
+}
+
+function draw1(x, V) {
+  const Ac = color("--a"), Cc = color("--c"), H = color("--hl"), NO = color("--no");
+  const O = P(V, [0, 0]), pT = P(V, T), pE = P(V, E), a = T, b = sub(E, T);
+  const walked = len(a) + len(b), far = len(E);
+  // the walked length laid out straight from home: the red "rope"
+  const dir = far > EPS ? [E[0] / far, E[1] / far] : [a[0] / len(a), a[1] / len(a)];
+  const R = P(V, [dir[0] * walked, dir[1] * walked]);
+  const eq = sameWay(a, b);
+  // if the rope runs out of the picture, stop it at the edge (no ✗ there)
+  let f = 1;
+  const lo = [10, 40], hi = [V.W - 10, V.H - 10];
+  for (let i = 0; i < 2; i++) {
+    const d = R[i] - O[i];
+    if (R[i] > hi[i]) f = Math.min(f, (hi[i] - O[i]) / d);
+    if (R[i] < lo[i]) f = Math.min(f, (lo[i] - O[i]) / d);
+  }
+  f = clamp(f, 0, 1);
+  const Rc = [O[0] + (R[0] - O[0]) * f, O[1] + (R[1] - O[1]) * f];
+  if (!eq) {
+    seg(x, O, Rc, rgba(NO, 0.85), 2.5, [7, 5]);
+    if (f > 0.999) {
+      x.strokeStyle = NO; x.lineWidth = 2.5; x.beginPath();
+      x.moveTo(R[0] - 7, R[1] - 7); x.lineTo(R[0] + 7, R[1] + 7); x.moveTo(R[0] + 7, R[1] - 7); x.lineTo(R[0] - 7, R[1] + 7); x.stroke();
+    }
+    reserveSeg(O, Rc, 3); reserve(Rc[0], Rc[1], 10);
+  }
+  // same direction: the sum lies right on top of a and b, so draw it a little to one side
+  let sO = O, sE = pE;
+  if (eq) { const L = Math.hypot(pE[0] - O[0], pE[1] - O[1]), n = [(pE[1] - O[1]) / L * 9, -(pE[0] - O[0]) / L * 9]; sO = [O[0] + n[0], O[1] + n[1]]; sE = [pE[0] + n[0], pE[1] + n[1]]; }
+  if (far > EPS) arrow(x, sO, sE, H, 4);
+  arrow(x, O, pT, Ac, 3.5); arrow(x, pT, pE, Cc, 3.5);
+  house(x, O);
+  ring(x, pT, act1 === "T"); ring(x, pE, act1 === "E");
+  const km = (v) => lenS(v) + " km";
+  arrowLabel(x, "a: " + km(a), O, pT, Ac);
+  arrowLabel(x, "b: " + km(b), pT, pE, Cc);
+  if (far > EPS) arrowLabel(x, "a + b: " + km(E), sO, sE, H);
+  if (!eq) pointLabel(x, `${fmt(len(a))} + ${fmt(len(b))} ${eqs(walked)} ${fmt(walked)} ?`, Rc, NO, 14);
+}
+
+function draw2(x, V) {
+  const Ac = color("--a"), Cc = color("--c"), H = color("--hl");
+  const O = P(V, [0, 0]), pA = P(V, A), pB = P(V, B), S = add(A, B);
+  const tail = [A[0] * sl, A[1] * sl], pt = P(V, tail), ph = P(V, add(tail, B));
+  if (sl > 0.995) arrow(x, O, P(V, S), H, 4);
+  arrow(x, O, pA, Ac); arrow(x, O, pB, Cc);
+  if (sl > 0.01) arrow(x, pt, ph, Cc, 3, [8, 6]);
+  ring(x, pA, act === "A"); ring(x, pB, act === "B");
+  reserve(O[0], O[1], 8);
+  arrowLabel(x, "a " + vs(A), O, pA, Ac);
+  arrowLabel(x, "b " + vs(B), O, pB, Cc);
+  if (sl > 0.01) arrowLabel(x, t({ en: "b, slid", zh: "平移后的 b" }), pt, ph, Cc, 14);
+  if (sl > 0.995) { arrowLabel(x, "a + b", O, P(V, S), H); pointLabel(x, vs(S), P(V, S), H, 14); }
+}
+
+function draw3(x, V) {
+  const Ac = color("--a"), Cc = color("--c"), H = color("--hl");
+  const S = add(A, B), O = P(V, [0, 0]), pA = P(V, A), pB = P(V, B), pS = P(V, S);
+  x.fillStyle = rgba(H, 0.12); x.beginPath(); x.moveTo(...O); x.lineTo(...pA); x.lineTo(...pS); x.lineTo(...pB); x.closePath(); x.fill();
+  if (legs && (Math.abs(S[0]) > EPS || Math.abs(S[1]) > EPS)) {
+    const K = P(V, [S[0], 0]);
+    seg(x, O, K, rgba(H, 0.9), 2, [2, 4]); seg(x, K, pS, rgba(H, 0.9), 2, [2, 4]);
+    reserveSeg(O, K, 3); reserveSeg(K, pS, 3);
+  }
+  arrow(x, pA, pS, Cc, 3, [8, 6]); arrow(x, pB, pS, Ac, 3, [8, 6]);
+  if (len(S) > EPS) arrow(x, O, pS, H, 4);
+  arrow(x, O, pA, Ac); arrow(x, O, pB, Cc);
+  ring(x, pA, act === "A"); ring(x, pB, act === "B");
+  reserve(O[0], O[1], 8); reserve(pS[0], pS[1], 8);
+  arrowLabel(x, "a " + vs(A), O, pA, Ac);
+  arrowLabel(x, "b " + vs(B), O, pB, Cc);
+  if (len(S) > EPS) arrowLabel(x, "a + b", O, pS, H);
+  pointLabel(x, vs(S), pS, H, 14);
+  if (legs && (Math.abs(S[0]) > EPS || Math.abs(S[1]) > EPS)) {
+    const K = P(V, [S[0], 0]);
+    if (Math.abs(S[0]) > EPS) arrowLabel(x, `${fmt(A[0])} + ${par(B[0])} = ${fmt(S[0])}`, O, K, H, 14);
+    if (Math.abs(S[1]) > EPS) arrowLabel(x, `${fmt(A[1])} + ${par(B[1])} = ${fmt(S[1])}`, K, pS, H, 14);
+  }
+}
+
+// ---------- text ----------
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const dshI = (v, o) => `<span><span class="dsh" style="color:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const sumX = (a, b) => `(${fmt(a[0])} + ${par(b[0])}, ${fmt(a[1])} + ${par(b[1])}) = ${vs(add(a, b))}`;
+
+function explain1() {
+  const a = T, b = sub(E, T), walked = len(a) + len(b), far = len(E), eq = sameWay(a, b);
+  const chk = (done, o, why, ok) => `<div class="chk">${done ? (ok ? `<span class="ok">✓</span>${t(o)} <span class="ok-t">${t(why)}</span>` : `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>`) : `<span class="q">?</span>${t(o)}`}</div>`;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试猜想" })}</div>
+    <h2>${t({ en: "You walked 7 km. Are you 7 km from home?", zh: "走了七公里，离家也是七公里吗？" })}</h2>
+    <p>${t({ en: "The grid is a map, one square is one kilometre, and the little house is home. Walk a, then walk b. Drag the corner and the end point, then try the straight route.",
+              zh: "网格当地图，一格是一公里，小房子是家。先走 a，再走 b。拖动拐角和终点，再试试不拐弯的路线。" })}</p>
+    <div class="mathline">|a + b| = |a| + |b| ?</div>
+    <div class="rows">
+      <div><span class="dot" style="background:var(--no)"></span>${t({ en: "walked", zh: "一共走了" })}: <span class="m">|a| + |b| = ${fmt(len(a))} + ${fmt(len(b))} ${eqs(walked)} ${fmt(walked)}</span></div>
+      <div><span class="dot" style="background:var(--hl)"></span>${t({ en: "from home", zh: "离家" })}: <span class="m">|a + b| = ${hot(lenX(E))}</span></div>
+    </div>`;
+  if (eq) out += `<p class="big"><span class="ok-t">${fmt(far)} = ${fmt(len(a))} + ${fmt(len(b))}</span> ${t({ en: "Lengths add only when the two arrows point the same way: the road never turns a corner.", zh: "只有两支箭头方向相同时长度才正好相加：这条路一点也不拐弯。" })}</p>`;
+  else out += `<p class="big"><span class="no-t">${fmt(far)} ≠ ${fmt(walked)}</span> ${t({ en: "Once the path turns a corner, the straight line is shorter. The red dashed line is the walked length laid out straight: it overshoots.", zh: "一拐弯，直着走过去就更短。红色虚线是把走过的路拉直：它冲过头了。" })}</p>`;
+  out += chk(tried.move, { en: "the sum is always as long as the lengths added up?", zh: "和的长度总等于长度的和？" }, { en: "Not once the path turns.", zh: "一拐弯就不对了。" }, false);
+  out += chk(tried.straight, { en: "when do lengths simply add?", zh: "长度什么时候才能直接相加？" }, { en: "When the arrows point the same way.", zh: "方向相同的时候。" }, true);
+  if (!(tried.move && tried.straight)) out += `<p class="note">${t({ en: "Try both: drag a point, and press “3 right, 2 right”.", zh: "两样都试试：拖一个点，再点「右 3、再右 2」。" })}</p>`;
+  return out + legend([dotI("--a", { en: "a", zh: "a" }), dotI("--c", { en: "b", zh: "b" }), dotI("--hl", { en: "a + b, straight from home", zh: "a + b，从家直着过去" }),
+    dshI("--no", { en: "lengths added up", zh: "长度直接相加" })]);
+}
+function explain2() {
+  const done = sl > 0.995, tail = [A[0] * sl, A[1] * sl];
+  let out = `<div class="kicker">${t({ en: "Step 02 · tip to tail", zh: "第 2 步 · 首尾相接" })}</div>
+    <h2>${t({ en: "Slide b onto the tip of a", zh: "把 b 平移到 a 的头上" })}</h2>
+    <p>${t({ en: "A vector is an arrow that only cares how long it is and which way it points. Slide an arrow somewhere else: same length, same direction, still the same vector. Drag the tips to set a and b, then slide b.",
+              zh: "向量就是一支箭头，只管多长、朝哪边。把箭头平移到别处，长度方向都没变，还是同一个向量。拖箭头定下 a 和 b，再平移 b。" })}</p>
+    <div class="mathline"><span class="ca">a</span> = ${vs(A)}, <span class="cc">b</span> = ${vs(B)}<br>${t({ en: "slid b", zh: "平移后的 b" })}: ${vs(tail)} → ${vs(add(tail, B))}<br>`;
+  if (done) out += `<span class="ch">a + b</span> = ${hot(sumX(A, B))}</div>
+    <p class="big">${t({ en: "a plus b means: walk along a, then carry on along b. The arrow straight from the start to the end is a plus b.", zh: "a 加 b 的意思是：先走 a，再接着走 b。从起点直接指到终点，这一支就是 a 加 b。" })}</p>
+    <p>${t({ en: `Its length: |a + b| = ${lenX(add(A, B))}, while |a| + |b| = ${fmt(len(A))} + ${fmt(len(B))} ${isInt(len(A)) && isInt(len(B)) ? "=" : "≈"} ${fmt(len(A) + len(B))}.`, zh: `它的长度：|a + b| = ${lenX(add(A, B))}，而 |a| + |b| = ${fmt(len(A))} + ${fmt(len(B))} ${isInt(len(A)) && isInt(len(B)) ? "=" : "≈"} ${fmt(len(A) + len(B))}。` })}</p>`;
+  else out += `<span class="ch">a + b</span> = ?</div>
+    <p><strong>${t({ en: "Predict: when b's tail sits on a's tip, where will its tip land? Decide first, then slide.", zh: "先预测：b 的尾巴接到 a 的头上时，b 的头会落在哪一点？想好了再平移。" })}</strong></p>`;
+  return out + legend([dotI("--a", { en: "a", zh: "a" }), dotI("--c", { en: "b", zh: "b" }), dshI("--c", { en: "the same b, slid", zh: "平移后的同一个 b" }), dotI("--hl", { en: "a + b", zh: "a + b" })]);
+}
+function explain3() {
+  const S = add(A, B), la = len(A), lb = len(B), ls = len(S), eq = sameWay(A, B);
+  const sumL = la + lb;
+  return `<div class="kicker">${t({ en: "Step 03 · both orders", zh: "第 3 步 · 两种顺序" })}</div>
+    <h2>${t({ en: "Two orders, one parallelogram", zh: "两种顺序，围成平行四边形" })}</h2>
+    <p>${t({ en: "Walk a, then b: put b on the tip of a. Walk b, then a: you end at the very same point. The two paths make a parallelogram, and its diagonal is a plus b.",
+              zh: "先走 a 再走 b，把 b 接到 a 的头上；先走 b 再走 a，终点还是同一个点。两条路围成平行四边形，对角线就是 a 加 b。" })}</p>
+    <div class="mathline">${t({ en: "across", zh: "横" })}: ${fmt(A[0])} + ${par(B[0])} = ${hot(fmt(S[0]))}<br>${t({ en: "up", zh: "竖" })}: ${fmt(A[1])} + ${par(B[1])} = ${hot(fmt(S[1]))}<br>${vs(A)} + ${vs(B)} = ${vs(S)} = ${vs(B)} + ${vs(A)}</div>
+    <p class="big">${t({ en: "So the parallelogram rule is just tip-to-tail done twice, side by side.", zh: "所以平行四边形法则，就是两次首尾相接拼在一起。" })}</p>
+    <div class="rows">
+      <div>|a + b| = <span class="m">${lenX(S)}</span></div>
+      <div>|a| + |b| = <span class="m">${fmt(la)} + ${fmt(lb)} ${isInt(la) && isInt(lb) ? "=" : "≈"} ${fmt(sumL)}</span></div>
+      <div>${eq ? `<span class="ok-t">${t({ en: "Equal: a and b point the same way, so the parallelogram is flat.", zh: "相等：a、b 方向相同，平行四边形压扁成一条线。" })}</span>`
+        : `<span class="no-t">${fmt(ls)} &lt; ${fmt(sumL)}</span> ${t({ en: "The sum is never longer than the lengths added up.", zh: "和的长度不会超过长度的和。" })}`}</div>
+    </div>` + legend([dotI("--a", { en: "a", zh: "a" }), dotI("--c", { en: "b", zh: "b" }), dotI("--hl", { en: "a + b, the diagonal", zh: "a + b，对角线" }), dshI("--muted", { en: "slid copies", zh: "平移的副本" })]);
+}
+
+// ---------- render ----------
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = step === 1 ? t({ en: "map: 1 square = 1 km", zh: "地图：一格 = 1 km" }) : step === 2 ? t({ en: "a + b, tip to tail", zh: "a + b，首尾相接" }) : t({ en: "a + b = b + a", zh: "a + b = b + a" });
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  const corner = same(T, [4, 0]) && same(E, [4, 3]), straight = same(T, [3, 0]) && same(E, [5, 0]);
+  [["rCorner", corner], ["rStraight", straight], ["legs", legs], ["p31", same(A, [3, 1]) && same(B, [1, 2])], ["pSame", same(A, [3, 0]) && same(B, [2, 0])]]
+    .forEach(([id, on]) => { el(id).classList.toggle("on", on); el(id).setAttribute("aria-pressed", on); });
+  el("play").textContent = t(playing ? D.pauseB : sl > 0.995 ? D.againB : D.playB);
+  el("slR").value = sl; el("slV").textContent = Math.round(sl * 100) + "%";
+  dirty = true;
+}
+
+// ---------- actions ----------
+function setRoute(t1, e1, straight) { T = t1; E = e1; if (straight) tried.straight = true; render(); }
+function move1(name, nx, ny) {
+  const B0 = bnd(vw()), p = [clamp(Math.round(nx), B0.x0, B0.x1), clamp(Math.round(ny), B0.y0, B0.y1)];
+  if (name === "T") { if (same(p, [0, 0]) || same(p, E)) return; if (!same(p, T)) { T = p; tried.move = true; } }
+  else { if (same(p, T)) return; if (!same(p, E)) { E = p; tried.move = true; } }
+  render();
+}
+function moveV(name, nx, ny) {
+  const B0 = bnd(vw()), p = [clamp(Math.round(nx), B0.x0, B0.x1), clamp(Math.round(ny), B0.y0, B0.y1)];
+  if (same(p, [0, 0])) return;
+  if (name === "A") A = p; else B = p;
+  render();
+}
+function togglePlay() {
+  if (playing) { playing = false; render(); return; }
+  if (sl > 0.995) sl = 0;
+  if (Play.reduced) { sl = 1; render(); return; }
+  playing = true; render();
+}
+
+// ---------- pointer + keys ----------
+let grab = null;
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw(), d = (p) => Math.hypot(V.X(p[0]) - px, V.Y(p[1]) - py);
+    const cand = step === 1 ? [["T", T], ["E", E]] : [["A", A], ["B", B]];
+    let best = null, bd = 32;
+    cand.forEach(([n, p]) => { const dd = d(p); if (dd < bd) { bd = dd; best = n; } });
+    if (!best) return false;
+    grab = best; if (step === 1) act1 = best; else act = best;
+    playing = false; render(); return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw();
+    if (step === 1) move1(grab, V.wx(px), V.wy(py)); else moveV(grab, V.wx(px), V.wy(py));
+  },
+  up() { grab = null; },
+});
+const arrowKey = (dx, dy) => () => {
+  if (step === 1) { const p = act1 === "T" ? T : E; move1(act1, p[0] + dx, p[1] + dy); }
+  else { const p = act === "A" ? A : B; let n = [p[0] + dx, p[1] + dy]; if (same(n, [0, 0])) n = [n[0] + dx, n[1] + dy]; moveV(act, ...n); }
+};
+Play.keys(cvEl, {
+  ArrowLeft: arrowKey(-1, 0), ArrowRight: arrowKey(1, 0), ArrowUp: arrowKey(0, 1), ArrowDown: arrowKey(0, -1),
+  " ": () => { if (step === 1) act1 = act1 === "T" ? "E" : "T"; else act = act === "A" ? "B" : "A"; render(); },
+  Enter: () => { if (step === 2) togglePlay(); },
+});
+
+el("rCorner").onclick = () => setRoute([4, 0], [4, 3], false);
+el("rStraight").onclick = () => setRoute([3, 0], [5, 0], true);
+el("play").onclick = togglePlay;
+el("slR").addEventListener("input", (e) => { playing = false; sl = clamp(+e.target.value, 0, 1); render(); });
+el("legs").onclick = () => { legs = !legs; render(); };
+el("p31").onclick = () => { A = [3, 1]; B = [1, 2]; render(); };
+el("pSame").onclick = () => { A = [3, 0]; B = [2, 0]; render(); };
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; grab = null; playing = false;
+  render();
+});
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (playing) {
+    sl = Math.min(1, sl + dt / 1.6);
+    if (sl >= 1) { playing = false; render(); }
+    else { el("slR").value = sl; el("slV").textContent = Math.round(sl * 100) + "%"; dirty = true; }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

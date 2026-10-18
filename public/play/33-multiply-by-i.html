@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multiplying by i Is a 90° Turn · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 38px; min-width: 52px; font-family: var(--math); font-size: 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls button:disabled { opacity: .45; cursor: default; }
+  .controls #b3i, .controls #b2 { border-color: var(--a); color: var(--a); font-weight: 700; }
+  .controls #b3p { border-color: var(--no); color: var(--no); }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .explain .mathline { font-size: 18px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .chk { margin: 2px 0 8px; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .picks { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
+  .picks button { font-size: 13px; padding: 6px 11px; }
+  .picks button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .tbl td, .tbl th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .tbl th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .tbl td:first-child, .tbl th:first-child { text-align: left; }
+  .tbl tr.dim td { color: var(--muted); opacity: .6; }
+  .tbl tr.cur td { background: var(--soft); font-weight: 700; }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 5px; vertical-align: 3px; }
+  .ln.dsh { border-top-style: dashed; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main"></canvas>
+      <div class="controls">
+        <button class="small" id="b1">×(−1)</button>
+        <button class="small" id="b2">×?</button>
+        <button class="small" id="b3i">×i</button>
+        <button class="small" id="b3n">×(−1)</button>
+        <button class="small" id="b3p">+i</button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">(<i>a</i> + <i>b</i>i) × i = −<i>b</i> + <i>a</i>i</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t: tr, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Multiplying by i Is a 90° Turn", zh: "乘以 i 就是转 90°" },
+  eyebrow: { en: "Boxi Math · Try it · #33", zh: "Boxi Math · 动手试试 · #33" },
+  intro: { en: "A number whose square is negative one: can it exist? Times negative one turns an arrow half a turn around zero (#15). Look for the number that turns it a quarter turn, then check it with the distributive law.",
+           zh: "一个平方等于负一的数，能有吗？乘负一是让箭头绕零转半圈（#15）。找一找让箭头转四分之一圈的那个数，再用分配律验证。" },
+  s1: { en: "Does it exist?", zh: "存在吗？" }, s2: { en: "A quarter turn", zh: "转四分之一圈" }, s3: { en: "(3+i)×i", zh: "(3+i)×i" },
+  reset: { en: "Reset", zh: "重置" },
+  v1: { en: "the number line", zh: "数轴" }, v2: { en: "turning the arrow to 1", zh: "转动指向 1 的箭头" }, v3: { en: "the complex plane", zh: "复平面" },
+  tag1: { en: "drag the gold point", zh: "拖金色的点" }, tag2: { en: "press the button", zh: "按下面的按钮" }, tag3: { en: "drag z, then press ×i", zh: "拖 z，再按 ×i" },
+  again: { en: "Start again", zh: "重新来" },
+  real: { en: "real", zh: "实轴" }, imag: { en: "imaginary", zh: "虚轴" },
+  resT: { en: "i × i = −1: two quarter turns make a half turn.", zh: "i × i = −1：转两次九十度，就是转半圈。" },
+  resN: { en: "Imaginary numbers aren't made up. They are the numbers that let multiplication turn. Negative times negative is two half turns, back to where it started.",
+          zh: "虚数不是硬编出来的，它是让乘法能够转弯的那个数。负负得正是转两次半圈，正好转回原来的方向。" },
+  moreS: { en: "One to think about: what does multiplying by −i do?", zh: "想一想：乘 −i 是怎么转？" },
+  moreP: { en: "−i = i × i × i, three quarter turns, which is the same as one quarter turn the other way: 90° clockwise. Check: (3 + i) × (−i) = −3i − i² = 1 − 3i, and turning (3, 1) clockwise by 90° gives (1, −3).",
+           zh: "−i = i × i × i，转三次四分之一圈，等于反方向转四分之一圈：顺时针转 90°。验证：(3 + i) × (−i) = −3i − i² = 1 − 3i，把 (3, 1) 顺时针转 90° 正好是 (1, −3)。" },
+  moreQ: { en: "Next: could stretching and twisting the whole plane be written as a multiplication too?", zh: "下一集：能不能把整个平面拉一拉、扭一扭，也写成乘法？" },
+  foot: { en: "Blue is the arrow you start with, green is where multiplying sends it, pink arcs are turns, red is plus i (a shift, not a turn), the tinted grid and gold square turn with the plane. With the picture focused: arrow keys move the point; step 1 “-” presses ×(−1); step 2 Space presses; step 3 “i” presses ×i, “-” ×(−1), “+” plus i.",
+          zh: "蓝色是起始的箭头，绿色是乘完以后的位置，粉色弧表示转，红色是加 i（平移，不是转），带色的网格和金色小方块跟着平面一起转。选中图以后：方向键移动点；第 1 步按「-」乘 −1；第 2 步按空格；第 3 步按「i」乘 i、「-」乘 −1、「+」加 i。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const PI = Math.PI, HP = PI / 2, EPS = 1e-9, TOP = 30, DUR = 0.8;
+const hot = (s) => `<span class="hot">${s}</span>`;
+const near0 = (v) => Math.abs(v) < 1e-9;
+const rot = (w, a) => [w[0] * Math.cos(a) - w[1] * Math.sin(a), w[0] * Math.sin(a) + w[1] * Math.cos(a)];
+const mulI = (w) => [-w[1], w[0]];
+const ease = (p) => p * p * (3 - 2 * p);
+const SUP = ["⁰", "¹", "²", "³", "⁴"];
+const pw = (k) => (k === 1 ? "i" : k < SUP.length ? "i" + SUP[k] : `i<sup>${k}</sup>`);
+
+// complex number as text: 3 + i, −1 + 3i, 2i, −i, 0
+function imPart(b) { return b === 1 ? "i" : b === -1 ? "−i" : fmt(b) + "i"; }
+function cstr(w) {
+  const a = near0(w[0]) ? 0 : w[0], b = near0(w[1]) ? 0 : w[1];
+  if (!b) return fmt(a);
+  if (!a) return imPart(b);
+  return fmt(a) + (b > 0 ? " + " : " − ") + imPart(Math.abs(b));
+}
+const par = (w) => (near0(w[1]) && w[0] >= 0) || (near0(w[0]) && w[1] > 0) ? cstr(w) : `(${cstr(w)})`;
+// coef·sym as a term of a sum: "3i", " + i²", " − 2i²"
+function term(c, sym, first) {
+  if (!c) return "";
+  const mag = Math.abs(c) === 1 ? sym : fmt(Math.abs(c)) + sym;
+  return first ? (c < 0 ? "−" : "") + mag : (c < 0 ? " − " : " + ") + mag;
+}
+// (a + bi) × i = ai + bi² = −b + ai
+function expandI(w) {
+  const [a, b] = w;
+  if (!a && !b) return "0 × i = 0";
+  const s = term(a, "i", true) + term(b, "i²", !a);
+  return `${par(w)} × i = ${s} = ${hot(cstr(mulI(w)))}`;
+}
+const pt = (w) => `(${fmt(w[0])}, ${fmt(w[1])})`;
+const len = (w) => Math.hypot(w[0], w[1]);
+function lenStr(w) {
+  const q = w[0] * w[0] + w[1] * w[1], r = Math.round(Math.sqrt(q));
+  return r * r === q ? fmt(r) : `√${fmt(q)} ≈ ${fmt(Math.sqrt(q))}`;
+}
+
+// ---------- state ----------
+let x1, last1, pick1, z, T, last3, q3, plus3, n2, anim;
+function init() {
+  x1 = 3; last1 = null; pick1 = null;
+  n2 = 0;
+  z = [3, 1]; T = { m: [1, 0], c: [0, 0] }; last3 = null; q3 = 0; plus3 = false;
+  anim = null;
+}
+init();
+let step = 1, dirty = true, grab = false, frozen = null, lastHtml = "";
+
+// ---------- view ----------
+const RS = { 1: { x0: -5.3, x1: 5.3, y0: -1.5, y1: 4.7 }, 2: { x0: -2.35, x1: 2.35, y0: -2.25, y1: 2.35 }, 3: { x0: -5.4, x1: 5.4, y0: -5.3, y1: 5.4 } };
+function sizeCanvas() {
+  const W = cvEl.getBoundingClientRect().width || 600, R = RS[step];
+  const u = Math.min((W - 8) / (R.x1 - R.x0), 420 / (R.y1 - R.y0));
+  const h = Math.round(TOP + u * (R.y1 - R.y0) + 6) + "px";
+  if (cvEl.style.height !== h) cvEl.style.height = h;
+}
+function vw() {
+  if (grab && frozen) return frozen;
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 400, R = RS[step];
+  const u = Math.min(W / (R.x1 - R.x0), (H - TOP) / (R.y1 - R.y0));
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2, my = TOP + (H - TOP) / 2;
+  const V = { W, H, u, X: (x) => W / 2 + (x - cx) * u, Y: (y) => my - (y - cy) * u, wx: (px) => cx + (px - W / 2) / u, wy: (py) => cy - (py - my) / u };
+  V.xmin = V.wx(0); V.xmax = V.wx(W); V.ymin = V.wy(H); V.ymax = V.wy(TOP);
+  V.P = (w) => [V.X(w[0]), V.Y(w[1])];
+  return V;
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pk = null;
+  for (const c of cands) { const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center"); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pk = c; break; } }
+  if (!pk) { if (o.optional) return; pk = cands.find((c) => inside(boxOf(x, s, c[0], c[1], size, c[2] || "center"))) || cands[0]; }
+  boxes.push(boxOf(x, s, pk[0], pk[1], size, pk[2] || "center"));
+  Play.text(x, s, pk[0], pk[1], { weight: 700, ...o, size, align: pk[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+function reserveSeg(p, q, r = 4) { const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 8); for (let k = 0; k <= n; k++) reserve(p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n, r); }
+// label spots around a canvas point, preferred direction (dx, dy) first
+function around(p, dx, dy, d = 20) {
+  const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, out = [];
+  for (const a of [0, 0.6, -0.6, 1.2, -1.2, 1.9, -1.9, PI]) {
+    const c = Math.cos(a), s = Math.sin(a), vx = ux * c - uy * s, vy = ux * s + uy * c;
+    out.push([p[0] + vx * (d + 14 * Math.abs(vx)), p[1] + vy * d]);
+  }
+  return out;
+}
+
+// ---------- drawing helpers ----------
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.lineCap = "round";
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
+}
+function head(x, tip, dir, col, size = 10) {
+  const [dx, dy] = dir, nx = -dy, ny = dx;
+  x.fillStyle = col; x.beginPath(); x.moveTo(...tip);
+  x.lineTo(tip[0] - dx * size + nx * size * 0.5, tip[1] - dy * size + ny * size * 0.5);
+  x.lineTo(tip[0] - dx * size - nx * size * 0.5, tip[1] - dy * size - ny * size * 0.5);
+  x.closePath(); x.fill();
+}
+function arrow(x, p, q, col, w = 3, dash) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  if (L < 6) return;
+  const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L, hs = Math.min(12, L * 0.45);
+  seg(x, p, [q[0] - ux * hs * 0.7, q[1] - uy * hs * 0.7], col, w, dash);
+  head(x, q, [ux, uy], col, hs);
+  reserveSeg(p, q);
+}
+function dot(x, p, r, fill, stroke, lw = 1.5) {
+  x.beginPath(); x.arc(p[0], p[1], r, 0, 2 * PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, p) {
+  dot(x, p, 16, null, rgba(color("--hl"), 0.85), 2.5);
+  dot(x, p, 9, color("--hl"), color("--fg"));
+  reserve(...p, 17);
+}
+// arc about 0 of world radius r from world angle a0 to a1, optional head at a1; returns the mid point (canvas)
+function arcW(x, V, r, a0, a1, col, w, dash, withHead) {
+  if (Math.abs(a1 - a0) < 0.02 || r * V.u < 4) return null;
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.arc(V.X(0), V.Y(0), r * V.u, -a0, -a1, a1 > a0); x.stroke(); x.setLineDash([]);
+  if (withHead) { const s = Math.sign(a1 - a0); head(x, V.P([r * Math.cos(a1), r * Math.sin(a1)]), [-s * Math.sin(a1), -s * Math.cos(a1)], col, 10); }
+  for (let k = 0; k <= 16; k++) { const a = a0 + (a1 - a0) * k / 16; reserve(V.X(r * Math.cos(a)), V.Y(r * Math.sin(a)), 4); }
+  const am = (a0 + a1) / 2;
+  return { am, p: V.P([r * Math.cos(am), r * Math.sin(am)]) };
+}
+function grid(x, V, imagTicks) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), TOP); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0));
+  if (imagTicks !== null) { x.moveTo(V.X(0), TOP); x.lineTo(V.X(0), V.H); }
+  x.stroke();
+}
+function ticks(x, V, imag) {
+  const st = V.u < 30 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (!inside(bx) || boxes.some((b) => hit(b, bx))) return;
+    boxes.push(bx); Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i && Math.abs(i) <= 5) put(fmt(i), V.X(i), V.Y(0) + 14, "center");
+  if (imag) for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j && Math.abs(j) <= 5) put(imPart(j), V.X(0) - 7, V.Y(j), "right");
+  put("0", V.X(0) - 9, V.Y(0) + 14, "center");
+}
+function axisNames(x, V, imag) {
+  const o = { size: 13, color: color("--muted"), weight: 600, optional: true };
+  place(x, tr(D.real), [[V.W - 8, V.Y(0) - 13, "right"], [V.W - 8, V.Y(0) + 30, "right"]], o);
+  if (imag) place(x, tr(D.imag), [[V.X(0) + 9, TOP + 10, "left"], [V.X(0) - 9, TOP + 10, "right"]], o);
+}
+
+// ---------- the turn in progress ----------
+// rotation (kind "i" / "n") or shift (kind "p") applied to fraction p of the current animation
+function partial(w) {
+  if (!anim) return w;
+  const p = ease(anim.p);
+  if (anim.kind === "p") return [w[0], w[1] + p];
+  return rot(w, (anim.kind === "i" ? HP : PI * anim.dir) * p);
+}
+const ang = (w) => Math.atan2(w[1], w[0]);
+
+function draw(x, w, h) {
+  W0 = w; H0 = h; boxes = [[0, 0, w, TOP]];
+  const V = vw();
+  if (step === 1) draw1(x, V); else if (step === 2) draw2(x, V); else draw3(x, V);
+}
+
+function draw1(x, V) {
+  const BL = color("--c"), BR = color("--b"), PK = color("--h"), MU = color("--muted");
+  grid(x, V, null);
+  reserveSeg(V.P([V.xmin, 0]), V.P([V.xmax, 0]), 3);
+  const O = V.P([0, 0]);
+  // x × x lands on the line, never to the left of 0
+  const sq = x1 * x1, sqIn = sq <= V.xmax - 0.3;
+  const S = sqIn ? V.P([sq, 0]) : [V.W - 12, V.Y(0)];
+  if (sqIn) { dot(x, S, 7, BR, color("--surface")); reserve(...S, 9); } else head(x, S, [1, 0], BR, 11);
+  // the half turn: from the old point over the top
+  if (last1 && !anim) {
+    const r = Math.abs(last1.from), a0 = last1.from > 0 ? 0 : PI;
+    const m = arcW(x, V, r, a0, a0 + PI * last1.dir, PK, 2.5, null, true);
+    dot(x, V.P([last1.from, 0]), 6, null, rgba(BL, 0.7), 2);
+    if (m) place(x, "×(−1)", [[m.p[0], m.p[1] - 15], [m.p[0], m.p[1] + 16]], { color: PK, size: 15 });
+  }
+  let tip = [x1, 0];
+  if (anim) {
+    const r = Math.abs(x1), a0 = x1 > 0 ? 0 : PI;
+    arcW(x, V, r, a0, a0 + PI * anim.dir * ease(anim.p), PK, 2.5, null, false);
+    tip = partial(tip);
+  }
+  arrow(x, O, V.P(tip), BL, 3.5);
+  if (anim) dot(x, V.P(tip), 7, BL); else handle(x, V.P(tip));
+  if (!anim) {
+    const P = V.P(tip);
+    place(x, "x = " + fmt(x1), [[P[0], P[1] - 31], [P[0] + 18, P[1] - 28, "left"], [P[0] - 18, P[1] - 28, "right"], [P[0], P[1] + 31]], { color: BL, size: 15 });
+    const lab = "x × x = " + fmt(sq) + (sqIn ? "" : " →");
+    place(x, lab, sqIn ? [[S[0], S[1] - 20], [S[0], S[1] + 34], [S[0] + 12, S[1] - 20, "left"], [S[0] - 12, S[1] - 20, "right"]] : [[S[0] - 6, S[1] - 20, "right"], [S[0] - 6, S[1] + 34, "right"]], { color: BR, size: 14 });
+  }
+  ticks(x, V, false);
+  place(x, tr({ en: "number line", zh: "数轴" }), [[V.W - 8, V.Y(0) + 34, "right"], [8, V.Y(0) + 34, "left"]], { size: 13, color: MU, weight: 600, optional: true });
+}
+
+function draw2(x, V) {
+  const BL = color("--c"), A = color("--a"), PK = color("--h"), HL = color("--hl"), MU = color("--muted");
+  grid(x, V, n2 >= 2);
+  const O = V.P([0, 0]);
+  // unit circle, faint
+  x.strokeStyle = rgba(MU, 0.5); x.lineWidth = 1.2; x.setLineDash([4, 5]); x.beginPath(); x.arc(O[0], O[1], V.u, 0, 2 * PI); x.stroke(); x.setLineDash([]);
+  const name = n2 >= 2 ? "×i" : "×?";
+  reserveSeg(V.P([0, V.ymin]), V.P([0, V.ymax]), 3); reserveSeg(V.P([V.xmin, 0]), V.P([V.xmax, 0]), 3);   // keep labels off the axes
+  // two quarter turns = one half turn
+  if (n2 >= 2) {
+    const m = arcW(x, V, 1.62, 0, PI, rgba(PK, 0.75), 2, [7, 5], true);
+    if (m) place(x, "×(−1)", [[m.p[0], m.p[1] - 14], [m.p[0], m.p[1] + 15]], { color: PK, size: 15 });
+  }
+  for (let k = 1; k <= Math.min(n2, 4); k++) {
+    const m = arcW(x, V, 1, (k - 1) * HP, k * HP, PK, 3, null, true);
+    if (m) { const d = 1.3; place(x, name, [V.P([d * Math.cos(m.am), d * Math.sin(m.am)]), V.P([0.72 * Math.cos(m.am), 0.72 * Math.sin(m.am)])], { color: PK, size: 15 }); }
+  }
+  // reached points
+  for (let k = 1; k <= Math.min(n2, 4); k++) dot(x, V.P(rot([1, 0], k * HP)), 6, HL, color("--fg"), 1.2);
+  let a = n2 * HP;
+  if (anim) { a += HP * ease(anim.p); arcW(x, V, 1, n2 * HP, a, PK, 3, null, false); }
+  const tip = V.P([Math.cos(a), Math.sin(a)]);
+  arrow(x, O, tip, n2 ? A : BL, 4);
+  dot(x, O, 4, MU);
+  // point names, outside the circle
+  const labs = new Map();
+  labs.set(0, "1");
+  for (let k = 1; k <= Math.min(n2, 4); k++) labs.set(k % 4, k === 1 && n2 < 2 ? "?" : cstr(rot([1, 0], k * HP).map(Math.round)));
+  for (const [k, s] of labs) {
+    const u = rot([1, 0], k * HP), P = V.P(u);
+    place(x, s, around(P, u[0], -u[1], 20), { size: k === 1 ? 19 : 17, color: color("--fg") });
+  }
+  axisNames(x, V, n2 >= 2);
+}
+
+function draw3(x, V) {
+  const BL = color("--c"), A = color("--a"), PK = color("--h"), HL = color("--hl"), NO = color("--no");
+  grid(x, V, true);
+  reserveSeg(V.P([0, V.ymin]), V.P([0, V.ymax]), 3); reserveSeg(V.P([V.xmin, 0]), V.P([V.xmax, 0]), 3);
+  // the plane itself, turned with the point: tinted lattice and a gold unit square
+  const map = (w) => V.P(partial([T.m[0] * w[0] - T.m[1] * w[1] + T.c[0], T.m[0] * w[1] + T.m[1] * w[0] + T.c[1]]));
+  x.strokeStyle = rgba(BL, 0.3); x.lineWidth = 1.3; x.beginPath();
+  for (let k = -4; k <= 4; k++) { x.moveTo(...map([k, -4])); x.lineTo(...map([k, 4])); x.moveTo(...map([-4, k])); x.lineTo(...map([4, k])); }
+  x.stroke();
+  x.beginPath(); [[0, 0], [1, 0], [1, 1], [0, 1]].forEach((q, i) => (i ? x.lineTo(...map(q)) : x.moveTo(...map(q)))); x.closePath();
+  x.fillStyle = rgba(HL, 0.32); x.fill(); x.strokeStyle = HL; x.lineWidth = 2; x.stroke();
+  seg(x, map([0, 0]), map([1, 0]), HL, 4);   // its bottom edge, to see which way it faces
+  const O = V.P([0, 0]);
+  dot(x, O, 4, color("--muted"));
+  // what the last press did
+  const L = !anim && last3;
+  if (L && L.kind !== "p" && len(L.from) > EPS) {
+    const r = len(L.from), a0 = ang(L.from), m = arcW(x, V, r, a0, a0 + (L.kind === "i" ? HP : PI), PK, 2.5, [6, 4], true);
+    arrow(x, O, V.P(L.from), rgba(BL, 0.55), 2.5);
+    if (m) place(x, L.kind === "i" ? "×i" : "×(−1)", around(m.p, m.p[0] - O[0], m.p[1] - O[1], 16), { color: PK, size: 15 });
+  }
+  if (L && L.kind === "p") {
+    arrow(x, O, V.P(L.from), rgba(BL, 0.55), 2.5);
+    arrow(x, V.P(L.from), V.P(L.to), NO, 3);
+    const M = V.P([L.from[0], L.from[1] + 0.5]);
+    place(x, "+i", [[M[0] + 16, M[1], "left"], [M[0] - 16, M[1], "right"]], { color: NO, size: 15 });
+  }
+  if (anim && anim.kind !== "p" && len(z) > EPS) { const a0 = ang(z); arcW(x, V, len(z), a0, a0 + (anim.kind === "i" ? HP : PI) * ease(anim.p), PK, 2.5, [6, 4], false); }
+  if (anim && anim.kind === "p") arrow(x, V.P(z), V.P(partial(z)), NO, 3);
+  const tip = partial(z), P = V.P(tip), col = !L ? BL : L.kind === "p" ? NO : A;
+  if (len(tip) > EPS) arrow(x, O, P, col, 3.5);
+  handle(x, P);
+  if (L && len(L.from) > EPS) { const F = V.P(L.from); dot(x, F, 5, rgba(BL, 0.8)); place(x, cstr(L.from), around(F, L.from[0], -L.from[1], 20), { size: 14, color: BL }); }
+  if (!anim) {
+    const s = (L ? "" : "z = ") + cstr(z);
+    place(x, s, around(P, tip[0] || 1, -tip[1], 26), { size: 16, color: col === BL ? color("--fg") : col });
+  }
+  ticks(x, V, true);
+  axisNames(x, V, true);
+}
+
+// ---------- text ----------
+const lineI = (v, o, dash) => `<span><span class="ln${dash ? " dsh" : ""}" style="border-color:var(${v})"></span>${tr(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const MYTH = { en: "Imaginary numbers don't really exist; they were made up to force an answer.", zh: "虚数是不存在的数，是硬编出来凑答案的。" };
+const PICKS = [{ en: "×½", zh: "×½" }, { en: "No number can do that", zh: "没有数能做到" }, { en: "A number that isn't on the line", zh: "一个不在数轴上的数" }];
+
+function explain1() {
+  const sq = x1 * x1, xs = x1 || 3;
+  let out = `<div class="kicker">${tr({ en: "Step 01 · test the claim", zh: "第 1 步 · 先试试这个说法" })}</div>
+    <h2>${tr({ en: "A number whose square is negative one: can it exist?", zh: "一个平方等于负一的数，能有吗？" })}</h2>
+    <p>${tr({ en: "Look for it on the number line first. Drag x anywhere: the brown dot is x × x.", zh: "先在数轴上找。把 x 拖到哪都行：棕色的点是 x × x。" })}</p>
+    <div class="mathline">x × x = ${par([x1, 0])} × ${par([x1, 0])} = ${hot(fmt(sq))} ${sq > 0 ? "> 0" : "= 0"}</div>
+    <p>${tr({ en: "Positive or negative, the square never lands left of zero. So on the line there is no such number. That's why people said it doesn't exist.",
+               zh: "不管正负，平方都落不到零的左边。所以数轴上没有这样的数，当时的人就说它不存在。" })}</p>`;
+  if (!last1) {
+    return out + `<p class="big">${tr({ en: "But remember negative times negative (#15)? Press ×(−1) under the picture.", zh: "可还记得负负得正吗（#15）？点图下面的 ×(−1)。" })}</p>` + legend(leg1());
+  }
+  const from = last1.from;
+  out += `<div class="mathline">${par([from, 0])} × (−1) = ${hot(fmt(-from))}</div>
+    <p>${tr({ en: "Times negative one is a half turn: the arrow turns half a turn around zero" + (from ? `, from ${fmt(from)} to ${fmt(-from)}.` : "."),
+               zh: "乘负一就是转半圈：箭头绕零转半圈" + (from ? `，从 ${fmt(from)} 转到 ${fmt(-from)}。` : "。") })}</p>
+    <p class="big">${tr({ en: "Half a turn is times negative one. What would a quarter turn be?", zh: "转半圈是乘负一，那转四分之一圈，是乘什么？" })}</p>
+    <div class="picks">${PICKS.map((p, i) => `<button data-pick="${i}"${pick1 === i ? ' class="on"' : ""}>${tr(p)}</button>`).join("")}</div>`;
+  if (pick1 === 0) out += `<p><span class="no-t">${tr({ en: "Not a turn.", zh: "这不是转。" })}</span> ${fmt(xs)} × ½ = ${fmt(xs / 2)}: ${tr({ en: "halving shrinks the arrow, but it stays on the line. Every number on the line does that.", zh: "减半只让箭头变短，还在数轴上。数轴上的数都是这样。" })}</p>`;
+  if (pick1 === 1) out += `<p>${tr({ en: "That's the old claim. Let's suppose there is one, and see where it has to be.", zh: "这就是当年的说法。我们先假设有一个，看它得在哪。" })}</p>`;
+  if (pick1 === 2) out += `<p><span class="ok-t">${tr({ en: "Good guess.", zh: "猜得好。" })}</span> ${tr({ en: "Let's find where it sits.", zh: "我们来找它在哪。" })}</p>`;
+  if (pick1 != null) out += `<p><button class="small" data-go="2">${tr({ en: "Step 2: a quarter turn →", zh: "第 2 步：转四分之一圈 →" })}</button></p>`;
+  return out + legend(leg1());
+}
+const leg1 = () => [lineI("--c", { en: "arrow to x", zh: "指向 x 的箭头" }), lineI("--b", { en: "x × x", zh: "x × x" }), lineI("--h", { en: "half turn", zh: "转半圈" })];
+
+function explain2() {
+  const named = n2 >= 2, q = named ? "i" : "?";
+  let out = `<div class="kicker">${tr({ en: "Step 02 · a quarter turn", zh: "第 2 步 · 转四分之一圈" })}</div>
+    <h2>${tr({ en: "Suppose a number turns things ninety degrees", zh: "假设有一个数，乘它一次就转九十度" })}</h2>
+    <p>${tr({ en: `Start with the arrow to 1. Each press multiplies by that number (call it ${q}): the arrow turns a quarter turn about zero.`,
+               zh: `从指向 1 的箭头开始。每按一次就乘一次这个数（先叫它 ${q}）：箭头绕零转四分之一圈。` })}</p>`;
+  const rows = [];
+  for (let k = 0; k <= 4; k++) {
+    const p = rot([1, 0], k * HP).map(Math.round), got = k <= n2;
+    const lab = k === 0 ? "1" : "1" + (" × " + q).repeat(k);
+    const val = !got ? "?" : k === 1 && !named ? "?" : cstr(p);
+    rows.push(`<tr class="${!got ? "dim" : k === n2 ? "cur" : ""}"><td>${lab}</td><td>${k * 90}°</td><td>${got ? pt(p) : "?"}</td><td>${val}</td></tr>`);
+  }
+  out += `<table class="tbl"><tr><th></th><th>${tr({ en: "turned", zh: "转过" })}</th><th>${tr({ en: "point", zh: "位置" })}</th><th>${tr({ en: "number", zh: "数" })}</th></tr>${rows.join("")}</table>`;
+  if (n2 === 0) out += `<p class="big">${tr({ en: "Press ×? under the picture.", zh: "点图下面的 ×?。" })}</p>`;
+  if (n2 === 1) out += `<p class="big">${tr({ en: "One times it: the arrow turns straight up, to (0, 1). That's not on the number line. Press again.", zh: "一乘它，箭头转到正上方 (0, 1)。这不在数轴上。再按一次。" })}</p>`;
+  if (named) {
+    out += `<p>${tr({ en: "Twice is a half turn, which is times negative one:", zh: "乘它两次就是转了半圈，也就是乘了负一：" })}</p>
+      <div class="mathline">1 × ? × ? = 1 × (−1)<br>${tr({ en: "so", zh: "所以" })} ? × ? = −1. ${tr({ en: "We call it i:", zh: "我们叫它 i：" })} ${hot("i × i = −1")}</div>
+      <div class="chk"><span class="x">✗</span><s>${tr(MYTH)}</s></div>
+      <p class="big">${tr({ en: "It isn't on the number line: it sits straight above zero, so the line has to grow into a plane.", zh: "数轴上找不到它，它在零的正上方，数轴要扩成平面。" })}</p>`;
+  }
+  if (n2 === 4) out += `<div class="mathline">1 → i → −1 → −i → 1<br>${hot("i⁴ = 1")}</div><p>${tr({ en: "Four quarter turns are a full turn: back where it started.", zh: "转四次四分之一圈是一整圈：回到原处。" })}</p>`;
+  return out + legend([lineI("--c", { en: "arrow to 1", zh: "指向 1 的箭头" }), lineI("--h", { en: "one press = 90°", zh: "按一次 = 90°" }), ...(named ? [lineI("--h", { en: "two presses = ×(−1)", zh: "按两次 = ×(−1)" }, true)] : [])]);
+}
+
+function explain3() {
+  let out = `<div class="kicker">${tr({ en: "Step 03 · check with the distributive law", zh: "第 3 步 · 用分配律验证" })}</div>
+    <h2>${tr({ en: "On the plane, times i turns the whole plane by ninety degrees", zh: "放到平面上看，乘 i 就是让整个平面绕着零转九十度" })}</h2>
+    <p>${tr({ en: "Drag z to any grid point, then press ×i. The tinted grid and the gold square turn with it.", zh: "把 z 拖到任意格点，再按 ×i。带色的网格和金色小方块跟着一起转。" })}</p>`;
+  const L = last3;
+  if (!L) {
+    out += `<div class="mathline">z = ${hot(cstr(z))} → ${pt(z)}</div><p class="big">${tr({ en: "Where will z × i land? Press ×i.", zh: "z × i 会落在哪？按 ×i。" })}</p>`;
+  } else if (L.kind === "i") {
+    const f = L.from, tt = mulI(f);
+    out += `<div class="mathline">${expandI(f)}</div>
+      <p>${tr({ en: "Turn the point by 90° counterclockwise: (x, y) → (−y, x)", zh: "把点逆时针转 90°：(x, y) → (−y, x)" })}</p>
+      <div class="mathline">${pt(f)} → ${hot(pt(tt))} <span class="ok-t">✓</span></div>
+      <p>${len(f) > EPS ? tr({ en: `Same length ${lenStr(f)}, turned exactly 90°: the algebra and the turn agree.`, zh: `长度都是 ${lenStr(f)}，正好转了 90°：算的和转的一样。` }) : tr({ en: "Zero stays at zero: it's the centre of the turn.", zh: "零还在零：它是转动的中心。" })}</p>`;
+  } else if (L.kind === "n") {
+    out += `<div class="mathline">${par(L.from)} × (−1) = ${hot(cstr(L.to))}</div>
+      <p>${tr({ en: "Half a turn: (x, y) → (−x, −y). Same as pressing ×i twice, because i × i = −1.", zh: "转半圈：(x, y) → (−x, −y)。和按两次 ×i 一样，因为 i × i = −1。" })}</p>`;
+  } else {
+    const f = L.from, g = L.to, a0 = ang(f), a1 = ang(g);
+    let d = (a1 - a0) * 180 / PI; d -= 360 * Math.round(d / 360);
+    out += `<div class="mathline">${par(f)} + i = ${hot(cstr(g))}</div>
+      <div class="chk"><span class="x">✗</span>${tr({ en: "times i is not plus i", zh: "乘 i 可不是加 i" })}</div>
+      <p>${tr({ en: "Plus i just moves up one square, from " + cstr(f) + " to " + cstr(g) + ". No quarter turn: ", zh: "加 i 只是往上挪一格，从 " + cstr(f) + " 到 " + cstr(g) + "，没有转九十度：" })}${len(f) > EPS
+        ? tr({ en: `the arrow's direction changes by only ${fmt(Math.abs(d), 1)}°, and its length goes from ${lenStr(f)} to ${lenStr(g)}.`, zh: `箭头方向只变了 ${fmt(Math.abs(d), 1)}°，长度从 ${lenStr(f)} 变成 ${lenStr(g)}。` })
+        : tr({ en: "it starts at zero and just moves up.", zh: "从零出发，只是往上走。" })}</p>
+      <p>${tr({ en: `Times i would send ${cstr(f)} to ${cstr(mulI(f))}.`, zh: `乘 i 会把 ${cstr(f)} 送到 ${cstr(mulI(f))}。` })}</p>`;
+  }
+  if (q3 > 0 && !plus3) {
+    const back = q3 % 4 === 0;
+    out += `<p>${tr({ en: `So far: the starting point × ${pw(q3)}, ${q3 * 90}° in all.`, zh: `到现在：起点 × ${pw(q3)}，一共转了 ${q3 * 90}°。` })}${back ? ` <span class="ok-t">${tr({ en: "Back where it started.", zh: "回到原处了。" })}</span>` : ""}</p>`;
+  }
+  return out + legend([lineI("--c", { en: "z", zh: "z" }), lineI("--a", { en: "after ×", zh: "乘完以后" }), lineI("--h", { en: "turn", zh: "转" }, true), lineI("--no", { en: "+i: a shift", zh: "+i：平移" })]);
+}
+
+// ---------- controls ----------
+function render() {
+  sizeCanvas();
+  el("vtitle").textContent = tr(D["v" + step]);
+  el("vtag").textContent = tr(D["tag" + step]);
+  el("b1").hidden = step !== 1;
+  el("b2").hidden = step !== 2;
+  ["b3i", "b3n", "b3p"].forEach((id) => (el(id).hidden = step !== 3));
+  el("b2").textContent = n2 >= 4 ? tr(D.again) : n2 >= 2 ? "×i" : "×?";
+  el("b3p").disabled = z[1] >= 4;
+  lastHtml = "";
+  update();
+}
+function update() {
+  const html = step === 1 ? explain1() : step === 2 ? explain2() : explain3();
+  if (html !== lastHtml) { el("explain").innerHTML = html; lastHtml = html; }
+  el("b3p").disabled = z[1] >= 4;
+  const s = step === 1 ? tr({ en: `Number line: x = ${fmt(x1)}, x × x = ${fmt(x1 * x1)}`, zh: `数轴：x = ${fmt(x1)}，x × x = ${fmt(x1 * x1)}` })
+    : step === 2 ? tr({ en: `Arrow from 0 to ${cstr(rot([1, 0], n2 * HP).map(Math.round))} after ${n2} quarter turns`, zh: `从 0 出发的箭头，转了 ${n2} 次四分之一圈，指向 ${cstr(rot([1, 0], n2 * HP).map(Math.round))}` })
+    : tr({ en: `Complex plane: z = ${cstr(z)}`, zh: `复平面：z = ${cstr(z)}` });
+  cvEl.setAttribute("aria-label", s);
+  dirty = true;
+}
+function start(kind) {
+  if (anim) finish();
+  if (step === 1 && (kind !== "n")) return;
+  const dir = step === 1 ? (x1 >= 0 ? 1 : -1) : 1;
+  anim = { kind, p: 0, dir };
+  if (Play.reduced) finish(); else dirty = true;
+}
+function finish() {
+  const a = anim; anim = null;
+  if (!a) return;
+  if (step === 1) { last1 = { from: x1, dir: a.dir }; x1 = x1 ? -x1 : 0; }
+  else if (step === 2) n2 = Math.min(4, n2 + 1);
+  else {
+    const op = a.kind === "i" ? mulI : a.kind === "n" ? (w) => [-w[0], -w[1]] : (w) => [w[0], w[1] + 1];
+    const from = z.slice();
+    z = op(z).map((v) => v + 0);
+    T = a.kind === "p" ? { m: T.m, c: [T.c[0], T.c[1] + 1] } : { m: op(T.m), c: op(T.c) };
+    last3 = { kind: a.kind, from, to: z.slice() };
+    if (a.kind === "p") plus3 = true; else q3 += a.kind === "i" ? 1 : 2;
+  }
+  render();
+}
+el("b1").onclick = () => start("n");
+el("b2").onclick = () => { if (n2 >= 4) { n2 = 0; anim = null; render(); } else start("i"); };
+el("b3i").onclick = () => start("i");
+el("b3n").onclick = () => start("n");
+el("b3p").onclick = () => { if (z[1] < 4) start("p"); };
+el("explain").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pick]");
+  if (b) { pick1 = +b.dataset.pick; update(); return; }
+  const g = e.target.closest("[data-go]");
+  if (g) nav.set(+g.dataset.go);
+});
+
+// ---------- pointer + keys ----------
+function setX(v) { const nv = clamp(Math.round(v * 2) / 2, -4, 4); if (nv !== x1) { x1 = nv; last1 = null; update(); } }
+function setZ(a, b) {
+  const nz = [clamp(Math.round(a), -4, 4), clamp(Math.round(b), -4, 4)];
+  if (nz[0] === z[0] && nz[1] === z[1]) return;
+  z = nz; T = { m: [1, 0], c: [0, 0] }; last3 = null; q3 = 0; plus3 = false; update();
+}
+Play.drag(cvEl, {
+  down(px, py) {
+    if (step === 2) return false;
+    if (anim) finish();
+    const V = vw(), P = step === 1 ? V.P([x1, 0]) : V.P(z);
+    if (Math.hypot(P[0] - px, P[1] - py) > 44 && !(step === 1 && Math.abs(py - V.Y(0)) < 30)) return false;
+    grab = true; frozen = V;
+    if (step === 1) setX(V.wx(px));
+    return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw();
+    if (step === 1) setX(V.wx(px)); else setZ(V.wx(px), V.wy(py));
+  },
+  up() { grab = false; frozen = null; dirty = true; },
+});
+const mv = (dx, dy) => () => { if (anim) finish(); if (step === 1) setX(x1 + dx * 0.5); else if (step === 3) setZ(z[0] + dx, z[1] + dy); else if (dx > 0 || dy > 0) el("b2").click(); };
+Play.keys(cvEl, {
+  ArrowLeft: mv(-1, 0), ArrowRight: mv(1, 0), ArrowUp: mv(0, 1), ArrowDown: mv(0, -1),
+  " ": () => { if (step === 2) el("b2").click(); },
+  i: () => { if (step === 3) start("i"); },
+  "-": () => { if (step !== 2) start("n"); },
+  "+": () => { if (step === 3) el("b3p").click(); },
+});
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n; anim = null; grab = false; frozen = null;
+  render();
+});
+el("reset").onclick = () => { init(); nav.set(1); };
+addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (anim) { anim.p += dt / DUR; if (anim.p >= 1) finish(); dirty = true; }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

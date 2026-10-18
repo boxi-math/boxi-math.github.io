@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Matrix Transforms the Whole Plane · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .matbar { padding-top: 2px; color: var(--fg); font-size: 14px; gap: 6px 14px; }
+  .matbar .arr { white-space: nowrap; font-family: var(--math); font-size: 15px; }
+  .mat { display: inline-grid; grid-template-columns: auto auto; column-gap: .75em; line-height: 1.3; padding: 1px 8px;
+         border-left: 2px solid currentColor; border-right: 2px solid currentColor; border-radius: 9px;
+         vertical-align: middle; font-family: var(--math); text-align: center; font-variant-numeric: tabular-nums; }
+  .mat span { min-width: 1.4em; }
+  .mat .k1 { color: var(--a); font-weight: 700; } .mat .k2 { color: var(--c); font-weight: 700; }
+  .result .mat .k1, .result .mat .k2 { color: var(--on-panel); }
+  .ca { color: var(--a); font-weight: 700; } .cc { color: var(--c); font-weight: 700; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 18px; line-height: 2; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 3px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rows .cur { font-weight: 700; }
+  .rows .nm { min-width: 5.5em; }
+  .chk { margin: 2px 0 6px; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .choices { flex-direction: column; align-items: stretch; }
+  .choices button { text-align: left; min-height: 40px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); margin-right: 5px; vertical-align: 3px; }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="a grid and a little house, deformed by a 2 by 2 matrix"></canvas>
+      <div class="controls matbar" id="mb" aria-live="off"></div>
+      <div class="controls" id="c1">
+        <span class="grp" id="mvBtns"></span>
+        <button id="tour"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span data-t="keysW"></span>
+          <button data-sel="0"><span class="dot" style="background:var(--a)"></span><span data-t="floor"></span></button>
+          <button data-sel="1"><span class="dot" style="background:var(--c)"></span><span data-t="wall"></span></button>
+        </span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp">
+          <button data-rd="cols" data-t="byCols"></button>
+          <button data-rd="rows" data-t="byRows"></button>
+        </span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "A Matrix Transforms the Whole Plane", zh: "矩阵是把整个平面变形" },
+  eyebrow: { en: "Boxi Math · Try it · #34", zh: "Boxi Math · 动手试试 · #34" },
+  intro: { en: "In a photo editor, stretching, turning or pushing a picture is recorded as just four numbers. Watch four moves of a rubber sheet with a little house on it, drag the floor and wall arrows yourself, then predict what a matrix does to the house.",
+           zh: "在修图软件里拉宽、转动、推歪一张图，程序只记下四个数。先看橡皮膜上的小房子做四个动作，再亲手拖地板箭头和墙箭头，最后从一个矩阵预测房子的样子。" },
+  s1: { en: "Just a table?", zh: "只是一张表？" }, s2: { en: "Drag the arrows", zh: "拖两支箭头" }, s3: { en: "Columns, not rows", zh: "按列读" },
+  reset: { en: "Reset", zh: "重置" },
+  floor: { en: "floor", zh: "地板" }, wall: { en: "wall", zh: "墙" },
+  keysW: { en: "Arrow keys move:", zh: "方向键移动：" },
+  byCols: { en: "Read by columns", zh: "按列读" }, byRows: { en: "Read by rows", zh: "按行读" },
+  v1: { en: "a rubber sheet with a little house", zh: "橡皮膜上的小房子" }, v2: { en: "you move the two arrows", zh: "你来挪两支箭头" }, v3: { en: "the matrix (2 1; 0 1)", zh: "矩阵 (2 1; 0 1)" },
+  tag1: { en: "tap a move", zh: "点一个动作" }, tag2: { en: "drag an arrow tip", zh: "拖箭头的尖" }, tag3: { en: "predict first", zh: "先预测" }, tag3b: { en: "compare the two readings", zh: "比较两种读法" },
+  normal: { en: "back to normal", zh: "复原" },
+  play: { en: "▶ Play all four", zh: "▶ 连播四个" }, pause: { en: "❚❚ Pause", zh: "❚❚ 暂停" }, resume: { en: "▶ Resume", zh: "▶ 继续" },
+  resT: { en: "Column 1 = where the floor arrow goes, column 2 = where the wall arrow goes", zh: "第一列是地板箭头的去处，第二列是墙箭头的去处" },
+  resN: { en: "So a matrix isn't a dead table: it deforms the whole plane at once. Read it by columns, not by rows.",
+          zh: "所以矩阵不是一张死表，它把整个平面一起变形。要按列读，不能按行读。" },
+  moreS: { en: "Why do two arrows decide where the whole house goes?", zh: "为什么两支箭头就决定了整座房子去哪？" },
+  moreP: { en: "Every point (x, y) is x floor arrows plus y wall arrows: (x, y) = x·(1, 0) + y·(0, 1). The rubber sheet keeps grid lines straight, parallel and evenly spaced, so after the change the same point is still x new floor arrows plus y new wall arrows: x·(a, c) + y·(b, d) = (ax + by, cx + dy). That is exactly the rule for a matrix times a point. Bonus: the unit square on the two arrows becomes a parallelogram whose area is ad − bc. For the shear (1 1; 0 1) that is 1 × 1 − 1 × 0 = 1, so pushing over doesn't change the area.",
+           zh: "每个点 (x, y) 都是 x 个地板箭头加 y 个墙箭头：(x, y) = x·(1, 0) + y·(0, 1)。橡皮膜变形时网格线还是直的、平行的、等距的，所以变形后同一个点还是 x 个新地板箭头加 y 个新墙箭头：x·(a, c) + y·(b, d) = (ax + by, cx + dy)。这正是矩阵乘一个点的规则。附带一句：两支箭头围成的单位方格变成平行四边形，面积是 ad − bc。推斜 (1 1; 0 1) 的面积是 1 × 1 − 1 × 0 = 1，推歪不改变面积。" },
+  moreQ: { en: "Next: if the two arrows got squashed onto one line, what would become of the house? (Try it in step 2.)", zh: "接下来想一想：要是两支箭头被压到同一条线上，房子会变成什么？（可以在第 2 步试试。）" },
+  foot: { en: "Green is the floor arrow and the first column, blue is the wall arrow and the second column, gold is the house, red is the rows reading. Dashed arrows are where the arrows started. On a focused picture, keys work too (step 1: ← → change the move; step 2: arrows move the chosen tip, Space switches floor and wall; step 3: ← → switch the reading).",
+          zh: "绿色是地板箭头和第一列，蓝色是墙箭头和第二列，金色是房子，红色是按行读的结果。虚线箭头是箭头原来的位置。选中图后也能用键盘（第 1 步：← → 换动作；第 2 步：方向键移动选中的箭头，空格键在地板、墙之间切换；第 3 步：← → 换读法）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const snap = (v, s) => Math.round(v / s) * s;
+const hot = (s) => `<span class="hot">${s}</span>`;
+const pt = (x, y) => `(${fmt(x)}, ${fmt(y)})`;
+// matrix m = [a, b, c, d] = (a b; c d); first column (a, c) = floor arrow, second (b, d) = wall arrow
+const I2 = [1, 0, 0, 1];
+const app = (m, p) => [m[0] * p[0] + m[1] * p[1], m[2] * p[0] + m[3] * p[1]];
+const col = (m, k) => (k ? [m[1], m[3]] : [m[0], m[2]]);
+const tr = (m) => [m[0], m[2], m[1], m[3]];
+const same = (m, n) => m.every((v, i) => Math.abs(v - n[i]) < 1e-6);
+const det = (m) => m[0] * m[3] - m[1] * m[2];
+function matHTML(m, mode) {   // mode "cols" colours columns, "rows" colours rows
+  const k = (i) => (mode === "rows" ? (i < 2 ? "k1" : "k2") : (i % 2 ? "k2" : "k1"));
+  return `<span class="mat">${m.map((v, i) => `<span class="${k(i)}">${fmt(v)}</span>`).join("")}</span>`;
+}
+
+const MOVES = [
+  { m: [2, 0, 0, 2], name: { en: "scale", zh: "放大" },
+    say: (f, w) => ({ en: `Blow the whole sheet up by two: the floor arrow goes to ${f}; the wall arrow to ${w}. Write those two places as two columns, and that's a matrix.`,
+                      zh: `整张膜放大两倍：地板箭头到了 ${f}，墙的到了 ${w}。把这两个去处竖着写成两列，就是一个矩阵。` }) },
+  { m: [2, 0, 0, 1], name: { en: "stretch", zh: "横拉" },
+    say: (f, w) => ({ en: `Stretch sideways by two: the floor goes to ${f}; the wall stays at ${w}.`, zh: `只往横里拉两倍：地板到 ${f}，墙还在 ${w}。` }) },
+  { m: [0, -1, 1, 0], name: { en: "turn 90°", zh: "转 90°" },
+    say: (f, w) => ({ en: `Turn ninety degrees: the floor turns to ${f}; the wall to ${w}.`, zh: `转九十度：地板转到 ${f}，墙转到 ${w}。` }) },
+  { m: [1, 1, 0, 1], name: { en: "shear", zh: "推斜" },
+    say: (f, w) => ({ en: `Push it to the right like a stack of books: the floor stays put at ${f}, the wall leans over to ${w}. The house leans over, and what the matrix records is where the two arrows went.`,
+                      zh: `像推一摞书那样往右推：地板不动，还在 ${f}，墙推歪到 ${w}。房子推歪了，矩阵记下的，就是两支箭头的去处。` }) },
+];
+const W3 = [2, 1, 0, 1];               // step 3: the matrix as written
+const CH3 = [
+  { en: "Stretched sideways and pushed over to the right", zh: "横着拉长，又往右推歪" },
+  { en: "Leaning the other way: the floor tilts up", zh: "歪到另一边：地板往上翘" },
+  { en: "Just twice as big", zh: "只是放大两倍" },
+];
+
+// house (script notes): corners, plus a window on the left and a door on the right so flips show
+const HOUSE = [[0, 0], [1, 0], [1, 1], [0.5, 1.4], [0, 1]];
+const WIN = [[0.14, 0.48], [0.42, 0.48], [0.42, 0.76], [0.14, 0.76]];
+const DOOR = [[0.6, 0], [0.84, 0], [0.84, 0.6], [0.6, 0.6]];
+const ROOF = HOUSE[3];
+
+// ---------- state ----------
+let cur, anim, queue, hold, move1, seen, touring, paused, M2, sel, pick3, read3, seenRows;
+function init() {
+  cur = I2.slice(); anim = null; queue = []; hold = 0;
+  move1 = null; seen = new Set(); touring = false; paused = false;
+  M2 = I2.slice(); sel = 0;
+  pick3 = null; read3 = "cols"; seenRows = false;
+}
+init();
+let step = 1, dirty = true, grab = null;
+
+// ---------- motion: columns move in polar coordinates, so a turn stays a turn ----------
+function lerpCol(p, q, s) {
+  const r0 = Math.hypot(...p), r1 = Math.hypot(...q);
+  let d = Math.atan2(q[1], q[0]) - Math.atan2(p[1], p[0]);
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  if (r0 < 1e-6 || r1 < 1e-6 || Math.abs(Math.abs(d) - Math.PI) < 1e-3) return [p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s];
+  const r = r0 + (r1 - r0) * s, a = Math.atan2(p[1], p[0]) + d * s;
+  return [r * Math.cos(a), r * Math.sin(a)];
+}
+function lerpM(m, n, s) { const f = lerpCol(col(m, 0), col(n, 0), s), w = lerpCol(col(m, 1), col(n, 1), s); return [f[0], w[0], f[1], w[1]]; }
+const ease = (s) => s * s * (3 - 2 * s);
+function start(item) {
+  if (item.mv !== undefined) { move1 = item.mv; if (item.mv !== null) seen.add(item.mv); render(); }
+  if (Play.reduced) { cur = item.m.slice(); hold = item.hold || 0; dirty = true; render(); if (hold <= 0) next(); return; }
+  anim = { from: cur.slice(), to: item.m.slice(), s: 0, dur: item.dur || 0.8, hold: item.hold || 0 };
+}
+function go(items) { queue = items.slice(); anim = null; hold = 0; paused = false; next(); }
+function next() { if (queue.length) start(queue.shift()); else if (touring) { touring = false; render(); } }
+function via(m, mv, extra) {         // like the video: back to normal first, then the move
+  const out = [];
+  if (!same(anim ? anim.to : cur, I2)) out.push({ m: I2, dur: 0.5, hold: 0.25 });
+  out.push({ m, mv, ...extra });
+  return out;
+}
+
+// ---------- view: equal units, fixed world rectangle below a 30 px title strip ----------
+const TOP = 30, R = { x0: -2.2, x1: 4.2, y0: -1.2, y1: 3.25 };
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  const u = Math.max(14, Math.min(W / (R.x1 - R.x0), (H - TOP) / (R.y1 - R.y0)));
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2, my = TOP + (H - TOP) / 2;
+  const V = { W, H, u, X: (x) => W / 2 + (x - cx) * u, Y: (y) => my - (y - cy) * u,
+    wx: (px) => cx + (px - W / 2) / u, wy: (py) => cy - (py - my) / u };
+  V.xmin = V.wx(0); V.xmax = V.wx(W); V.ymin = V.wy(H); V.ymax = V.wy(0);
+  V.P = (p) => [V.X(p[0]), V.Y(p[1])];
+  return V;
+}
+function fits(m) {                   // house and both tips stay inside the picture
+  const V = vw(), x0 = V.xmin + 0.25, x1 = V.xmax - 0.25, y0 = V.ymin + 0.25, y1 = V.wy(TOP + 14);
+  return [...HOUSE.map((p) => app(m, p)), col(m, 0), col(m, 1)].every((r) => r[0] >= x0 && r[0] <= x1 && r[1] >= y0 && r[1] <= y1);
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pk = null;
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { pk = c; break; }
+  }
+  if (!pk) { if (o.optional) return; pk = cands[0]; }
+  boxes.push(boxOf(x, s, pk[0], pk[1], size, pk[2] || "center"));
+  Play.text(x, s, pk[0], pk[1], { weight: 700, ...o, size, align: pk[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+function reserveSeg(p, q, r = 4) {
+  const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 6));
+  for (let i = 0; i <= n; i++) reserve(p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n, r);
+}
+function tipCands(P, O, away) {      // beside the tip (on the side away from `away`), then beyond it
+  let dx = P[0] - O[0], dy = P[1] - O[1], L = Math.hypot(dx, dy);
+  if (L < 1) { dx = 1; dy = -1; L = Math.SQRT2; }
+  const ux = dx / L, uy = dy / L, out = [];
+  let nx = -uy, ny = ux;
+  if (away && (away[0] - O[0]) * nx + (away[1] - O[1]) * ny > 0) { nx = -nx; ny = -ny; }
+  for (const [a, b] of [[6, 22], [24, 0], [16, 22], [-14, 24], [6, -22], [16, -22], [-14, -24], [40, 0]]) {
+    const vx = ux * a + nx * b, vy = uy * a + ny * b, q = vx / (Math.hypot(vx, vy) || 1);
+    out.push([P[0] + vx, P[1] + vy, q > 0.4 ? "left" : q < -0.4 ? "right" : "center"]);
+  }
+  return out;
+}
+
+// ---------- drawing ----------
+function seg(x, p, q, c, w, dash) {
+  x.strokeStyle = c; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]);
+}
+function arrow(x, p, q, c, w = 3.5, dash) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  if (L < 6) return;
+  const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L, hl = Math.min(13, L * 0.5);
+  seg(x, p, [q[0] - ux * hl * 0.8, q[1] - uy * hl * 0.8], c, w, dash);
+  x.fillStyle = c; x.beginPath(); x.moveTo(...q);
+  x.lineTo(q[0] - ux * hl - uy * hl * 0.5, q[1] - uy * hl + ux * hl * 0.5); x.lineTo(q[0] - ux * hl + uy * hl * 0.5, q[1] - uy * hl - ux * hl * 0.5); x.closePath(); x.fill();
+}
+function dot(x, p, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(p[0], p[1], r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function poly(x, V, m, pts, fill, stroke, w, dash) {
+  x.beginPath();
+  pts.forEach((p, i) => { const q = V.P(app(m, p)); i ? x.lineTo(...q) : x.moveTo(...q); });
+  x.closePath();
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = w; x.setLineDash(dash || []); x.lineJoin = "round"; x.stroke(); x.setLineDash([]); }
+}
+function grid0(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.5); x.lineWidth = 1.2; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function gridM(x, V, m) {            // the rubber sheet: images of the lines x = k and y = k
+  const f = col(m, 0), w = col(m, 1), T = 40, MU = color("--muted");
+  const line = (b, d) => { x.moveTo(V.X(b[0] - d[0] * T), V.Y(b[1] - d[1] * T)); x.lineTo(V.X(b[0] + d[0] * T), V.Y(b[1] + d[1] * T)); };
+  x.lineWidth = 1; x.strokeStyle = rgba(MU, 0.42); x.beginPath();
+  for (let k = -9; k <= 9; k++) if (k) { line([f[0] * k, f[1] * k], w); line([w[0] * k, w[1] * k], f); }
+  x.stroke();
+  x.lineWidth = 1.6;
+  x.strokeStyle = rgba(color("--a"), 0.45); x.beginPath(); line([0, 0], f); x.stroke();
+  x.strokeStyle = rgba(color("--c"), 0.45); x.beginPath(); line([0, 0], w); x.stroke();
+}
+function house(x, V, m, main, red) {
+  const HL = color(red ? "--no" : "--hl"), Bc = color("--b");
+  if (main) {
+    poly(x, V, m, HOUSE, rgba(HL, red ? 0.2 : 0.32), HL, 3);
+    poly(x, V, m, WIN, rgba(color("--surface"), 0.75), Bc, 1.6);
+    poly(x, V, m, DOOR, rgba(Bc, 0.35), Bc, 1.6);
+    HOUSE.forEach((p, i) => reserveSeg(V.P(app(m, p)), V.P(app(m, HOUSE[(i + 1) % HOUSE.length])), 3));
+  } else {
+    poly(x, V, m, HOUSE, null, main === false ? color("--no") : rgba(color("--muted"), 0.9), 2, [6, 5]);
+    poly(x, V, m, WIN, null, main === false ? rgba(color("--no"), 0.7) : rgba(color("--muted"), 0.7), 1.2, [3, 3]);
+  }
+}
+function arrows(x, V, m, labels, grabbable) {
+  const O = V.P([0, 0]), A = color("--a"), C = color("--c");
+  const tips = [V.P(col(m, 0)), V.P(col(m, 1))];
+  arrow(x, O, V.P([1, 0]), rgba(color("--muted"), 0.7), 1.6, [4, 4]);
+  arrow(x, O, V.P([0, 1]), rgba(color("--muted"), 0.7), 1.6, [4, 4]);
+  arrow(x, O, tips[0], A); arrow(x, O, tips[1], C);
+  tips.forEach((p) => reserveSeg(O, p, 5));
+  reserve(...O, 6);
+  if (grabbable) tips.forEach((p, k) => {
+    if (k === sel) dot(x, p, 15, null, rgba(color("--hl"), 0.9), 2.5);
+    dot(x, p, 7.5, k ? C : A, color("--surface"), 2);
+    reserve(...p, k === sel ? 17 : 10);
+  });
+  else tips.forEach((p) => reserve(...p, 8));
+  if (labels) [0, 1].forEach((k) => {
+    const c = col(m, k);
+    place(x, `${t(k ? D.wall : D.floor)} ${pt(c[0], c[1])}`, tipCands(tips[k], O, tips[1 - k]), { color: k ? C : A, size: 14 });
+  });
+}
+function ticks(x, V) {
+  const st = V.u < 34 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (bx[0] < 2 || bx[2] > V.W - 2 || bx[1] < TOP || bx[3] > V.H - 2 || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+}
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, TOP]];
+  grid0(x, V);
+  gridM(x, V, cur);
+  if (step === 3 && pick3 !== null && seenRows && !anim) house(x, V, read3 === "cols" ? tr(W3) : W3, read3 === "cols" ? false : null);
+  house(x, V, cur, true, step === 3 && pick3 !== null && read3 === "rows");
+  if (step === 2) {                  // roof = 0.5 floor + 1.4 wall
+    const f = col(cur, 0), half = [f[0] * ROOF[0], f[1] * ROOF[0]], top = app(cur, ROOF);
+    seg(x, V.P([0, 0]), V.P(half), rgba(color("--a"), 0.95), 2.5, [7, 5]);
+    seg(x, V.P(half), V.P(top), rgba(color("--c"), 0.95), 2.5, [7, 5]);
+  }
+  arrows(x, V, cur, !anim, step === 2);
+  if (!anim) {
+    if (step === 2) {
+      const p = V.P(app(cur, ROOF));
+      dot(x, p, 5.5, color("--fg"), color("--surface"), 1.5); reserve(...p, 8);
+      const tp = app(cur, ROOF);
+      place(x, `${t({ en: "roof", zh: "屋顶" })} ${pt(tp[0], tp[1])}`, tipCands(p, V.P(app(cur, [0.5, 0.5]))), { size: 14, optional: true });
+    } else if (step === 3 && pick3 !== null) {
+      const m = read3 === "cols" ? W3 : tr(W3), c = app(m, [1, 1]), p = V.P(c);
+      dot(x, p, 5.5, color("--fg"), color("--surface"), 1.5); reserve(...p, 8);
+      place(x, pt(c[0], c[1]), tipCands(p, V.P(app(m, [0.5, 0.5]))), { size: 14, optional: true });
+    }
+  }
+  ticks(x, V);
+}
+
+// ---------- explanations ----------
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const LEG = () => legend([dotI("--a", { en: "floor arrow = column 1", zh: "地板箭头 = 第一列" }), dotI("--c", { en: "wall arrow = column 2", zh: "墙箭头 = 第二列" }), dotI("--hl", { en: "the house", zh: "房子" })]);
+const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+const arrowsTxt = (m) => `<span class="ca">${t(D.floor)} → ${pt(m[0], m[2])}</span>, <span class="cc">${t(D.wall)} → ${pt(m[1], m[3])}</span>`;
+
+function explain1() {
+  let out = `<div class="kicker">${t({ en: "Step 01 · four moves", zh: "第 1 步 · 四个动作" })}</div>
+    <h2>${t({ en: "Is a matrix just four numbers in a table?", zh: "矩阵只是四个数排成的一张表吗？" })}</h2>`;
+  if (move1 === null) {
+    out += `<p>${t({ en: "In a photo editor, when you stretch a picture, turn it or push it sideways, the program only records four numbers. What are those four numbers actually doing? Think about it first.",
+                     zh: "在修图软件里拉宽、转动、推歪一张图，程序只记下四个数。这四个数到底在做什么？先在心里想一想。" })}</p>
+      <p class="big">${t({ en: "Think of the plane as a rubber sheet with a little house drawn on it. Put one arrow along the floor and one up the wall. Then tap a move under the picture.",
+                           zh: "把平面想成一张橡皮膜，上面画一座小房子。地板方向放一支箭头，墙的方向也放一支箭头。然后点图下面的一个动作。" })}</p>`;
+  } else {
+    const mv = MOVES[move1], m = mv.m;
+    out += `<p class="big">${t(mv.say(pt(m[0], m[2]), pt(m[1], m[3])))}</p>
+      <div class="mathline">${t(mv.name)} ${matHTML(m)}</div>`;
+  }
+  out += `<div class="rows">${MOVES.map((mv, i) => `<div class="${i === move1 ? "cur" : ""}"><span class="nm">${t(mv.name)}</span>${seen.has(i) ? matHTML(mv.m) : `<span class="mat"><span>?</span><span>?</span><span>?</span><span>?</span></span>`}</div>`).join("")}</div>`;
+  out += chk(seen.size >= 2, { en: "Just a table, nothing to do with stretching, turning or pushing?", zh: "只是一张数表，跟拉、转、推没关系？" },
+             { en: "Each one is a move of the whole sheet.", zh: "每一个都是整张膜的一个动作。" });
+  if (seen.size >= 2) out += `<p class="note">${t({ en: "In every matrix the first column is the new floor arrow and the second is the new wall arrow. Next: move the arrows yourself.",
+                                                    zh: "每个矩阵的第一列都是地板箭头的新位置，第二列是墙箭头的新位置。下一步：自己挪箭头。" })}</p>`;
+  return out + LEG();
+}
+
+function named(m) {
+  if (same(m, I2)) return { en: "Nothing has moved yet: (1 0; 0 1) leaves the house alone.", zh: "还没动：(1 0; 0 1) 让房子保持原样。" };
+  const i = MOVES.findIndex((mv) => same(mv.m, m));
+  if (i >= 0) return { en: `That's the ${MOVES[i].name.en} from step 1.`, zh: `这就是第 1 步的「${MOVES[i].name.zh}」。` };
+  if (same(m, W3)) return { en: "Stretched and pushed over: that's the matrix of step 3.", zh: "又拉长又推歪：这就是第 3 步的矩阵。" };
+  return null;
+}
+function explain2() {
+  const m = M2, r = app(m, ROOF), dd = det(m), c = app(m, [1, 1]);
+  let out = `<div class="kicker">${t({ en: "Step 02 · drag the arrows", zh: "第 2 步 · 拖两支箭头" })}</div>
+    <h2>${t({ en: "The two columns are where the two arrows land", zh: "两列就是两支箭头落到的地方" })}</h2>
+    <p>${t({ en: "Drag the tip of either arrow. The whole sheet, house and all, follows. The matrix just writes the two tips down as columns.",
+             zh: "拖任意一支箭头的尖，整张膜连同房子一起跟着变。矩阵只是把两个箭头尖竖着写成两列。" })}</p>
+    <div class="mathline">${matHTML(m)} &nbsp;<span style="font-size:15px">${arrowsTxt(m)}</span></div>
+    <p>${t({ en: "Every point of the house is some floor arrows plus some wall arrows, built the same way after the change. The roof tip (0.5, 1.4) is 0.5 floor + 1.4 wall:",
+             zh: "房子上每个点都是几个地板箭头加几个墙箭头，变形后照样这么拼。屋顶尖 (0.5, 1.4) 是 0.5 个地板加 1.4 个墙：" })}</p>
+    <div class="mathline">0.5 × <span class="ca">${pt(m[0], m[2])}</span> + 1.4 × <span class="cc">${pt(m[1], m[3])}</span> = ${hot(pt(r[0], r[1]))}<br>
+      ${t({ en: "corner", zh: "墙角" })} (1, 1): <span class="ca">${pt(m[0], m[2])}</span> + <span class="cc">${pt(m[1], m[3])}</span> = ${pt(c[0], c[1])}</div>`;
+  let note = named(m);
+  if (Math.abs(m[0]) + Math.abs(m[1]) + Math.abs(m[2]) + Math.abs(m[3]) < EPS) note = { en: "Both arrows shrank to nothing: the whole house is squashed into a single point.", zh: "两支箭头都缩没了：整座房子被压成一个点。" };
+  else if (Math.abs(dd) < EPS) note = { en: "Both arrows lie on one line, so the whole house is squashed flat onto a line.", zh: "两支箭头落在同一条直线上，整座房子被压扁成一条线段。" };
+  else if (!note && dd < 0) note = { en: "The wall arrow is now clockwise from the floor arrow: the house is flipped over, and the window has swapped sides.", zh: "墙箭头跑到了地板箭头的顺时针一侧：房子翻了个面，窗户换到了另一边。" };
+  if (note) out += `<p class="big">${t(note)}</p>`;
+  return out + LEG();
+}
+
+function explain3() {
+  let out = `<div class="kicker">${t({ en: "Step 03 · predict", zh: "第 3 步 · 先预测" })}</div>`;
+  const f = col(W3, 0), w = col(W3, 1);
+  if (pick3 === null) {
+    return out + `<h2>${t({ en: `So with a first column of ${pt(...f)} and a second of ${pt(...w)}, what will the house look like?`, zh: `那第一列 ${pt(...f)}，第二列 ${pt(...w)}，房子会变成什么样？` })}</h2>
+      <div class="mathline">${matHTML(W3)}</div>
+      <p>${t({ en: "Decide first, then tap your answer.", zh: "先想好，再点你的答案。" })}</p>
+      <div class="choices">${CH3.map((c, i) => `<button data-pick="${i}">${t(c)}</button>`).join("")}</div>`;
+  }
+  const T = tr(W3), cC = app(W3, [1, 1]), cR = app(T, [1, 1]);
+  out += `<p>${pick3 === 0 ? `<span class="ok-t">${t({ en: "Right.", zh: "对了。" })}</span>` : `<span class="no-t">${t({ en: "Not quite.", zh: "不对。" })}</span>`} ${t(CH3[0])}.</p>`;
+  if (read3 === "cols") {
+    out += `<h2>${t({ en: "Read by columns", zh: "按列读" })}</h2>
+      <div class="mathline">${matHTML(W3)} &nbsp;<span style="font-size:15px">${arrowsTxt(W3)}</span></div>
+      <p class="big">${t({ en: `The floor arrow goes to ${pt(...f)}: twice as long. The wall goes to ${pt(...w)}: pushed over. The house is both stretched and pushed over, exactly as the two columns say.`,
+                           zh: `地板箭头到 ${pt(...f)}，拉长一倍；墙到 ${pt(...w)}，推歪了。房子又拉长又推歪，跟两列说的一模一样。` })}</p>
+      <div class="mathline">${t({ en: "corner", zh: "墙角" })} (1, 1) → <span class="ca">${pt(...f)}</span> + <span class="cc">${pt(...w)}</span> = ${hot(pt(cC[0], cC[1]))}</div>
+      <p class="note">${t({ en: "Someone else reads the same four numbers by rows. Tap “Read by rows” to see their house.", zh: "有人把同样四个数按行读。点「按行读」看看他的房子。" })}</p>`;
+  } else {
+    out += `<h2>${t({ en: "Read by rows", zh: "按行读" })} <span class="tag-no">✗</span></h2>
+      <div class="mathline">${matHTML(W3, "rows")} &nbsp;<span style="font-size:15px">${arrowsTxt(T)}</span></div>
+      <p class="big">${t({ en: `Reading by rows is wrong: the floor would go to ${pt(T[0], T[2])} and the wall to ${pt(T[1], T[3])}. The house leans the other way, nothing like before.`,
+                           zh: `按行来读就错了：地板会去 ${pt(T[0], T[2])}，墙去 ${pt(T[1], T[3])}。房子歪到另一边，跟刚才完全不一样。` })}</p>
+      <div class="mathline">${t({ en: "corner", zh: "墙角" })} (1, 1) → ${pt(cR[0], cR[1])} ≠ ${pt(cC[0], cC[1])}</div>`;
+  }
+  out += chk(seenRows, { en: "Any way of reading the four numbers gives the same house?", zh: "四个数怎么读，房子都一样？" }, { en: "Rows give a different house. Read by columns.", zh: "按行读是另一座房子。要按列读。" });
+  return out + legend([dotI("--a", { en: "floor arrow", zh: "地板箭头" }), dotI("--c", { en: "wall arrow", zh: "墙箭头" }), dotI("--no", { en: "rows reading", zh: "按行读" }), seenRows ? `<span><span class="dsh"></span>${t({ en: "the other reading", zh: "另一种读法" })}</span>` : ""]);
+}
+
+// ---------- render ----------
+function bar() {
+  const m = cur, rows = step === 3 && read3 === "rows" && pick3 !== null && !anim;
+  el("mb").innerHTML = `<span class="arr">${matHTML(rows ? W3 : m, rows ? "rows" : "cols")}</span><span class="arr">${arrowsTxt(m)}</span>`;
+}
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(step === 3 && pick3 !== null ? D.tag3b : D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i || (i === 3 && pick3 === null)));
+  el("mvBtns").innerHTML = [-1, 0, 1, 2, 3].map((i) => { const on = i === -1 ? move1 === null : move1 === i;
+    return `<button data-mv="${i}" class="${on ? "on" : ""}" aria-pressed="${on}">${t(i < 0 ? D.normal : MOVES[i].name)}</button>`; }).join("");
+  el("tour").textContent = t(touring ? (paused ? D.resume : D.pause) : D.play);
+  document.querySelectorAll("[data-sel]").forEach((b) => { const on = +b.dataset.sel === sel; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  document.querySelectorAll("[data-rd]").forEach((b) => { const on = b.dataset.rd === read3; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  el("resM").innerHTML = `<span class="mat"><i>a</i><i>b</i><i>c</i><i>d</i></span> → ${t(D.floor)} (<i>a</i>, <i>c</i>), ${t(D.wall)} (<i>b</i>, <i>d</i>)`;
+  bar();
+  dirty = true;
+}
+
+// ---------- actions ----------
+function pickMove(i) {
+  touring = false;
+  if (i < 0) go([{ m: I2, mv: null, dur: 0.5 }]);
+  else go(via(MOVES[i].m, i));
+}
+function tour() {
+  if (touring) { paused = !paused; render(); return; }
+  const items = [];
+  MOVES.forEach((mv, i) => { items.push({ m: I2, dur: 0.5, hold: 0.3 }); items.push({ m: mv.m, mv: i, hold: 1.6 }); });
+  if (same(cur, I2)) items[0] = { m: I2, dur: 0.01 };
+  touring = true; go(items); render();
+}
+function setTip(k, wx, wy) {
+  const nx = snap(wx, 0.5), ny = snap(wy, 0.5), old = M2.slice();
+  const tryM = (x, y) => { const m = old.slice(); if (k) { m[1] = x; m[3] = y; } else { m[0] = x; m[2] = y; } return fits(m) ? m : null; };
+  const m = tryM(nx, ny) || tryM(nx, k ? old[3] : old[2]) || tryM(k ? old[1] : old[0], ny);
+  if (!m || same(m, old)) return;
+  M2 = m; cur = m.slice(); anim = null; queue = []; render();
+}
+function choose(i) { pick3 = i; read3 = "cols"; go([{ m: W3, dur: 1.1 }]); render(); }
+function setRead(r) {
+  if (pick3 === null || r === read3) return;
+  read3 = r; if (r === "rows") seenRows = true;
+  go([{ m: I2, dur: 0.5, hold: 0.2 }, { m: r === "rows" ? tr(W3) : W3, dur: 1 }]); render();
+}
+function enter(s) {
+  step = s; grab = null; touring = false; queue = []; anim = null; hold = 0; paused = false;
+  cur = s === 1 ? (move1 === null ? I2.slice() : MOVES[move1].m.slice()) : s === 2 ? M2.slice() : (pick3 === null ? I2.slice() : (read3 === "rows" ? tr(W3) : W3.slice()));
+  render();
+}
+
+// ---------- pointer + keys ----------
+Play.drag(cvEl, {
+  down(px, py) {
+    if (step !== 2) return false;
+    const V = vw(), d = [0, 1].map((k) => Math.hypot(V.X(col(M2, k)[0]) - px, V.Y(col(M2, k)[1]) - py));
+    const k = d[0] <= d[1] ? 0 : 1;
+    if (d[k] > 40) return false;
+    grab = k; sel = k; render(); return true;
+  },
+  move(px, py) { if (grab === null) return; const V = vw(); setTip(grab, V.wx(px), V.wy(py)); },
+  up() { grab = null; dirty = true; },
+});
+const key = (dx, dy) => () => {
+  if (step === 1) { const n = (move1 === null ? -1 : move1) + dx; if (dx) pickMove(n > 3 ? -1 : n < -1 ? 3 : n); }
+  else if (step === 2) { const c = col(M2, sel); setTip(sel, c[0] + dx * 0.5, c[1] + dy * 0.5); }
+  else if (dx) setRead(read3 === "cols" ? "rows" : "cols");
+};
+const swap = () => { if (step === 2) { sel = 1 - sel; render(); } };
+Play.keys(cvEl, { ArrowLeft: key(-1, 0), ArrowRight: key(1, 0), ArrowUp: key(0, 1), ArrowDown: key(0, -1), " ": swap, i: () => { sel = 0; render(); }, j: () => { sel = 1; render(); } });
+
+el("mvBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-mv]"); if (b) pickMove(+b.dataset.mv); });
+el("tour").addEventListener("click", tour);
+el("c2").addEventListener("click", (e) => { const b = e.target.closest("[data-sel]"); if (b) { sel = +b.dataset.sel; render(); } });
+el("c3").addEventListener("click", (e) => { const b = e.target.closest("[data-rd]"); if (b) setRead(b.dataset.rd); });
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) choose(+b.dataset.pick); });
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), enter);
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+let lastT = performance.now();
+Play.loop(() => {
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.25);   // real time, so slow frames don't slow the motion
+  lastT = now;
+  if (!paused) {
+    if (anim) {
+      anim.s = Math.min(1, anim.s + dt / anim.dur);
+      cur = lerpM(anim.from, anim.to, ease(anim.s));
+      if (anim.s >= 1) { cur = anim.to.slice(); hold = anim.hold; anim = null; render(); if (hold <= 0) next(); }
+      else bar();
+      dirty = true;
+    } else if (hold > 0) { hold -= dt; if (hold <= 0) { hold = 0; next(); } }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
