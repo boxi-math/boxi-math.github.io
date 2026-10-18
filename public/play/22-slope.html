@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slope: How Steep Is a Line? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 19px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 2px 0; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .hist { width: 100%; border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .hist td, .hist th { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .hist th { color: var(--muted); font-weight: 600; }
+  .hist td.r { color: var(--a); font-weight: 700; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--b); margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="coordinate grid with a straight line"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span>b</span><input id="bR" type="range" min="-3" max="3" step="0.5" aria-label="b"><span class="val" id="bV"></span></span>
+        <span class="grp"><span data-t="drawn"></span><button id="lenS" data-t="short"></button><button id="lenL" data-t="long"></button></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span data-t="setK"></span><span id="k2Btns"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><span data-t="lineK"></span><span id="k3Btns"></span></span>
+        <span class="grp"><span data-t="runT"></span><span id="dxBtns"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><i>k</i> = <span class="frac"><span>Δ<i>y</i></span><span>Δ<i>x</i></span></span></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Slope: How Steep Is a Line?", zh: "斜率：一次函数的“坡度”" },
+  eyebrow: { en: "Boxi Math · Try it · #22", zh: "Boxi Math · 动手试试 · #22" },
+  intro: { en: "A teacher draws a straight line and asks just one thing: what does this k in y = kx + b control? Test the two popular guesses, then build the staircase under the line yourself.",
+           zh: "老师画了一条直线，只问一句：y = kx + b 里的 k 管的是什么？先试试两种常见的说法，再亲手在直线下面搭台阶。" },
+  s1: { en: "The crossing point?", zh: "是交点吗？" }, s2: { en: "Rise over run", zh: "横走、竖走" }, s3: { en: "Anywhere, any size", zh: "滑到哪都一样" },
+  reset: { en: "Reset", zh: "重置" },
+  drawn: { en: "Draw the line:", zh: "直线画成：" }, short: { en: "short", zh: "短" }, long: { en: "long", zh: "长" },
+  setK: { en: "Turn k to:", zh: "把 k 调到：" }, lineK: { en: "Line k:", zh: "直线的 k：" }, runT: { en: "Run Δx:", zh: "横走 Δx：" },
+  v2: { en: "Two points, one line", zh: "两点定一条直线" },
+  tag1: { en: "drag the line up or down", zh: "上下拖动直线" }, tag2: { en: "drag P and Q", zh: "拖动 P 和 Q" }, tag3: { en: "drag the two corners", zh: "拖动两个角" },
+  resT: { en: "k is rise divided by run: that ratio is called the slope", zh: "k 是竖着走的格数除以横着走的格数，这个比叫做斜率" },
+  resN: { en: "k isn't the intercept or the length. It's a ratio, the same for every step along the line, and it tells you how steep the line is and which way it tilts.",
+          zh: "k 不是交点，也不是长度。它是一个比，沿着直线走哪一段都一样，管的是直线有多陡、往哪边斜。" },
+  moreS: { en: "Why is rise ÷ run the same everywhere?", zh: "为什么在哪儿量，竖走 ÷ 横走都一样？" },
+  moreP: { en: "Start at any point on y = kx + b and move x by Δx. The height goes from kx + b to k(x + Δx) + b, so Δy = k(x + Δx) + b − (kx + b) = k·Δx: the b cancels, and so does where you started. So Δy ÷ Δx = k for every Δx that isn't zero. All these slope triangles have the same shape, just like the enlarged photos in #10: multiply width and height both by the same number, and the ratio stays the same.",
+           zh: "在 y = kx + b 上随便取一点，让 x 多走 Δx。高度从 kx + b 变成 k(x + Δx) + b，所以 Δy = k(x + Δx) + b − (kx + b) = k·Δx：b 消掉了，从哪儿出发也消掉了。所以只要 Δx 不是零，Δy ÷ Δx 总是 k。这些斜率三角形形状都一样，就像 #10 里放大的照片：宽和高同时乘同一个数，比值不变。" },
+  moreQ: { en: "Next: for a parabola, where in the formula is its lowest point hiding?", zh: "下次换成抛物线，它最低的那个点藏在式子的哪里？" },
+  foot: { en: "Green is the line, blue is the slope triangle, red is the x-axis crossing, gold is what you move, the brown dashed triangle is one step across. On a focused picture, arrow keys work too (step 1: ↑ ↓ move the line, space switches short / long; step 2: arrows move the ringed point, space switches P / Q; step 3: ← → slide, ↑ ↓ change the run).",
+          zh: "绿色是直线，蓝色是斜率三角形，红色是和 x 轴的交点，金色是你能拖的，棕色虚线是横走一格的小台阶。选中图后也能用方向键（第 1 步：↑ ↓ 移动直线，空格切换长短；第 2 步：方向键移动带圈的点，空格切换 P / Q；第 3 步：← → 滑动，↑ ↓ 改横走的格数）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const snap = (v, s) => Math.round(v / s) * s;
+const par = (v) => (v < -EPS ? `(${fmt(v)})` : fmt(v));
+const hot = (s) => `<span class="hot">${s}</span>`;
+
+// ---------- state ----------
+const K1 = 2;                                  // step 1: k stays 2, only b moves
+let b1, longLine, tried;
+let P, Q, act, pressed2;                       // step 2: two points
+const B3 = 1;                                  // step 3: y = k3·x + 1
+let k3, x3, dx3, hist;
+function init() {
+  b1 = 1; longLine = true; tried = { b: false, len: false };
+  P = { x: 0, y: 1 }; Q = { x: 2, y: 2 }; act = "Q"; pressed2 = false;   // k = 0.5, b = 1, as in the video
+  k3 = 2; x3 = 0; dx3 = 1; hist = [];
+}
+init();
+let step = 1, dirty = true;
+
+// ---------- view: equal units, centred on (0, 0.5) ----------
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  const u = Math.max(18, Math.min(W / 11, H / 10));
+  return { W, H, u, xmin: -W / 2 / u, xmax: W / 2 / u, ymin: 0.5 - H / 2 / u, ymax: 0.5 + H / 2 / u,
+    X: (x) => W / 2 + x * u, Y: (y) => H / 2 - (y - 0.5) * u,
+    wx: (px) => (px - W / 2) / u, wy: (py) => 0.5 - (py - H / 2) / u };
+}
+// snapped bounds that keep points inside the picture (and away from the title strip)
+function bnd(V, s = 0.5) {
+  const m = 0.45, top = 34 / V.u;
+  return { x0: Math.ceil((V.xmin + m) / s) * s, x1: Math.floor((V.xmax - m) / s) * s,
+           y0: Math.ceil((V.ymin + m) / s) * s, y1: Math.floor((V.ymax - m - top) / s) * s };
+}
+// x-interval where y = kx + b is inside [ya, yb]
+function xWhere(k, b, ya, yb) {
+  if (Math.abs(k) < EPS) return b >= ya && b <= yb ? [-Infinity, Infinity] : [Infinity, -Infinity];
+  const p = (ya - b) / k, q = (yb - b) / k;
+  return [Math.min(p, q), Math.max(p, q)];
+}
+// visible piece of y = kx + b, optionally limited to x in lim
+function clip(k, b, V, lim) {
+  let [a, c] = xWhere(k, b, V.ymin, V.ymax);
+  a = Math.max(a, V.xmin); c = Math.min(c, V.xmax);
+  if (lim) { a = Math.max(a, lim[0]); c = Math.min(c, lim[1]); }
+  return a < c ? [a, c] : null;
+}
+const segLen = (k, s) => (s ? Math.hypot(1, k) * (s[1] - s[0]) : 0);
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick = cands[0];
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { pick = c; break; }
+  }
+  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
+  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+
+// ---------- drawing ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 34 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (bx[0] < 2 || bx[2] > V.W - 2 || bx[1] < 2 || bx[3] > V.H - 2 || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+  put("x", V.W - 12, V.Y(0) - 13, "center");
+  put("y", V.X(0) + 13, 40, "center");
+}
+function line(x, V, k, b, lim, col, w = 3) {
+  const s = clip(k, b, V, lim);
+  if (!s) return null;
+  x.strokeStyle = col; x.lineWidth = w; x.lineCap = "round";
+  x.beginPath(); x.moveTo(V.X(s[0]), V.Y(k * s[0] + b)); x.lineTo(V.X(s[1]), V.Y(k * s[1] + b)); x.stroke();
+  x.lineCap = "butt";
+  return s;
+}
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, px, py, ring) {
+  if (ring) dot(x, px, py, 15, null, rgba(color("--hl"), 0.8), 2.5);
+  dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
+  reserve(px, py, ring ? 15 : 10);
+}
+// slope triangle from (x0, y0): run dx across, then rise dy; returns pixel corners
+function tri(x, V, x0, y0, dx, dy, col, o = {}) {
+  const p0 = [V.X(x0), V.Y(y0)], p1 = [V.X(x0 + dx), V.Y(y0)], p2 = [V.X(x0 + dx), V.Y(y0 + dy)];
+  x.setLineDash(o.dash || []);
+  if (!o.dash) { x.fillStyle = rgba(col, o.fa ?? 0.16); x.beginPath(); x.moveTo(...p0); x.lineTo(...p1); x.lineTo(...p2); x.closePath(); x.fill(); }
+  x.strokeStyle = col; x.lineWidth = o.lw || 2.5;
+  x.beginPath(); x.moveTo(...p0); x.lineTo(...p1); x.lineTo(...p2); x.stroke(); x.setLineDash([]);
+  if (!o.dash && Math.abs(p2[1] - p1[1]) > 14 && Math.abs(p1[0] - p0[0]) > 14) {
+    const sx = Math.sign(p0[0] - p1[0]) * 8, sy = Math.sign(p2[1] - p1[1]) * 8;
+    x.lineWidth = 1.2; x.beginPath(); x.moveTo(p1[0] + sx, p1[1]); x.lineTo(p1[0] + sx, p1[1] + sy); x.lineTo(p1[0], p1[1] + sy); x.stroke();
+  }
+  return { p0, p1, p2 };
+}
+const bbox = (T) => { const xs = [T.p0[0], T.p1[0], T.p2[0]], ys = [T.p0[1], T.p1[1], T.p2[1]]; return [Math.min(...xs) + 2, Math.min(...ys) + 2, Math.max(...xs) - 2, Math.max(...ys) - 2]; };
+// labels for a triangle's run and rise, outside first
+function triLabels(x, T, run, rise, col, size = 15, o = {}) {
+  const out = T.p2[1] < T.p1[1] - 0.5 ? 1 : T.p2[1] > T.p1[1] + 0.5 ? -1 : 1;   // run label goes away from the rise
+  const side = T.p1[0] >= T.p0[0] ? 1 : -1;
+  const mx = (T.p0[0] + T.p1[0]) / 2, my = (T.p1[1] + T.p2[1]) / 2;
+  const m2 = T.p0[0] + (T.p1[0] - T.p0[0]) * 0.72;
+  if (run != null) place(x, run, [[mx, T.p1[1] + out * 15], [m2, T.p1[1] + out * 15], [mx, T.p1[1] - out * 15], [m2, T.p1[1] - out * 15], [mx, T.p1[1] + out * 32]], { color: col, size });
+  if (rise != null && Math.abs(T.p2[1] - T.p1[1]) >= (o.minRise || 0)) place(x, rise, [[T.p1[0] + side * 9, my, side > 0 ? "left" : "right"], [T.p1[0] - side * 9, my, side > 0 ? "right" : "left"],
+    [T.p1[0] + side * 9, T.p2[1] + (out > 0 ? 12 : -12), side > 0 ? "left" : "right"]], { color: col, size });
+}
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, 30]];               // keep clear of the title strip
+  grid(x, V);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
+  ticks(x, V);
+}
+
+function draw1(x, V) {
+  const A = color("--a"), C = color("--c"), NO = color("--no");
+  const s = line(x, V, K1, b1, longLine ? null : [-1.75, 1.75], A, 3.5);
+  if (s && !longLine) s.forEach((xe) => dot(x, V.X(xe), V.Y(K1 * xe + b1), 4.5, A));
+  const T = tri(x, V, 0, b1, 1, K1, C);
+  const xi = -b1 / K1, px = V.X(xi), py = V.Y(0);
+  dot(x, px, py, 6.5, NO, color("--surface"), 2); reserve(px, py, 9);
+  handle(x, V.X(0), V.Y(b1), false);
+  const lab = "x = " + fmt(xi);
+  place(x, lab, [[px - 10, py - 16, "right"], [px + 10, py + 16, "left"], [px - 10, py + 16, "right"], [px + 10, py - 16, "left"]], { color: NO });
+  triLabels(x, T, fmt(1), fmt(K1), C);
+  place(x, eq(K1, b1), [[V.W - 14, 46, "right"], [V.W - 14, V.H - 18, "right"]], { color: A, size: 16 });
+}
+
+function line2() { const k = (Q.y - P.y) / (Q.x - P.x); return { k, b: P.y - k * P.x }; }
+function draw2(x, V) {
+  const A = color("--a"), C = color("--c"), Bc = color("--b");
+  const { k, b } = line2(), dx = Q.x - P.x, dy = Q.y - P.y, sg = Math.sign(dx);
+  line(x, V, k, b, null, A, 3.5);
+  const T = tri(x, V, P.x, P.y, dx, dy, C);
+  const U = Math.abs(dx - sg) > EPS ? tri(x, V, P.x, P.y, sg, k * sg, Bc, { dash: [6, 4], lw: 2 }) : null;
+  const pP = [V.X(P.x), V.Y(P.y)], pQ = [V.X(Q.x), V.Y(Q.y)];
+  handle(x, ...pP, act === "P"); handle(x, ...pQ, act === "Q");
+  boxes.push(bbox(T));
+  const nm = (n, p, q) => [[q[0] - 14, q[1] - 18, "right"], [q[0] + 14, q[1] - 18, "left"], [q[0] - 14, q[1] + 18, "right"], [q[0] + 14, q[1] + 18, "left"]];
+  place(x, `P (${fmt(P.x)}, ${fmt(P.y)})`, nm("P", P, pP), { size: 14 });
+  place(x, `Q (${fmt(Q.x)}, ${fmt(Q.y)})`, nm("Q", Q, pQ), { size: 14 });
+  triLabels(x, T, "Δx = " + fmt(dx), "Δy = " + fmt(dy), C);
+  if (U) triLabels(x, U, null, "k", Bc, 14, { minRise: 22 });
+  place(x, eq(k, b), [[V.W - 14, 46, "right"], [V.W - 14, V.H - 18, "right"], [14, V.H - 18, "left"]], { color: A, size: 16 });
+}
+
+// step 3: keep both corners of the triangle inside the picture
+function lim3(V) {
+  const B = bnd(V, 0.25), [a, c] = xWhere(k3, B3, B.y0, B.y1);
+  return [Math.max(B.x0, a), Math.min(B.x1, c)];
+}
+function fit3(V) {
+  for (let n = 0; n < 40; n++) {
+    const [lo, hi] = lim3(V), a = Math.ceil((lo - Math.min(0, dx3)) / 0.25) * 0.25, c = Math.floor((hi - Math.max(0, dx3)) / 0.25) * 0.25;
+    if (a <= c) { x3 = clamp(x3, a, c); return; }
+    if (Math.abs(dx3) <= 0.25 + EPS) { x3 = 0; return; }
+    dx3 = Math.sign(dx3) * (Math.abs(dx3) - 0.25);
+  }
+}
+const yl = (xx) => k3 * xx + B3;
+function draw3(x, V) {
+  const A = color("--a"), C = color("--c"), Bc = color("--b");
+  fit3(V);
+  line(x, V, k3, B3, null, A, 3.5);
+  hist.forEach((hh) => { if (hh.x !== x3 || hh.dx !== dx3) tri(x, V, hh.x, yl(hh.x), hh.dx, yl(hh.x + hh.dx) - yl(hh.x), rgba(C, 0.45), { dash: [3, 4], lw: 1.5 }); });
+  const sg = Math.sign(dx3), y0 = yl(x3), dy = yl(x3 + dx3) - y0;
+  const T = tri(x, V, x3, y0, dx3, dy, C);
+  const U = Math.abs(dx3 - sg) > EPS ? tri(x, V, x3, y0, sg, k3 * sg, Bc, { dash: [6, 4], lw: 2 }) : null;
+  const pa = T.p0, pb = T.p2;
+  boxes.push(bbox(T));
+  dot(x, ...pa, 9, A, color("--fg"), 1.5); reserve(...pa, 12);
+  handle(x, ...pb, false);
+  triLabels(x, T, "Δx = " + fmt(dx3), "Δy = " + fmt(dy), C);
+  if (U) triLabels(x, U, null, fmt(k3 * sg), Bc, 14, { minRise: 22 });
+  place(x, eq(k3, B3), [[V.W - 14, 46, "right"], [V.W - 14, V.H - 18, "right"], [14, V.H - 18, "left"]], { color: A, size: 16 });
+}
+
+// ---------- text ----------
+function eq(k, b) {
+  let s = "y = ";
+  if (Math.abs(k) < EPS) return s + fmt(b, 3);
+  const kk = fmt(k, 3);
+  s += (kk === "1" ? "" : kk === "−1" ? "−" : kk) + "x";
+  if (Math.abs(b) > EPS) s += (b > 0 ? " + " : " − ") + fmt(Math.abs(b), 3);
+  return s;
+}
+function ratio(a, b) {
+  const q = a / b, exact = Math.abs(q * 1000 - Math.round(q * 1000)) < 1e-6;
+  return `${fmt(a)} ÷ ${par(b)} ${exact ? "=" : "≈"} ${fmt(q, 3)}`;
+}
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+function tilt(k) {
+  if (Math.abs(k) < EPS) return t({ en: "k equals zero: you don't go up at all, so the line is flat.", zh: "k 等于零：竖着不用走，直线是水平的。" });
+  if (k < 0) return t({ en: `k is ${fmt(k, 3)}: for one unit across you go ${fmt(-k, 3)} down, so the line tilts downward.`, zh: `k 是 ${fmt(k, 3)}：横走一格，竖着要往下走 ${fmt(-k, 3)} 格，直线向下倾斜。` });
+  return t({ en: `k is ${fmt(k, 3)}: one unit across, ${fmt(k, 3)} up. The bigger k is, the steeper the line.`, zh: `k 是 ${fmt(k, 3)}：横走一格，竖走 ${fmt(k, 3)} 格。k 越大，直线越陡。` });
+}
+
+function explain1() {
+  const V = vw(), xi = -b1 / K1, L = segLen(K1, clip(K1, b1, V, longLine ? null : [-1.75, 1.75]));
+  const row = (c, lab, v) => `<div><span class="dot" style="background:var(${c})"></span>${t(lab)}: <span class="m">${v}</span></div>`;
+  const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试猜想" })}</div>
+    <h2>${t({ en: "Is k where the line crosses the x-axis?", zh: "k 是直线和 x 轴的交点吗？" })}</h2>
+    <p>${t({ en: "Some say k is where the line meets the x-axis, others say it's how long the line is. Here k stays at 2. Drag the line up and down (that changes only b), then draw it short or long.",
+              zh: "有人说 k 是和 x 轴的交点，有人说是直线的长度。这里 k 一直是 2。上下拖动直线（这只改 b），再把它画短、画长。" })}</p>
+    <div class="mathline">y = ${fmt(K1)}x ${hot((b1 < 0 ? "− " : "+ ") + fmt(Math.abs(b1)))}</div>
+    <div class="rows">
+      ${row("--no", { en: "x-axis crossing", zh: "和 x 轴交点" }, `x = −b ÷ k = −${par(b1)} ÷ ${fmt(K1)} = ${fmt(xi)}`)}
+      ${row("--a", { en: "length drawn", zh: "画出来的长度" }, `≈ ${fmt(L, 1)}`)}
+      ${row("--c", { en: "little triangle", zh: "小三角形" }, `${fmt(K1)} ÷ 1 = ${fmt(K1)} = k`)}
+    </div>
+    ${chk(tried.b, { en: "k = where the line meets the x-axis?", zh: "k = 和 x 轴的交点？" }, { en: "The crossing point moved; k didn't.", zh: "交点变了，k 没变。" })}
+    ${chk(tried.len, { en: "k = how long the line is?", zh: "k = 直线的长度？" }, { en: "The length changed; k didn't.", zh: "长度变了，k 没变。" })}`;
+  if (tried.b && tried.len) out += `<p class="big" style="margin-top:8px">${t({ en: "The little triangle never changed: still one across, two up. So k isn't the intercept, and it has nothing to do with how long the line is drawn. Step 2 shows what k is.",
+    zh: "小三角形一点没变，横走一格还是竖走两格。所以 k 不是交点，和直线画多长也无关。第 2 步看 k 到底是什么。" })}</p>`;
+  else out += `<p class="note" style="margin-top:8px">${t({ en: "Try both: move the line, and switch short / long.", zh: "两样都试试：拖直线，再切换长短。" })}</p>`;
+  return out;
+}
+function explain2() {
+  const { k, b } = line2(), dx = Q.x - P.x, dy = Q.y - P.y;
+  let out = `<div class="kicker">${t({ en: "Step 02 · rise over run", zh: "第 2 步 · 横走、竖走" })}</div>
+    <h2>${t({ en: "Go across, then up back to the line", zh: "先横着走，再竖着走回直线" })}</h2>
+    <p>${t({ en: "Drag P and Q anywhere on the grid; the line goes through both. From P, go Δx across, then straight up (or down) Δy back to the line.",
+              zh: "在网格上随意拖 P 和 Q，直线穿过这两点。从 P 出发，横着走 Δx，再竖着走 Δy（往上或往下）回到直线。" })}</p>
+    <div class="mathline">Δx = ${fmt(Q.x)} − ${par(P.x)} = ${fmt(dx)}<br>Δy = ${fmt(Q.y)} − ${par(P.y)} = ${fmt(dy)}<br>k = Δy ÷ Δx = ${hot(ratio(dy, dx))}</div>
+    <p class="big">${tilt(k)}</p>
+    <p>${Math.abs(Math.abs(dx) - 1) < EPS ? t({ en: `Here Δx is already 1, so the blue triangle is the one-across step: its rise is ${fmt(k, 3)}, exactly k. The line is ${eq(k, b)}.`,
+              zh: `这里 Δx 正好是 1，蓝色三角形就是横走一格的台阶：竖着走 ${fmt(k, 3)}，正好是 k。直线是 ${eq(k, b)}。` }) : t({ en: `The dashed brown step is one unit across: its rise is ${fmt(k, 3)}, exactly k. The line is ${eq(k, b)}.`,
+              zh: `棕色虚线是横走一格的小台阶：竖着走 ${fmt(k, 3)}，正好是 k。直线是 ${eq(k, b)}。` })}</p>`;
+  if (!pressed2) out += `<p><strong>${t({ en: "Predict: if we turn k up to two, how will the line turn, and what will the little triangle look like? Decide first, then press 2.",
+    zh: "先预测：如果把 k 调到二，直线会怎么转，小三角形会变成什么样？想好了再点 2。" })}</strong></p>`;
+  return out + legend([dotI("--a", { en: "line", zh: "直线" }), dotI("--c", { en: "Δx across, Δy up", zh: "横走 Δx，竖走 Δy" }),
+    `<span><span class="dsh"></span>${t({ en: "one across, k up", zh: "横走 1，竖走 k" })}</span>`]);
+}
+function explain3() {
+  const y0 = yl(x3), y1 = yl(x3 + dx3), dy = y1 - y0;
+  let out = `<div class="kicker">${t({ en: "Step 03 · anywhere, any size", zh: "第 3 步 · 滑到哪、放多大" })}</div>
+    <h2>${t({ en: "Slide the triangle anywhere, scale it: rise ÷ run is always k", zh: "三角形滑到哪、放大多少倍，竖走 ÷ 横走都是 k" })}</h2>
+    <p>${t({ en: "Drag the green corner to slide the triangle along the line; drag the gold corner to make it bigger or smaller. Remember enlarging a photo (#10)? Multiply width and height both by the same number, and the ratio stays the same.",
+              zh: "拖绿色的角，让三角形沿直线滑动；拖金色的角，把它放大或缩小。还记得放大照片吗（#10）？宽和高同时乘同一个数，比值不变。" })}</p>
+    <div class="mathline">Δy = ${fmt(y1)} − ${par(y0)} = ${fmt(dy)} = ${fmt(k3)} × ${par(dx3)}<br>Δy ÷ Δx = ${fmt(dy)} ÷ ${par(dx3)} = ${hot(fmt(dy / dx3, 3))} = k</div>`;
+  if (hist.length > 1) {
+    out += `<table class="hist"><tr><th>${t({ en: "start x", zh: "起点 x" })}</th><th>Δx</th><th>Δy</th><th>Δy ÷ Δx</th></tr>${hist.slice().reverse().map((hh) => {
+      const d = yl(hh.x + hh.dx) - yl(hh.x);
+      return `<tr><td>${fmt(hh.x)}</td><td>${fmt(hh.dx)}</td><td>${fmt(d)}</td><td class="r">${fmt(d / hh.dx, 3)}</td></tr>`;
+    }).join("")}</table>`;
+  } else out += `<p class="note">${t({ en: "Each triangle you make is kept as a faint outline and listed here.", zh: "你摆过的三角形会留下淡淡的轮廓，并列在这里。" })}</p>`;
+  out += `<p>${t({ en: "Because whenever x moves some distance, y moves k times that distance: Δy = k·Δx. So k is rise divided by run. That ratio is called the slope.",
+                  zh: "因为 x 多走一段，y 就多走 k 倍这么长：Δy = k·Δx。所以 k 就是竖着走的格数除以横着走的格数，这个比，叫做斜率。" })}</p>`;
+  return out;
+}
+
+// ---------- render ----------
+const btns = (vals, cur, key, lab) => vals.map((v) => `<button data-${key}="${v}" class="${Math.abs(v - cur) < EPS ? "on" : ""}" aria-pressed="${Math.abs(v - cur) < EPS}">${lab(v)}</button>`).join(" ");
+const half = (v) => (v === 0.5 ? "½" : fmt(v));
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = step === 1 ? t({ en: "k stays 2, only b moves", zh: "k 一直是 2，只动 b" }) : step === 2 ? t(D.v2) : `y = kx + ${B3}`;
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("bR").value = b1; el("bV").textContent = "b = " + fmt(b1);
+  el("lenS").classList.toggle("on", !longLine); el("lenL").classList.toggle("on", longLine);
+  el("lenS").setAttribute("aria-pressed", !longLine); el("lenL").setAttribute("aria-pressed", longLine);
+  el("k2Btns").innerHTML = btns([0.5, 2, -1, 0], line2().k, "k", half);
+  el("k3Btns").innerHTML = btns([0.5, 2, -1], k3, "k", half);
+  el("dxBtns").innerHTML = btns([0.5, 1, 2], Math.abs(dx3), "dx", half);
+  dirty = true;
+}
+
+// ---------- actions ----------
+function setB(v) { const n = clamp(snap(v, 0.5), -3, 3); if (n !== b1) { b1 = n; tried.b = true; render(); } }
+function setLen(l) { if (l !== longLine) { longLine = l; tried.len = true; render(); } }
+function movePt(name, nx, ny) {
+  const B = bnd(vw()), p = name === "P" ? P : Q, o = name === "P" ? Q : P;
+  const x = clamp(snap(nx, 0.5), B.x0, B.x1), y = clamp(snap(ny, 0.5), B.y0, B.y1);
+  if (Math.abs(x - o.x) > EPS) p.x = x;          // never a vertical line
+  p.y = y; render();
+}
+// turn the line about P to slope k, keeping Q inside the picture
+function turnTo(k) {
+  const B = bnd(vw()), dx0 = Q.x - P.x, s = Math.sign(dx0) || 1;
+  const tries = [s * 2, dx0, s * 1, -s * 2, -s * 1, s * 0.5, -s * 0.5];
+  for (const d of tries) {
+    const nx = P.x + d, ny = P.y + k * d;
+    if (nx >= B.x0 && nx <= B.x1 && ny >= B.y0 - EPS && ny <= B.y1 + EPS) { Q = { x: nx, y: ny }; break; }
+  }
+  if (Math.abs(k - 2) < EPS) pressed2 = true;
+  render();
+}
+function record() {
+  const last = hist[hist.length - 1];
+  if (last && last.x === x3 && last.dx === dx3) return;
+  hist = hist.filter((hh) => !(hh.x === x3 && hh.dx === dx3));
+  hist.push({ x: x3, dx: dx3 });
+  if (hist.length > 5) hist.shift();
+}
+function setDx(v, keep) {
+  const V = vw(), [lo, hi] = lim3(V);
+  let d = snap(v, 0.25);
+  if (keep) d = clamp(d, Math.ceil((lo - x3) / 0.25) * 0.25, Math.floor((hi - x3) / 0.25) * 0.25);
+  if (Math.abs(d) < 0.25) d = (Math.sign(v) || Math.sign(dx3) || 1) * 0.25;
+  dx3 = d; fit3(V); render();
+}
+function setX3(v) { x3 = snap(v, 0.25); fit3(vw()); render(); }
+
+// ---------- pointer + keys ----------
+let grab = null, off = 0;
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw();
+    if (step === 1) { grab = "b"; off = b1 - (V.wy(py) - K1 * V.wx(px)); return true; }
+    if (step === 2) {
+      const d = (p) => Math.hypot(V.X(p.x) - px, V.Y(p.y) - py), dP = d(P), dQ = d(Q);
+      if (Math.min(dP, dQ) > 36) return false;
+      grab = act = dP < dQ ? "P" : "Q"; render(); return true;
+    }
+    const proj = (wx, wy) => (wx + k3 * (wy - B3)) / (1 + k3 * k3);
+    const a = [V.X(x3), V.Y(yl(x3))], c = [V.X(x3 + dx3), V.Y(yl(x3 + dx3))];
+    const da = Math.hypot(a[0] - px, a[1] - py), dc = Math.hypot(c[0] - px, c[1] - py);
+    if (Math.min(da, dc) > 36) return false;
+    grab = dc <= da ? "end" : "start";
+    off = (grab === "start" ? x3 : x3 + dx3) - proj(V.wx(px), V.wy(py));
+    return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw();
+    if (grab === "b") setB(V.wy(py) - K1 * V.wx(px) + off);
+    else if (grab === "P" || grab === "Q") movePt(grab, V.wx(px), V.wy(py));
+    else {
+      const xx = (V.wx(px) + k3 * (V.wy(py) - B3)) / (1 + k3 * k3) + off;
+      if (grab === "start") setX3(xx); else setDx(xx - x3, true);
+    }
+  },
+  up() { if (step === 3 && grab) { record(); render(); } grab = null; },
+});
+const arrow = (dxk, dyk) => () => {
+  if (step === 1) { if (dyk) setB(b1 + dyk * 0.5); }
+  else if (step === 2) {
+    const p = act === "P" ? P : Q, o = act === "P" ? Q : P;
+    let nx = p.x + dxk * 0.5;
+    if (Math.abs(nx - o.x) < EPS) nx += dxk * 0.5;   // hop over the other point: no vertical line
+    movePt(act, nx, p.y + dyk * 0.5);
+  }
+  else { if (dxk) setX3(x3 + dxk * 0.25); if (dyk) { const m = Math.abs(dx3) + dyk * 0.25; setDx(Math.sign(dx3) * Math.max(0.25, m), true); } record(); render(); }
+};
+Play.keys(cvEl, {
+  ArrowLeft: arrow(-1, 0), ArrowRight: arrow(1, 0), ArrowUp: arrow(0, 1), ArrowDown: arrow(0, -1),
+  " ": () => { if (step === 1) setLen(!longLine); else if (step === 2) { act = act === "P" ? "Q" : "P"; render(); } },
+});
+
+el("bR").addEventListener("input", (e) => setB(+e.target.value));
+el("lenS").onclick = () => setLen(false);
+el("lenL").onclick = () => setLen(true);
+el("k2Btns").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) turnTo(+b.dataset.k); });
+el("k3Btns").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) { k3 = +b.dataset.k; hist = []; fit3(vw()); record(); render(); } });
+el("dxBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-dx]"); if (b) { setDx((Math.sign(dx3) || 1) * +b.dataset.dx, false); record(); render(); } });
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; grab = null;
+  if (s === 3 && !hist.length) { fit3(vw()); record(); }
+  render();
+});
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop(() => { if (dirty) { dirty = false; cv.redraw(); } });
+nav.set(1);
+</script>
+</body>
+</html>

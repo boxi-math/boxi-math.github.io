@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Pythagorean Theorem: Rearrange and See · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stage canvas.main { height: 420px; }
+  @media (max-width: 560px) { .stage canvas.main { height: 350px; } }
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.2em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .angle { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; text-align: left; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .ka { color: var(--b); font-weight: 700; }
+  .kb { color: var(--c); font-weight: 700; }
+  .kc { color: var(--hl); font-weight: 700; }
+  .kn { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .term { font: inherit; padding: 0 3px; border: 0; border-bottom: 2px dotted currentColor; border-radius: 4px; background: transparent; min-height: 0; min-width: 0; }
+  .term.sel { background: var(--soft); border-bottom-style: solid; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0"></canvas>
+      <div class="controls">
+        <span class="stepper"><i class="ka">a</i><button data-d="a-" aria-label="a minus one">−</button><b id="aVal" class="ka"></b><button data-d="a+" aria-label="a plus one">+</button></span>
+        <span class="stepper"><i class="kb">b</i><button data-d="b-" aria-label="b minus one">−</button><b id="bVal" class="kb"></b><button data-d="b+" aria-label="b plus one">+</button></span>
+        <button class="big" id="mainBtn"></button>
+        <button id="b34" data-t="b34"></button>
+        <label class="angle" id="angRow"><span data-t="angle"></span><input type="range" id="ang" min="90" max="150" step="1" value="90"><span class="val" id="angVal"></span></label>
+        <button id="b90" data-t="b90"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">a² + b² = c²</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "The Pythagorean Theorem: Rearrange and See", zh: "勾股定理：拼一拼就看见" },
+  eyebrow: { en: "Boxi Math · Try it · #21", zh: "Boxi Math · 动手试试 · #21" },
+  intro: { en: "A ladder leans against a wall. How long must it be? Lengths don't add up, so compare areas: slide four right triangles around inside one big square.",
+           zh: "梯子斜靠在墙上，要多长？长度加不起来，那就比面积：在同一个大正方形里挪四个直角三角形。" },
+  s1: { en: "c = a + b?", zh: "c = a + b？" }, s2: { en: "Rearrange", zh: "换个摆法" },
+  s3: { en: "Not a right angle", zh: "不是直角" }, s4: { en: "a² + b² = c²", zh: "a² + b² = c²" },
+  reset: { en: "Reset", zh: "重置" },
+  straight: { en: "Straighten the legs", zh: "把直角边拉直" }, bendBack: { en: "Put them back", zh: "放回去" },
+  pause: { en: "Pause", zh: "暂停" }, cont: { en: "Continue", zh: "继续" },
+  toRect: { en: "Pair them up", zh: "两两拼成长方形" }, toC: { en: "Slide back", zh: "挪回去" },
+  b34: { en: "3 and 4", zh: "三和四" }, b90: { en: "Back to 90°", zh: "回到直角" }, angle: { en: "angle", zh: "夹角" },
+  v1: { en: "The ladder: legs a, b and long side c", zh: "梯子：直角边 a、b，斜边 c" },
+  v2: { en: "A big square with side a + b", zh: "边长 a + b 的大正方形" },
+  v3: { en: "Push the right angle open", zh: "把直角撑开" }, v4: { en: "Picture and formula", zh: "图和公式" },
+  tag1: { en: "drag the pink dots", zh: "拖粉点" }, tag2: { en: "drag a triangle or the pink dot", zh: "拖三角形或粉点" },
+  tag3: { en: "drag the pink dot", zh: "拖粉点" }, tag4: { en: "drag · tap a piece", zh: "拖动 · 点一块" },
+  resT: { en: "Only in a right triangle:", zh: "只有直角三角形才有：" },
+  resN: { en: "Lengths don't add up (c is less than a + b), but areas do: the empty space is c² in one arrangement and a² + b² in the other.",
+          zh: "长度加不起来（c 比 a + b 短），面积却能加：同一块空白，一种摆法是 c²，另一种是 a² + b²。" },
+  moreS: { en: "Why is this a proof, not just a picture?", zh: "为什么这是证明，不只是一张图？" },
+  moreP: { en: "Two things are fixed by construction: the big square has side a + b in both arrangements, and the four triangles only slide, so each keeps its shape and area. The empty area is the big square minus the four triangles, (a + b)² − 2ab, in both arrangements. In the first it is the tilted middle piece: its four sides are all c, and each of its corners is 180° minus the two sharp angles of the triangle, which add up to 90°, so each corner is 90° and the piece is a square, c². In the second it is two squares, a² and b². Same area, so a² + b² = c². If the angle between a and b is wider than 90°, the corners stop fitting and the long side grows: c² = a² + b² − 2ab·cos(angle), which is bigger than a² + b².",
+           zh: "有两件事是摆法本身保证的：两种摆法里大正方形的边长都是 a + b；四个三角形只平移，形状、面积都不变。所以空白面积在两种摆法里都是大正方形减去四个三角形，(a + b)² − 2ab。第一种摆法里，空白是中间斜放的那块：四条边都是 c；每个角是 180° 减去三角形的两个锐角，而两个锐角加起来是 90°，所以每个角都是 90°，它是正方形，面积 c²。第二种摆法里，空白是两个正方形 a² 和 b²。面积一样，所以 a² + b² = c²。要是 a、b 的夹角大于 90°，角就对不上了，斜边也变长：c² = a² + b² − 2ab·cos(夹角)，比 a² + b² 大。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → and ↑ ↓ change the sides (step 3: the angle), Enter presses the step's main button.",
+          zh: "鼠标、触屏、键盘都能用：选中图后用 ← → 和 ↑ ↓ 改边长（第 3 步改夹角），回车按这一步的主按钮。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · the apprentice's guess", zh: "第 1 步 · 徒弟的估计" },
+       h: { en: "A builder leans a ladder against a wall: its foot is a from the wall, and its top must reach a height of b.", zh: "师傅要把梯子斜靠在墙上，梯脚离墙 a，梯顶要够到 b 高。" },
+       p: { en: "The ladder is c long. How is c related to a and b? If you were the builder, how would you estimate it?", zh: "梯子长 c，它和 a、b 什么关系？你是师傅，会怎么估？" } },
+  2: { kicker: { en: "Step 02 · compare areas", zh: "第 2 步 · 比面积" },
+       h: { en: "Draw a big square with side a plus b. Put in four identical right triangles.", zh: "画一个边长是 a 加 b 的大正方形，放进四个一样的直角三角形。" },
+       p: { en: "Watch closely: the triangles only slide. No turning, no stretching.", zh: "看好了，三角形只是平移，不转动，也不变形。" } },
+  3: { kicker: { en: "Step 03 · a non-example", zh: "第 3 步 · 一个非例" },
+       h: { en: "What if the angle isn't a right angle? What happens if we push it open?", zh: "要是不是直角呢？把直角撑开，看看会怎样？" },
+       p: { en: "Drag the pink dot or the slider to open the angle between a and b. Try both arrangements.", zh: "拖粉点或滑块，把 a、b 的夹角撑开。两种摆法都试试。" } },
+  4: { kicker: { en: "Step 04 · the formula", zh: "第 4 步 · 公式" },
+       h: { en: "So only in a right triangle is a squared plus b squared always equal to c squared.", zh: "所以只有直角三角形，才一定有 a 方加 b 方等于 c 方。" },
+       p: { en: "This square is a squared, that one is b squared, and slide them back: the middle is c squared. Tap a term or a piece.", zh: "图里这块是 a 方，那块是 b 方，挪回去，中间就是 c 方。点式子里的一项或图里的一块。" } },
+};
+Play.i18n(D);
+
+// script numbers: a = 2, b = 3 (a + b = 5, c² = 4 + 9 = 13, c ≈ 3.61); closing question 3, 4 → 5
+const A0 = 2, B0 = 3, MAXS = 9, EPS = 1e-4;
+let step = 1, a = A0, b = B0, guess = -1, k = 0, kTo = 0;
+let P = [0, 0, 0, 0], tg = [0, 0, 0, 0], moving = false, predict = -1, th = 90, sel = null;
+let dirty = true, geo = null, grab = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+const RAD = Math.PI / 180;
+
+// ---------- geometry (units, y up) ----------
+const rot = (v, r) => [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)];
+// triangle i: vertex Q (the "right" angle), leg a along u', leg b along v' = u' turned by the angle.
+// The angle opens symmetrically: both legs swing out by half of (angle − 90°). Layouts differ by a pure translation.
+function tris(A, B, TH, ps) {
+  const s = A + B, d = ((TH - 90) / 2) * RAD;
+  const anc = [[[0, 0], [1, 0]], [[s, 0], [0, 1]], [[s, s], [-1, 0]], [[0, s], [0, -1]]];
+  const tr = [[0, 0], [0, B], [-B, -A], [A, 0]];
+  return anc.map(([q, u], i) => {
+    const Q = [q[0] + tr[i][0] * ps[i], q[1] + tr[i][1] * ps[i]], u2 = rot(u, -d), v2 = rot(u2, TH * RAD);
+    return [Q, [Q[0] + A * u2[0], Q[1] + A * u2[1]], [Q[0] + B * v2[0], Q[1] + B * v2[1]]];
+  });
+}
+const TRANS = () => [[0, 0], [0, b], [-b, -a], [a, 0]];
+const area = (q) => { let s = 0; for (let i = 0; i < q.length; i++) { const p = q[i], r = q[(i + 1) % q.length]; s += p[0] * r[1] - r[0] * p[1]; } return Math.abs(s / 2); };
+function clipPoly(sub, cl) {   // Sutherland–Hodgman; cl convex and counter-clockwise
+  let out = sub;
+  for (let i = 0; i < cl.length && out.length; i++) {
+    const e1 = cl[i], e2 = cl[(i + 1) % cl.length], inp = out;
+    const side = (p) => (e2[0] - e1[0]) * (p[1] - e1[1]) - (e2[1] - e1[1]) * (p[0] - e1[0]);
+    out = [];
+    for (let j = 0; j < inp.length; j++) {
+      const p = inp[j], q = inp[(j + 1) % inp.length], sp = side(p), sq = side(q);
+      if (sp >= 0) out.push(p);
+      if ((sp >= 0) !== (sq >= 0)) { const u = sp / (sp - sq); out.push([p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u]); }
+    }
+  }
+  return out.length >= 3 ? out : [];
+}
+const sqr = (s) => [[0, 0], [s, 0], [s, s], [0, s]];
+function stats(T, s) {
+  let out = 0, ov = 0;
+  T.forEach((tr) => { const i = clipPoly(tr, sqr(s)); out += area(tr) - (i.length ? area(i) : 0); });
+  for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) { const c = clipPoly(T[i], T[j]); if (c.length) ov += area(c); }
+  const tol = 1e-6 * s * s;
+  return { out: out > tol ? out : 0, ov: ov > tol ? ov : 0 };
+}
+const c2Of = (TH) => { const T = tris(a, b, TH, [0, 0, 0, 0])[0], dx = T[1][0] - T[2][0], dy = T[1][1] - T[2][1]; return dx * dx + dy * dy; };
+const uni = () => (P.slice(1).every((v) => v < EPS) ? 0 : P.slice(1).every((v) => v > 1 - EPS) ? 1 : -1);
+const cTxt = (c2) => { const r = Math.round(Math.sqrt(c2)); return r * r === c2 ? `${r}` : `√${c2} ≈ ${fmt(Math.sqrt(c2), 2)}`; };
+
+// ---------- drawing helpers ----------
+function fit(w, h, bx, m) {
+  const bw = Math.max(0.5, bx[2] - bx[0]), bh = Math.max(0.5, bx[3] - bx[1]);
+  const p = Math.max(1, Math.min((w - m.l - m.r) / bw, (h - m.t - m.b) / bh, 80));
+  const x0 = m.l + (w - m.l - m.r - bw * p) / 2, y0 = m.t + (h - m.t - m.b - bh * p) / 2;
+  return { p, bx, X: (u) => x0 + (u - bx[0]) * p, Y: (v) => y0 + (bx[3] - v) * p, U: (px) => bx[0] + (px - x0) / p, V: (py) => bx[3] - (py - y0) / p };
+}
+function path(x, g, pts) { x.beginPath(); pts.forEach((q, i) => (i ? x.lineTo(g.X(q[0]), g.Y(q[1])) : x.moveTo(g.X(q[0]), g.Y(q[1])))); x.closePath(); }
+function dot(x, px, py) {
+  x.fillStyle = color("--h"); x.beginPath(); x.arc(px, py, 10, 0, 2 * Math.PI); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2.5; x.beginPath(); x.arc(px, py, 4, 0, 2 * Math.PI); x.stroke();
+}
+const tw = (x, s, z) => { x.font = `700 ${z}px Inter, system-ui, sans-serif`; return x.measureText(s).width; };
+function bottomText(x, w, h, s, col) { Play.text(x, s, w / 2, h - 18, { size: 16, weight: 700, color: col || color("--fg") }); }
+
+// ---------- step 1: the ladder ----------
+function ladderBox() {
+  const c = Math.hypot(a, b), E2 = [-a + (a + b) * a / c, (a + b) * b / c];
+  return [-a - (b / c) * 0.6 - 0.2, 0, Math.max(0.6, E2[0] + 0.4), Math.max(b, E2[1]) + 0.3];
+}
+function drawLadder(x, w, h) {
+  const c = Math.hypot(a, b), d = [a / c, b / c], n = [-b / c, a / c], bx = ladderBox();
+  const g = fit(w, h, bx, { l: 30, r: 54, t: 44, b: 62 }); geo = g;
+  const off = 15 / g.p, F = [-a, 0], W = [0, 0], T = [0, b];
+  const FG = color("--fg"), CA = color("--b"), CB = color("--c"), CC = color("--hl"), NO = color("--no"), MU = color("--muted");
+  // ground and wall
+  x.strokeStyle = MU; x.lineWidth = 2; x.beginPath();
+  x.moveTo(g.X(bx[0]), g.Y(0)); x.lineTo(g.X(bx[2]), g.Y(0)); x.moveTo(g.X(0), g.Y(0)); x.lineTo(g.X(0), g.Y(bx[3])); x.stroke();
+  x.lineWidth = 1; x.beginPath();
+  for (let yy = g.Y(0) - 10; yy > g.Y(bx[3]); yy -= 12) { x.moveTo(g.X(0), yy); x.lineTo(g.X(0) + 8, yy + 8); }
+  x.stroke();
+  // the triangle
+  x.fillStyle = rgba(color("--a"), 0.12); x.beginPath(); x.moveTo(g.X(-a), g.Y(0)); x.lineTo(g.X(0), g.Y(0)); x.lineTo(g.X(0), g.Y(b)); x.closePath(); x.fill();
+  const m = Math.min(12, 0.3 * g.p);
+  x.strokeStyle = FG; x.lineWidth = 1.5; x.strokeRect(g.X(0) - m, g.Y(0) - m, m, m);
+  // ladder (c): rail + rungs
+  x.strokeStyle = CC; x.lineWidth = 5; x.lineCap = "round"; x.beginPath(); x.moveTo(g.X(-a), g.Y(0)); x.lineTo(g.X(0), g.Y(b)); x.stroke(); x.lineCap = "butt";
+  // legs a and b, turning onto the ladder line as k goes 0 → 1
+  const kk = k * k * (3 - 2 * k), al = Math.atan2(b, a), o = [n[0] * off * kk, n[1] * off * kk];
+  const a1 = kk * al, E = [F[0] + a * Math.cos(a1) + o[0], F[1] + a * Math.sin(a1) + o[1]], Fo = [F[0] + o[0], F[1] + o[1]];
+  const b1 = Math.PI / 2 + kk * (al - Math.PI / 2), Eb = [E[0] + b * Math.cos(b1), E[1] + b * Math.sin(b1)];
+  const seg = (p, q, col, lw) => { x.strokeStyle = col; x.lineWidth = lw; x.beginPath(); x.moveTo(g.X(p[0]), g.Y(p[1])); x.lineTo(g.X(q[0]), g.Y(q[1])); x.stroke(); };
+  seg(Fo, E, CA, 4); seg(E, Eb, CB, 4);
+  if (k > 0.98) {   // the part of a + b that sticks out past the top of the ladder
+    const Tc = [F[0] + c * d[0] + o[0], F[1] + c * d[1] + o[1]];
+    seg(Tc, Eb, NO, 7);
+    x.strokeStyle = NO; x.lineWidth = 1.5; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(g.X(0), g.Y(b)); x.lineTo(g.X(Tc[0]), g.Y(Tc[1])); x.stroke(); x.setLineDash([]);
+    const mx = (Tc[0] + Eb[0]) / 2, my = (Tc[1] + Eb[1]) / 2;
+    Play.text(x, `+${fmt(a + b - c, 2)}`, g.X(mx) - 12, g.Y(my) - 16, { size: 15, weight: 700, color: NO, align: "right" });
+  }
+  // labels
+  const lab = (s, px, py, col, al2) => Play.text(x, s, px, py, { size: 16, weight: 700, color: col, align: al2 || "center" });
+  if (k < 0.02) lab(`a = ${a}`, g.X(-a / 2), g.Y(0) + 18, CA);
+  else lab(`a = ${a}`, g.X(-a / 2), g.Y(0) + 18, rgba(CA, 0.5));
+  lab(`b = ${b}`, g.X(0) + 14, g.Y(b / 2), k < 0.02 ? CB : rgba(CB, 0.5), "left");
+  const mid = [-a / 2, b / 2], inw = [b / c, -a / c];   // toward the inside of the triangle
+  lab("c", g.X(mid[0]) + inw[0] * 18, g.Y(mid[1]) - inw[1] * 18, CC);
+  dot(x, g.X(-a), g.Y(0)); dot(x, g.X(0), g.Y(b));
+  geo.F = [g.X(-a), g.Y(0)]; geo.T = [g.X(0), g.Y(b)];
+  bottomText(x, w, h, `a + b = ${a + b}    c ≈ ${fmt(c, 2)}`, k > 0.98 ? NO : null);
+}
+
+// ---------- steps 2–4: the big square ----------
+let bendCache = null;
+function bendBox() {
+  const key = a + "," + b;
+  if (bendCache && bendCache.key === key) return bendCache.bx;
+  const pts = [[0, 0], [a + b, a + b]];
+  [90, 150].forEach((TH) => [0, 1].forEach((l) => tris(a, b, TH, [l, l, l, l]).forEach((tr) => pts.push(...tr))));
+  const bx = [Math.min(...pts.map((q) => q[0])), Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[1]))];
+  bendCache = { key, bx };
+  return bx;
+}
+function holeLabel(x, g, cx, cy, side, name, val, col, alpha) {
+  const W = side * g.p, s1 = `${name} = ${val}`;
+  x.save(); x.globalAlpha = alpha;
+  if (tw(x, s1, 16) + 10 < W && W > 26) Play.text(x, s1, g.X(cx), g.Y(cy), { size: 16, weight: 700, color: col });
+  else if (W > 24) Play.text(x, name, g.X(cx), g.Y(cy), { size: 15, weight: 700, color: col });
+  x.restore();
+}
+function drawSquare(x, w, h) {
+  const s = a + b, TH = step === 3 ? th : 90, T = tris(a, b, TH, P), u = TH === 90 ? uni() : -2;
+  const g = fit(w, h, step === 3 ? bendBox() : [0, 0, s, s], { l: 58, r: 18, t: 42, b: 74 }); geo = g; geo.T = T;
+  const FG = color("--fg"), CA = color("--b"), CB = color("--c"), CC = color("--hl"), NO = color("--no"), GR = color("--a");
+  const st = stats(T, s), bad = TH > 90 || st.ov > 0;
+  x.fillStyle = rgba(color("--muted"), 0.06); path(x, g, sqr(s)); x.fill();
+  // the empty space, named when the arrangement is complete
+  const dim = (key) => (sel && sel !== key ? 0.3 : 1);
+  const hole = (pts, col, key) => { x.save(); x.globalAlpha = dim(key); x.fillStyle = rgba(col, 0.28); path(x, g, pts); x.fill(); x.strokeStyle = col; x.lineWidth = sel === key ? 3.5 : 1.5; x.stroke(); x.restore(); };
+  if (u === 0) {
+    hole([[a, 0], [s, a], [b, s], [0, b]], CC, "c2");
+  } else if (u === 1) {
+    hole([[0, b], [a, b], [a, s], [0, s]], CA, "a2");
+    hole([[a, 0], [s, 0], [s, b], [a, b]], CB, "b2");
+  }
+  // triangles
+  const TC = TH > 90 ? NO : GR;
+  T.forEach((tr) => { path(x, g, tr); x.fillStyle = rgba(TC, TH > 90 ? 0.16 : 0.3); x.fill(); x.strokeStyle = TC; x.lineWidth = 2; x.stroke(); });
+  // what doesn't fit: outside the big square, or on top of another triangle
+  if (bad) {
+    x.save(); x.beginPath(); x.rect(0, 0, w, h); x.moveTo(g.X(0), g.Y(0)); x.lineTo(g.X(0), g.Y(s)); x.lineTo(g.X(s), g.Y(s)); x.lineTo(g.X(s), g.Y(0)); x.closePath();
+    x.clip("evenodd"); x.fillStyle = rgba(NO, 0.45); T.forEach((tr) => { path(x, g, tr); x.fill(); }); x.restore();
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+      x.save(); path(x, g, T[i]); x.clip(); path(x, g, T[j]); x.fillStyle = rgba(NO, 0.6); x.fill(); x.restore();
+    }
+  }
+  // angle marks
+  T.forEach((tr, i) => {
+    const Q = tr[0], ua = [(tr[1][0] - Q[0]) / a, (tr[1][1] - Q[1]) / a], vb = [(tr[2][0] - Q[0]) / b, (tr[2][1] - Q[1]) / b];
+    const r = Math.min(11, 0.28 * g.p), X0 = g.X(Q[0]), Y0 = g.Y(Q[1]);
+    x.strokeStyle = TH > 90 ? NO : FG; x.lineWidth = 1.5; x.beginPath();
+    if (TH === 90) { x.moveTo(X0 + ua[0] * r, Y0 - ua[1] * r); x.lineTo(X0 + (ua[0] + vb[0]) * r, Y0 - (ua[1] + vb[1]) * r); x.lineTo(X0 + vb[0] * r, Y0 - vb[1] * r); }
+    else { const a0 = Math.atan2(ua[1], ua[0]); x.arc(X0, Y0, r * 1.5, -a0, -(a0 + TH * RAD), true); }
+    x.stroke();
+    if (i === 0 && TH > 90) {
+      const bis = Math.atan2(ua[1] + vb[1], ua[0] + vb[0]);
+      Play.text(x, `${TH}°`, X0 + Math.cos(bis) * 36, Y0 - Math.sin(bis) * 36, { size: 14, weight: 700, color: NO });
+    }
+  });
+  x.strokeStyle = FG; x.lineWidth = 2.4; path(x, g, sqr(s)); x.stroke();
+  // hole names
+  if (u === 0) {
+    holeLabel(x, g, s / 2, s / 2, Math.hypot(a, b) * 0.7, "c²", a * a + b * b, FG, dim("c2"));
+    const c = Math.hypot(a, b), mx = (a + s) / 2, my = a / 2, nx = (s / 2 - mx), ny = (s / 2 - my), nn = Math.hypot(nx, ny) || 1;
+    if (c * g.p > 40) Play.text(x, "c", g.X(mx) + (nx / nn) * 16, g.Y(my) - (ny / nn) * 16, { size: 17, weight: 700, color: FG, italic: true });
+  } else if (u === 1) {
+    holeLabel(x, g, a / 2, b + a / 2, a, "a²", a * a, FG, dim("a2"));
+    holeLabel(x, g, a + b / 2, b / 2, b, "b²", b * b, FG, dim("b2"));
+  }
+  // side lengths of the big square (hidden while triangles poke out over them)
+  if (TH === 90) {
+    const br = (x1, y1, x2, y2, col) => { x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); };
+    const yb = g.Y(0) + 9, xl = g.X(0) - 9;
+    br(g.X(0) + 3, yb, g.X(a) - 3, yb, CA); br(g.X(a) + 3, yb, g.X(s) - 3, yb, CB);
+    br(xl, g.Y(0) - 3, xl, g.Y(b) + 3, CB); br(xl, g.Y(b) - 3, xl, g.Y(s) + 3, CA);
+    const sl = (nm, v, len) => (tw(x, `${nm} = ${v}`, 15) + 6 < len ? `${nm} = ${v}` : nm);
+    Play.text(x, sl("a", a, a * g.p), g.X(a / 2), yb + 14, { size: 15, weight: 700, color: CA });
+    Play.text(x, sl("b", b, b * g.p), g.X(a + b / 2), yb + 14, { size: 15, weight: 700, color: CB });
+    Play.text(x, "b", xl - 8, g.Y(b / 2), { size: 15, weight: 700, color: CB, align: "right" });
+    Play.text(x, "a", xl - 8, g.Y(b + a / 2), { size: 15, weight: 700, color: CA, align: "right" });
+  }
+  // handles
+  if (step === 3) { const tip = T[0][2]; dot(x, g.X(tip[0]), g.Y(tip[1])); geo.H = [g.X(tip[0]), g.Y(tip[1])]; }
+  else { dot(x, g.X(a), g.Y(0)); geo.H = [g.X(a), g.Y(0)]; }
+  // bottom line
+  const c2 = a * a + b * b, big = s * s, four = 2 * a * b;
+  if (step === 3) {
+    const m = c2Of(th);
+    bottomText(x, w, h, th > 90 ? `c² ≈ ${fmt(m, 2)}  >  a² + b² = ${c2}` : `c² = ${c2} = a² + b²`, th > 90 ? NO : null);
+  } else if (st.ov > 0) bottomText(x, w, h, t({ en: "Overlapping: slide it all the way", zh: "压住了：挪到底" }), NO);
+  else if (u === 0) bottomText(x, w, h, `c² = ${big} − 4 × ${a}×${b}/2 = ${big - four}`);
+  else if (u === 1) bottomText(x, w, h, `a² + b² = ${a * a} + ${b * b} = ${c2}`);
+  else bottomText(x, w, h, `${big} − ${four} = ${big - four}`);
+}
+function draw(x, w, h) { if (step === 1) drawLadder(x, w, h); else drawSquare(x, w, h); }
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+const term = (key, cls, s) => `<button class="term ${cls}${sel === key ? " sel" : ""}" data-sel="${key}">${s}</button>`;
+function render() {
+  const S = STEP[step], s = a + b, c2 = a * a + b * b, c = Math.sqrt(c2), u = uni();
+  let html = `<div class="kicker">${t(S.kicker)}</div><h2>${t(S.h)}</h2><p>${t(S.p)}</p>`;
+  if (step === 1) {
+    const opts = ["c = a + b", "c < a + b", "c > a + b"];
+    html += `<div class="choices">` + opts.map((o, i) => `<button data-g="${i}" class="${guess === i ? (i === 1 ? "right" : "wrong") : ""}">${o}</button>`).join("") + `</div>`;
+    if (guess >= 0) {
+      html += `<p>${t({ en: "The apprentice jumps in: just buy one that's a plus b long.", zh: "徒弟抢着说：那就买 a 加 b 那么长的。" })}</p>` +
+        `<div class="mathline">${sp("ka", a)} + ${sp("kb", b)} = <span class="kn">${s}</span> &nbsp; ${sp("kc", "c")} ≈ <b>${fmt(c, 2)}</b></div>` +
+        `<p>${t({ en: "If c equalled a plus b, the long side would be as long as the two short sides end to end.", zh: "如果 c 等于 a 加 b，斜边就和两条直角边接起来一样长。" })}</p>`;
+      if (k > 0.98) html += `<p><span class="tag-no">a + b = c ✗</span> ${t({ en: `Laid along the ladder, a and b stick out by ${fmt(s - c, 2)}. But the straight path is always shorter than going around, so c must be less than a plus b.`, zh: `沿着梯子摆，a 和 b 接起来多出 ${fmt(s - c, 2)}。直路总比绕远路短，所以 c 一定比 a 加 b 小。` })}</p>` +
+        `<p><strong>${t({ en: "Lengths don't add up, so let's switch: compare areas, not lengths.", zh: "长度对不上，那就换个思路：不比长度，比面积。" })}</strong></p>`;
+      else html += `<p class="note">${t({ en: "Press “Straighten the legs” to lay a and b along the ladder.", zh: "按「把直角边拉直」，把 a 和 b 沿梯子摆直。" })}</p>`;
+    }
+  } else if (step === 2) {
+    if (u === 0) html += `<p>${t({ en: "A space is left in the middle, and all four of its sides are the long side c. Every corner is ninety degrees, so it's a square, and its area is c squared.", zh: "中间空出了一块，它的四条边都是斜边 c。每个角都是九十度，所以它是正方形，面积就是 c 方。" })}</p>` +
+      `<p>${t({ en: "Keep the big square still and pair up the triangles into rectangles. What will the empty space become?", zh: "大正方形不动，把三角形两两拼成长方形，空白会变成什么？" })}</p>`;
+    const opts = [{ en: "two squares", zh: "两个正方形" }, { en: "one smaller square", zh: "一个小一点的正方形" }, { en: "no space left", zh: "没有空白了" }];
+    html += `<div class="choices">` + opts.map((o, i) => `<button data-p="${i}" class="${predict === i ? (u === 1 ? (i === 0 ? "right" : "wrong") : "on") : ""}">${t(o)}</button>`).join("") + `</div>`;
+    if (u === 1) html += `<p>${t({ en: "The empty space becomes two squares, with area a squared plus b squared.", zh: "空白变成两个正方形，面积是 a 方加 b 方。" })} ` +
+      `<strong>${t({ en: "The big square didn't change and the triangles didn't change, so the empty area can't change either.", zh: "大正方形没变，三角形也没变，空白的面积就不会变。" })}</strong></p>`;
+    html += `<div class="mathline">${s}² − 4 × ${a}×${b}/2 = ${s * s} − ${2 * a * b} = <b>${s * s - 2 * a * b}</b><br>` +
+      `${sp("kc", "c²")} = ${sp("kc", c2)} &nbsp; ${sp("ka", "a²")} + ${sp("kb", "b²")} = ${sp("ka", a * a)} + ${sp("kb", b * b)} = ${c2}</div>`;
+    if (stats(tris(a, b, 90, P), s).ov > 0) html += `<p><span class="tag-no">${t({ en: "Two triangles overlap: slide that one all the way, or move the one in its path first.", zh: "两个三角形压住了：把它挪到底，或者先挪开挡路的那个。" })}</span></p>`;
+  } else if (step === 3) {
+    const m = c2Of(th), st = stats(tris(a, b, th, P), s);
+    if (th > 90) {
+      const out = st.out > 0, ov = st.ov > 0;
+      const what = out && ov ? { en: "The triangles poke out of the square and overlap. Nothing fits.", zh: "三角形戳出了大正方形，互相压住，拼不起来。" }
+        : out ? { en: "The triangles poke out of the square. Nothing fits.", zh: "三角形戳出了大正方形，拼不起来。" }
+        : { en: "The triangles overlap. Nothing fits.", zh: "三角形互相压住，拼不起来。" };
+      html += `<p><span class="tag-no">${t(what)}</span></p>` +
+        `<p>${t({ en: "Now the long side is longer, and c squared is bigger than a squared plus b squared.", zh: "斜边变长了，所以 c 方比 a 方加 b 方还要大。" })}</p>` +
+        `<div class="mathline">${sp("kc", "c²")} ≈ <span class="kn">${fmt(m, 2)}</span> &nbsp;&gt;&nbsp; ${sp("ka", "a²")} + ${sp("kb", "b²")} = ${c2}</div>`;
+      if (!ov && u !== 1) html += `<p class="note">${t({ en: "Now press “Pair them up”: in the rectangles they overlap too.", zh: "再按「两两拼成长方形」：拼长方形时它们也会压住。" })}</p>`;
+    } else html += `<div class="mathline">${th}°: ${sp("kc", "c²")} = ${c2} = ${sp("ka", "a²")} + ${sp("kb", "b²")}</div>`;
+  } else {
+    html += `<div class="mathline">${term("a2", "ka", "a²")} + ${term("b2", "kb", "b²")} = ${term("c2", "kc", "c²")}<br>` +
+      `${term("a2", "ka", `${a}²`)} + ${term("b2", "kb", `${b}²`)} = ${a * a} + ${b * b} = ${term("c2", "kc", c2)}<br>c = ${cTxt(c2)}</div>`;
+    if (a === 3 && b === 4) html += `<p><strong>${t({ en: "Short sides three and four: nine plus sixteen is twenty-five, so the long side is five, not seven.", zh: "直角边三和四：九加十六是二十五，斜边是五，不是七。" })}</strong></p>`;
+    else html += `<p>${t({ en: `So if the short sides are three and four, how long is the long side? Press “3 and 4”. The ladder here needs only ${fmt(c, 2)}, not ${s}.`, zh: `两条直角边是三和四时斜边是多少？按「三和四」。这里的梯子只要 ${fmt(c, 2)}，不是 ${s}。` })}</p>`;
+  }
+  $("explain").innerHTML = html;
+  // the ladder is often wide and flat: fit the canvas height to it instead of leaving a blank band
+  if (step === 1) {
+    const bx = ladderBox(), W = cv.getBoundingClientRect().width || 600, H0 = innerWidth <= 560 ? 350 : 420;
+    cv.style.height = Math.round(clamp((W - 84) * (bx[3] - bx[1]) / (bx[2] - bx[0]) + 106, 240, H0)) + "px";
+  } else cv.style.height = "";
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  cv.setAttribute("aria-label", step === 3 ? `${th}°, c² ≈ ${fmt(c2Of(th), 2)}, a² + b² = ${c2}` : `a = ${a}, b = ${b}, a² + b² = ${a * a} + ${b * b} = ${c2} = c²`);
+  const mb = $("mainBtn");
+  if (step === 1) mb.textContent = t(k !== kTo ? D.pause : k > 0.5 ? D.bendBack : D.straight);
+  else mb.textContent = t(moving ? D.pause : P.some((v, i) => Math.abs(v - tg[i]) > EPS) ? D.cont : u === 1 ? D.toC : D.toRect);
+  $("b34").hidden = step !== 4; $("b34").classList.toggle("on", a === 3 && b === 4);
+  $("angRow").hidden = step !== 3; $("b90").hidden = step !== 3;
+  $("ang").value = th; $("angVal").textContent = th + "°";
+  $("aVal").textContent = a; $("bVal").textContent = b;
+  dirty = true;
+}
+$("explain").addEventListener("click", (ev) => {
+  const g = ev.target.closest("[data-g]"), q = ev.target.closest("[data-p]"), kk = ev.target.closest("[data-sel]");
+  if (g) { guess = +g.dataset.g; if (k === 0 && kTo === 0) { kTo = 1; if (Play.reduced) k = 1; } }
+  if (q) { predict = +q.dataset.p; if (uni() !== 1) layoutTo(1); }
+  if (kk) {
+    const key = kk.dataset.sel; sel = sel === key ? null : key;
+    if (sel === "c2" && uni() !== 0) layoutTo(0);
+    if ((sel === "a2" || sel === "b2") && uni() !== 1) layoutTo(1);
+  }
+  if (g || q || kk) render();
+});
+
+// ---------- actions ----------
+function layoutTo(L) {
+  tg = [L, L, L, L]; tg[0] = 0;
+  if (Play.reduced) { P = tg.slice(); moving = false; } else moving = true;
+  render();
+}
+function mainClick() {
+  if (step === 1) {
+    if (k !== kTo) kTo = k; else { kTo = k > 0.5 ? 0 : 1; if (Play.reduced) k = kTo; }
+    return render();
+  }
+  if (moving) { moving = false; return render(); }
+  if (P.some((v, i) => Math.abs(v - tg[i]) > EPS)) { if (Play.reduced) P = tg.slice(); else moving = true; return render(); }
+  layoutTo(uni() === 1 ? 0 : 1);
+}
+function setAB(na, nb) {
+  na = clamp(na, 1, MAXS); nb = clamp(nb, 1, MAXS);
+  if (na === a && nb === b) return;
+  a = na; b = nb; render();
+}
+function setTh(v) { th = clamp(Math.round(v), 90, 150); render(); }
+$("mainBtn").onclick = mainClick;
+$("b34").onclick = () => setAB(3, 4);
+$("b90").onclick = () => setTh(90);
+$("ang").oninput = (e) => setTh(+e.target.value);
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const d = bt.dataset.d[1] === "+" ? 1 : -1;
+  if (bt.dataset.d[0] === "a") setAB(a + d, b); else setAB(a, b + d);
+}));
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; sel = null;
+  if (s === 1 && Play.reduced) k = kTo;
+  render();
+});
+
+const inTri = (pt, tr) => {
+  const sd = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const d1 = sd(tr[0], tr[1], pt), d2 = sd(tr[1], tr[2], pt), d3 = sd(tr[2], tr[0], pt);
+  return (d1 >= 0 && d2 >= 0 && d3 >= 0) || (d1 <= 0 && d2 <= 0 && d3 <= 0);
+};
+Play.drag(cv, {
+  down(px, py) {
+    if (!geo) return false;
+    const near = (q) => q && Math.hypot(px - q[0], py - q[1]) < 22;
+    const g = geo;
+    if (step === 1) { grab = near(g.F) ? { k: "F", g } : near(g.T) ? { k: "T", g } : null; return grab; }
+    if (near(g.H)) { grab = { k: step === 3 ? "ang" : "split", g }; return grab; }
+    if (step === 3) return false;
+    const pt = [g.U(px), g.V(py)];
+    for (let i = 3; i >= 1; i--) if (inTri(pt, g.T[i])) { grab = { k: "tri", i, g }; moving = false; return grab; }
+    if (step === 4) {   // tap an empty piece
+      const u = uni(), s = a + b;
+      let key = null;
+      if (u === 0 && !g.T.some((tr) => inTri(pt, tr)) && pt[0] > 0 && pt[0] < s && pt[1] > 0 && pt[1] < s) key = "c2";
+      if (u === 1) key = pt[0] < a && pt[1] > b && pt[1] < s && pt[0] > 0 ? "a2" : pt[0] > a && pt[0] < s && pt[1] < b && pt[1] > 0 ? "b2" : null;
+      if (key) { sel = sel === key ? null : key; render(); }
+    }
+    return false;
+  },
+  move(px, py, dx, dy) {
+    if (!grab) return;
+    const g = grab.g;
+    if (grab.k === "F") setAB(Math.round(-g.U(px)), b);
+    else if (grab.k === "T") setAB(a, Math.round(g.V(py)));
+    else if (grab.k === "split") { const s = a + b, na = clamp(Math.round(g.U(px)), 1, s - 1); if (s - na <= MAXS && na <= MAXS) setAB(na, s - na); }
+    else if (grab.k === "ang") { const phi = Math.atan2(g.V(py), g.U(px)) / RAD; setTh(2 * (phi - 45)); }
+    else if (grab.k === "tri") {
+      const tr = TRANS()[grab.i], Dx = tr[0] * g.p, Dy = -tr[1] * g.p, L2 = Dx * Dx + Dy * Dy;
+      if (L2 > 0) { P[grab.i] = clamp(P[grab.i] + (dx * Dx + dy * Dy) / L2, 0, 1); dirty = true; }
+    }
+  },
+  up() {
+    if (grab && grab.k === "tri") {
+      const i = grab.i; tg[i] = Math.round(P[i]);
+      if (Play.reduced) P[i] = tg[i]; else moving = true;
+      render();
+    }
+    grab = null;
+  },
+});
+Play.keys(cv, {
+  ArrowLeft: () => (step === 3 ? setTh(th - 5) : step === 1 ? setAB(a - 1, b) : setAB(a - 1, b + 1)),
+  ArrowRight: () => (step === 3 ? setTh(th + 5) : step === 1 ? setAB(a + 1, b) : setAB(a + 1, b - 1)),
+  ArrowUp: () => (step === 3 ? setTh(th + 5) : setAB(a, b + 1)),
+  ArrowDown: () => (step === 3 ? setTh(th - 5) : setAB(a, b - 1)),
+  Enter: mainClick, " ": mainClick,
+});
+$("reset").onclick = () => {
+  a = A0; b = B0; guess = -1; k = kTo = 0; P = [0, 0, 0, 0]; tg = [0, 0, 0, 0]; moving = false; predict = -1; th = 90; sel = null;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { if (step === 1) render(); dirty = true; });
+
+// forward: top-right, top-left, then bottom-right (each target spot is empty when it moves); backward in reverse
+const ORDER_F = [2, 3, 1], ORDER_B = [1, 3, 2];
+Play.loop((dt) => {
+  if (k !== kTo) {
+    k = clamp(k + Math.sign(kTo - k) * dt / 1.1, 0, 1);
+    if (Math.abs(k - kTo) < 1e-3) { k = kTo; render(); }
+    dirty = true;
+  }
+  if (moving) {
+    const fwd = [1, 2, 3].some((i) => tg[i] > P[i] + EPS), order = fwd ? ORDER_F : ORDER_B;
+    const i = order.find((j) => Math.abs(P[j] - tg[j]) > EPS);
+    if (i === undefined) { moving = false; render(); }
+    else { P[i] = clamp(P[i] + Math.sign(tg[i] - P[i]) * dt / 0.6, Math.min(P[i], tg[i]), Math.max(P[i], tg[i])); if (Math.abs(P[i] - tg[i]) < EPS) P[i] = tg[i]; }
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

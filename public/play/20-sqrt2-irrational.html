@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why √2 Is Not a Fraction · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper > span { font-family: var(--math); font-style: italic; font-size: 18px; }
+  .stepper b { font-family: var(--math); font-size: 19px; min-width: 2.2em; text-align: center; color: var(--fg); }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .choices button.pick { border-color: var(--c); color: var(--c); }
+  .choices.pre button { min-width: 0; font-family: var(--math); font-size: 16px; padding: 4px 11px; min-height: 36px; }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .mathline.sm { font-size: 17px; line-height: 1.75; }
+  .chain { border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .chain th, .chain td { padding: 3px 9px; text-align: right; border-bottom: 1px solid var(--line); }
+  .chain th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .chain td { font-family: var(--math); font-size: 15px; }
+  .chain tr.cur td { background: var(--soft); font-weight: 700; }
+  .chain tr.bad td { color: var(--no); }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="folded paper"></canvas>
+      <div class="controls" id="cF">
+        <button class="big" id="foldBtn"></button>
+        <span data-t="flat"></span><input id="foldR" type="range" min="0" max="100" value="0" aria-label="fold"><span data-t="folded"></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <button class="big" id="againBtn"></button>
+        <input id="s4R" type="range" min="0" max="500" value="0" aria-label="number of folds">
+        <label class="check"><input type="checkbox" id="zoomC" checked><span data-t="zoomL"></span></label>
+      </div>
+      <div class="controls" id="cAB">
+        <span class="stepper"><span>b</span><button data-d="b-" aria-label="b minus one">−</button><b id="bVal"></b><button data-d="b+" aria-label="b plus one">+</button></span>
+        <span class="stepper"><span>a</span><button data-d="a-" aria-label="a minus one">−</button><b id="aVal"></b><button data-d="a+" aria-label="a plus one">+</button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">√2 = <span class="frac"><span>a</span><span>b</span></span> ⇒ √2 = <span class="frac"><span>2b − a</span><span>a − b</span></span>, &nbsp;0 &lt; a − b &lt; b</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreP2"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Why √2 Is Not a Fraction", zh: "√2 为什么不是分数" },
+  eyebrow: { en: "Boxi Math · Try it · #20", zh: "Boxi Math · 动手试试 · #20" },
+  intro: { en: "Fold a square sheet of paper with side one along its diagonal: the crease is root two long. Drag the gold corners to fold, and try to find a fraction that fits exactly.",
+           zh: "把边长为一的正方形纸沿对角线对折，折痕长根号二。拖动金色的角来折纸，再试试能不能找到一个正好相等的分数。" },
+  s1: { en: "Close enough?", zh: "差不多就行？" }, s2: { en: "Suppose it is", zh: "假设可以" },
+  s3: { en: "Count the sides", zh: "数一数边" }, s4: { en: "Fold again", zh: "再折一次" },
+  reset: { en: "Reset", zh: "重置" },
+  flat: { en: "flat", zh: "摊平" }, folded: { en: "folded", zh: "折好" },
+  foldB: { en: "Fold", zh: "对折" }, unfoldB: { en: "Unfold", zh: "展开" }, pause: { en: "Pause", zh: "暂停" },
+  againB: { en: "Fold again", zh: "再折一次" }, overB: { en: "Start over", zh: "从头再来" },
+  zoomL: { en: "zoom in", zh: "跟着放大" },
+  v1: { en: "A square sheet, side 1", zh: "边长为 1 的正方形纸" }, v2: { en: "If √2 = a/b", zh: "如果 √2 = a/b" },
+  v3: { en: "The small triangle", zh: "小三角形" }, v4: { en: "Smaller and smaller", zh: "越折越小" },
+  tag1: { en: "drag the gold corner", zh: "拖动金色的角" }, tag2: { en: "drag the gold corner", zh: "拖动金色的角" },
+  tag3: { en: "change a and b below", zh: "在下面改 a 和 b" }, tag4: { en: "drag the gold corner", zh: "拖动金色的角" },
+  resT: { en: "If √2 were a fraction a/b, the fold would give another one with a smaller denominator, and again, forever.",
+          zh: "如果 √2 是分数 a/b，折一下就得到一个分母更小的分数，再折又更小，没完没了。" },
+  resN: { en: "Whole numbers can't keep shrinking, so root two can't be written as a fraction. It is an irrational number. This is a proof, using only a fold and the fact that whole numbers can't shrink forever.",
+          zh: "正整数不能一直变小，所以根号二不能写成分数，它是一个无理数。这是一个证明，只用到了折纸，和正整数不能一直变小。" },
+  moreS: { en: "So could √2 as a decimal start repeating at some point?", zh: "那根号二写成小数，会不会从某一位开始循环？" },
+  moreP: { en: "No. A decimal that repeats from some digit on is always a fraction: for example 0.272727… = 27/99 = 3/11. Since √2 is not a fraction, 1.41421356… never settles into a repeating block, however far you go.",
+           zh: "不会。从某一位开始循环的小数一定能写成分数，比如 0.272727… = 27/99 = 3/11。√2 不是分数，所以 1.41421356… 永远不会进入循环，算到多少位都不会。" },
+  moreP2: { en: "Why is the small triangle exact whenever the big one is? (2b − a)² − 2(a − b)² = 4b² − 4ab + a² − 2a² + 4ab − 2b² = 2b² − a². So if a² = 2b², then (2b − a)² = 2(a − b)² as well. For a near miss like 7/5 the difference just flips sign: −1 becomes +1.",
+           zh: "为什么大三角形是准的，小三角形也一定是准的？(2b − a)² − 2(a − b)² = 4b² − 4ab + a² − 2a² + 4ab − 2b² = 2b² − a²。所以 a² = 2b² 时，(2b − a)² = 2(a − b)² 也成立。像 7/5 这样差一点的，差只是换了个符号：−1 变成 +1。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then Enter folds, ← → change b (step 02: fold, step 04: fold count), ↑ ↓ change a.",
+          zh: "鼠标、触屏、键盘都能用：选中图后，回车折纸，← → 改 b（第 2 步是折的程度，第 4 步是折的次数），↑ ↓ 改 a。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · close enough?", zh: "第 1 步 · 差不多就行？" },
+       h: { en: "Can the crease be written exactly as a fraction?", zh: "折痕能正好写成一个分数吗？" } },
+  2: { kicker: { en: "Step 02 · suppose it is", zh: "第 2 步 · 假设可以" },
+       h: { en: "Suppose √2 = a/b, with b as small as possible", zh: "假设 √2 = a/b，b 取最小" } },
+  3: { kicker: { en: "Step 03 · count the sides", zh: "第 3 步 · 数一数边" },
+       h: { en: "Again whole numbers, and smaller", zh: "还是整数，而且更小" } },
+  4: { kicker: { en: "Step 04 · fold again", zh: "第 4 步 · 再折一次" },
+       h: { en: "Whole numbers can't keep shrinking", zh: "正整数不能一直变小" } },
+};
+Play.i18n(D);
+
+// ---------- state ----------
+const R2 = Math.SQRT2, NF = 5;                 // NF = most folds in step 04
+const A0 = 7, B0 = 5;                          // script: the near miss seven fifths
+const PRESETS = [[7, 5], [17, 12], [41, 29], [99, 70], [707, 500]];
+let a = A0, b = B0, step = 1, stance = -1, predict = -1;
+let f1 = 0, f1To = 0, f2 = 0, f2To = 0, s4 = 0, s4To = 0, zoom = true;
+let V = null, dirty = true, dragging = null, dragK = 0, lastKey = "";
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+const ease = (s) => s * s * (3 - 2 * s);
+const SUBD = "₀₁₂₃₄₅₆₇₈₉", sub = (n) => String(n).split("").map((c) => SUBD[+c]).join("");
+
+// ---------- geometry (world: y up; the folded paper is C(0,0), B(1,0), A(0,1)) ----------
+const add = (p, q) => [p[0] + q[0], p[1] + q[1]], dif = (p, q) => [p[0] - q[0], p[1] - q[1]];
+const mul = (p, s) => [p[0] * s, p[1] * s], dot = (p, q) => p[0] * q[0] + p[1] * q[1];
+const lerp = (p, q, s) => [p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s];
+const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+function foot(p, u, w) { const d = dif(w, u); return add(u, mul(d, dot(dif(p, u), d) / dot(d, d))); }
+// isosceles right triangle {R: right angle, P: the corner we bisect, Q: the shared corner}.
+// Fold leg PR onto the hypotenuse PQ along the bisector P→Dp: R lands on E with PE = PR, Dp is on RQ.
+function foldOf(T) {
+  const lPR = dist(T.P, T.R), lPQ = dist(T.P, T.Q), lRQ = dist(T.R, T.Q);
+  const E = lerp(T.P, T.Q, lPR / lPQ), Dp = lerp(T.R, T.Q, (lPQ - lPR) / lRQ);
+  return { D: Dp, E, F: foot(T.R, T.P, Dp) };
+}
+const T = [{ R: [0, 0], P: [0, 1], Q: [1, 0] }], F = [];
+for (let j = 0; j <= NF; j++) { F.push(foldOf(T[j])); T.push({ R: F[j].E, P: F[j].D, Q: T[j].Q }); }
+// the folding corner, s = 0 flat … 1 folded (a half turn about the crease, seen from above)
+const flapR = (j, s) => { const f = F[j]; return add(f.F, mul(dif(T[j].R, f.F), Math.cos(Math.PI * s))); };
+
+// whole-number chain: (a, b) → (2b − a, a − b), while it is still a/b between 1 and 2
+function chain() {
+  const rows = []; let x = a, y = b;
+  for (let k = 0; k < 12; k++) {
+    const ok = y > 0 && y < x && x < 2 * y;
+    rows.push({ k, a: x, b: y, d: x * x - 2 * y * y, ok });
+    if (!ok) break;
+    [x, y] = [2 * y - x, x - y];
+  }
+  return rows;
+}
+function cur4() {
+  const k = Math.min(Math.floor(s4 + 1e-9), NF), fr = s4 - k;
+  return { k, fr, tt: Math.min(1, fr / 0.6), z: zoom && fr > 0.6 ? ease((fr - 0.6) / 0.4) : 0 };
+}
+
+// ---------- view ----------
+function fitT(Tj, W, H) {
+  const ps = [Tj.R, Tj.P, Tj.Q], xs = ps.map((q) => q[0]), ys = ps.map((q) => q[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const p = Math.min((W - 150) / (x1 - x0), (H - 110) / (y1 - y0));
+  return { p, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+}
+function layout() {
+  const W = cv.clientWidth || 600; let H;
+  if (step === 1) {
+    const L = clamp(W - 150, 140, 240); H = 44 + L + 134;
+    V = { p: L, ox: (W - L) / 2, oy: 44 + L, W, H, sy: 44 + L + 44 };
+  } else if (step < 4) {
+    const L = clamp(W - 150, 150, 290); H = 46 + L + 66;
+    V = { p: L, ox: (W - L) / 2 + 6, oy: 46 + L, W, H };
+  } else {
+    H = W < 560 ? 330 : 380;
+    const { k, z } = cur4(), g0 = fitT(zoom ? T[k] : T[0], W, H), g1 = fitT(zoom ? T[k + 1] : T[0], W, H);
+    const p = g0.p * Math.pow(g1.p / g0.p, z), cx = g0.cx + (g1.cx - g0.cx) * z, cy = g0.cy + (g1.cy - g0.cy) * z;
+    V = { p, ox: W / 2 - cx * p, oy: H / 2 + 6 + cy * p, W, H, base: fitT(T[0], W, H).p };
+  }
+  if (cv.style.height !== H + "px") cv.style.height = H + "px";
+}
+const S = ([x, y]) => [V.ox + x * V.p, V.oy - y * V.p];
+const toWorld = (px, py) => [(px - V.ox) / V.p, (V.oy - py) / V.p];
+
+// ---------- drawing helpers ----------
+function poly(x, P, fill, stroke, lw, dash) {
+  x.beginPath(); P.forEach((q, i) => { const [sx, sy] = S(q); i ? x.lineTo(sx, sy) : x.moveTo(sx, sy); }); x.closePath();
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.lineJoin = "round"; x.stroke(); x.setLineDash([]); }
+}
+function seg(x, p, q, col, lw, dash) {
+  const [a1, b1] = S(p), [a2, b2] = S(q);
+  x.strokeStyle = col; x.lineWidth = lw; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(a1, b1); x.lineTo(a2, b2); x.stroke(); x.setLineDash([]);
+}
+let placed = [];
+// label beside segment pq, on the side away from the world point `away`
+function lab(x, p, q, s, away, col, off = 8, size = 15) {
+  const [x1, y1] = S(p), [x2, y2] = S(q), mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  let nx = -(y2 - y1), ny = x2 - x1; const n = Math.hypot(nx, ny) || 1; nx /= n; ny /= n;
+  const [ax, ay] = S(away); if ((mx - ax) * nx + (my - ay) * ny < 0) { nx = -nx; ny = -ny; }
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const tw = x.measureText(s).width;
+  let e = off + Math.abs(nx) * tw / 2 + Math.abs(ny) * size * 0.62, lx, ly;
+  for (let i = 0; i < 4; i++) {           // step further out while it would cover a label already placed
+    lx = clamp(mx + nx * e, tw / 2 + 4, V.W - tw / 2 - 4); ly = clamp(my + ny * e, 12, V.H - 12);
+    if (!placed.some((r) => Math.abs(r[0] - lx) < (r[2] + tw) / 2 + 14 && Math.abs(r[1] - ly) < size + 3)) break;
+    e += size + 4;
+  }
+  placed.push([lx, ly, tw]);
+  Play.text(x, s, lx, ly, { color: col, size, weight: 700 });
+}
+function rmark(x, c, u, w, col) {
+  const [cx, cy] = S(c), [ux, uy] = S(u), [wx, wy] = S(w), k = 10;
+  const lu = Math.hypot(ux - cx, uy - cy), lw = Math.hypot(wx - cx, wy - cy);
+  if (lu < 40 || lw < 40) return;
+  const e1 = [(ux - cx) / lu * k, (uy - cy) / lu * k], e2 = [(wx - cx) / lw * k, (wy - cy) / lw * k];
+  x.strokeStyle = col; x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(cx + e1[0], cy + e1[1]); x.lineTo(cx + e1[0] + e2[0], cy + e1[1] + e2[1]); x.lineTo(cx + e2[0], cy + e2[1]); x.stroke();
+}
+function handle(x, q) {
+  const [sx, sy] = S(q);
+  x.fillStyle = color("--hl"); x.beginPath(); x.arc(sx, sy, 9, 0, 7); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2.5; x.stroke();
+}
+function sig(v) { if (v === 0) return "0"; return fmt(v, clamp(2 - Math.floor(Math.log10(v)), 0, 12)); }
+
+// ---------- step 01: the square sheet and a magnifier on the number line ----------
+function drawFold1(x) {
+  const G = color("--a"), Cc = color("--c"), HL = color("--hl"), M = color("--muted"), NO = color("--no");
+  const A = [0, 1], B = [1, 0], C = [0, 0], c = Math.cos(Math.PI * f1), Qt = [0.5 + 0.5 * c, 0.5 + 0.5 * c];
+  poly(x, [C, B, A], rgba(G, 0.26), G, 2.2);
+  if (c >= 0) poly(x, [A, Qt, B], rgba(G, 0.26), G, 2.2); else poly(x, [A, Qt, B], rgba(Cc, 0.34), Cc, 2.2);
+  seg(x, A, B, HL, f1 >= 1 ? 3.4 : 2, f1 >= 1 ? [] : [7, 5]);
+  lab(x, C, B, "1", A, color("--fg"), 8, 16);
+  lab(x, C, A, "1", B, color("--fg"), 8, 16);
+  if (f1 > 0.9) {
+    // the deskmate's ruler along the crease, ticks every 0.1
+    const [ax, ay] = S(A), [bx, by] = S(B), len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len, nx = 0.7071, ny = -0.7071;
+    x.strokeStyle = M; x.lineWidth = 1.2; x.beginPath();
+    for (let i = 0; i <= 14; i++) {
+      const d = i * 0.1 / R2 * len, l = i % 10 === 0 ? 10 : i % 5 === 0 ? 7 : 4, px = ax + ux * d, py = ay + uy * d;
+      x.moveTo(px, py); x.lineTo(px + nx * l, py + ny * l);
+    }
+    x.stroke();
+    lab(x, A, B, t({ en: "crease √2", zh: "折痕 √2" }), C, color("--fg"), 18, 16);
+    const [qx, qy] = S(B), s = "1.414?";
+    x.font = "700 15px Inter, system-ui, sans-serif";
+    Play.text(x, s, Math.min(qx + 10 + x.measureText(s).width / 2, V.W - 30), qy - 22, { color: NO, size: 15, weight: 700 });
+  }
+  handle(x, Qt);
+  drawStrip(x);
+}
+function drawStrip(x) {
+  const y0 = V.sy, xl = 24, xr = V.W - 24, q = a / b, gap = Math.abs(q - R2), w = Math.max(gap * 1.8, 1e-9), lo = (q + R2) / 2 - w;
+  const X = (v) => xl + (v - lo) / (2 * w) * (xr - xl), yl = y0 + 26;
+  const M = color("--muted"), HL = color("--hl"), G = color("--a"), NO = color("--no"), FG = color("--fg");
+  x.strokeStyle = M; x.lineWidth = 1.5; x.beginPath(); x.moveTo(xl, yl); x.lineTo(xr, yl); x.stroke();
+  const n0 = Math.ceil(lo * b), n1 = Math.floor((lo + 2 * w) * b);
+  if (n1 - n0 < 60) { x.beginPath(); for (let n = n0; n <= n1; n++) { const px = X(n / b); x.moveTo(px, yl - 5); x.lineTo(px, yl + 5); } x.stroke(); }
+  const xq = X(q), xs = X(R2);
+  x.strokeStyle = NO; x.lineWidth = 4; x.beginPath(); x.moveTo(xq, yl); x.lineTo(xs, yl); x.stroke();
+  x.strokeStyle = G; x.lineWidth = 3; x.beginPath(); x.moveTo(xq, yl - 9); x.lineTo(xq, yl + 9); x.stroke();
+  x.fillStyle = HL; x.beginPath(); x.moveTo(xs, yl - 1); x.lineTo(xs - 7, yl - 12); x.lineTo(xs + 7, yl - 12); x.closePath(); x.fill();
+  x.strokeStyle = HL; x.lineWidth = 3; x.beginPath(); x.moveTo(xs, yl - 4); x.lineTo(xs, yl + 9); x.stroke();
+  const put = (s, px, py, col) => { x.font = "700 15px Inter, system-ui, sans-serif"; const tw = x.measureText(s).width; Play.text(x, s, clamp(px, tw / 2 + 4, V.W - tw / 2 - 4), py, { color: col, size: 15, weight: 700 }); };
+  put("√2 = 1.41421356…", xs, yl - 24, FG);
+  put(`${a}/${b} = ${fmt(q, 6)}`, xq, yl + 24, G);
+  const Z = 1 / (2 * w);
+  Play.text(x, t({ en: "zoom ×", zh: "放大 ×" }) + (Z >= 1 ? Math.round(Z) : fmt(Z, 3)), xl, yl + 50, { color: M, size: 13, align: "left", halo: false });
+  Play.text(x, t({ en: "gap ≈ ", zh: "差 ≈ " }) + sig(gap), xr, yl + 50, { color: NO, size: 13, weight: 700, align: "right", halo: false });
+}
+
+// ---------- steps 02–04: the triangle and its folds ----------
+// k = folds already done, tt = progress of fold k
+function paper(x, k, tt) {
+  const G = color("--a"), Cc = color("--c"), HL = color("--hl"), M = color("--muted");
+  const T0 = T[0], f0 = F[0];
+  if (k > 0 || tt > 0) {
+    poly(x, [T0.R, T0.P, T0.Q], null, rgba(M, 0.7), 1.3, [5, 5]);
+    poly(x, [T0.P, f0.D, T0.Q], rgba(G, 0.26), G, 2.2);
+  } else poly(x, [T0.R, T0.P, T0.Q], rgba(G, 0.26), G, 2.2);
+  for (let j = 0; j < k; j++) { poly(x, [T[j].P, F[j].E, F[j].D], rgba(Cc, 0.3), Cc, 1.8); seg(x, T[j].P, F[j].D, rgba(HL, 0.7), 1.4, [5, 4]); }
+  const Tk = T[k], fk = F[k];
+  if (k > 0) {
+    if (tt > 0) { poly(x, [Tk.P, fk.D, Tk.Q], rgba(HL, 0.3), HL, 2.2); poly(x, [Tk.R, Tk.P, fk.D], null, rgba(HL, 0.8), 1.3, [5, 5]); }
+    else poly(x, [Tk.R, Tk.P, Tk.Q], rgba(HL, 0.3), HL, 2.4);
+  }
+  if (tt >= 1) { const N = T[k + 1]; poly(x, [N.R, N.P, N.Q], rgba(HL, 0.42), HL, 2.8); }
+  if (tt > 0) {
+    const Rt = flapR(k, tt), front = Math.cos(Math.PI * tt) >= 0, col = front ? (k ? HL : G) : Cc;
+    poly(x, [Tk.P, Rt, fk.D], rgba(col, front ? 0.3 : 0.36), col, 2.2);
+  }
+  if (k < NF || tt > 0) seg(x, Tk.P, fk.D, HL, 2.2, [7, 5]);
+  const fg = color("--fg");
+  if (tt === 0) rmark(x, Tk.R, Tk.P, Tk.Q, fg);
+  if (tt >= 1) rmark(x, fk.E, fk.D, Tk.Q, fg);
+}
+function drawTri(x) {
+  const FG = color("--fg"), HL = color("--hl"), Bc = color("--b"), NO = color("--no"), M = color("--muted");
+  const T0 = T[0], f = F[0];
+  if (step === 2 || step === 3) {
+    const tt = step === 2 ? f2 : 1;
+    paper(x, 0, tt);
+    if (step === 2) {
+      lab(x, T0.R, T0.Q, "b", T0.P, FG, 8, 17);
+      lab(x, T0.P, flapR(0, tt), "b", f.D, FG, 8, 17);
+      if (tt < 0.6) lab(x, T0.P, T0.Q, "a", T0.R, FG, 8, 17);
+      if (tt >= 1) lab(x, f.E, T0.Q, "a − b", T0.R, Bc, 8, 17);
+      handle(x, flapR(0, tt));
+    } else {
+      lab(x, T0.R, T0.P, `b = ${b}`, T0.Q, M, 8, 15);
+      lab(x, T0.P, f.E, `b = ${b}`, T0.R, FG, 8, 15);
+      lab(x, f.E, T0.Q, `a − b = ${fmt(a - b, 0)}`, T0.R, Bc, 8, 15);
+      lab(x, f.D, f.E, "a − b", T0.Q, Bc, 8, 15);
+      lab(x, T0.R, f.D, `a − b = ${fmt(a - b, 0)}`, T0.P, Bc, 6, 15);
+      lab(x, f.D, T0.Q, `2b − a = ${fmt(2 * b - a, 0)}`, T0.P, color("--h"), 6, 15);
+    }
+    return;
+  }
+  const { k, tt } = cur4(), rows = chain();
+  paper(x, k, tt);
+  const ci = tt >= 1 ? k + 1 : k, Tc = T[ci], legPx = dist(Tc.R, Tc.Q) * V.p;
+  if (legPx >= 70) {
+    const r = rows[ci], good = r && r.ok, col = good ? FG : NO;
+    lab(x, Tc.R, Tc.Q, `b${sub(ci)} = ${r ? fmt(r.b, 0) : "?"}`, Tc.P, col, 8, 15);
+    lab(x, Tc.P, Tc.Q, `a${sub(ci)} = ${r ? fmt(r.a, 0) : "?"}`, Tc.R, col, 8, 15);
+  }
+  if (k < NF && tt < 1) handle(x, flapR(k, tt));
+  const done = tt >= 1 ? k + 1 : k;
+  Play.text(x, t({ en: `folds: ${done}`, zh: `已折 ${done} 次` }), 14, V.H - 16, { color: M, size: 13, align: "left" });
+  if (zoom) Play.text(x, "×" + fmt(V.p / V.base, V.p / V.base < 10 ? 1 : 0), V.W - 14, V.H - 16, { color: M, size: 13, align: "right" });
+}
+function draw(x) {
+  layout(); placed = [];
+  if (step === 1) drawFold1(x); else drawTri(x);
+}
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+const frac = (p, q) => `<span class="frac"><span>${p}</span><span>${q}</span></span>`;
+const yes = (ok) => (ok ? sp("cA", "✓") : sp("cN", "✗"));
+function presets() {
+  return `<div class="choices pre">` + PRESETS.map(([p, q]) => `<button data-ab="${p},${q}" class="${p === a && q === b ? "pick" : ""}">${p}/${q}</button>`).join("") + `</div>`;
+}
+function render() {
+  const s = STEP[step], ex = $("explain"), d = a * a - 2 * b * b, x1 = a - b, x2 = 2 * b - a;
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2>`;
+  if (step === 1) {
+    if (f1 < 1) {
+      html += `<p>${t({ en: "A square sheet of paper with side one: fold it along the diagonal. Drag the gold corner onto the opposite corner, or press Fold.", zh: "边长为一的正方形纸，沿对角线对折。把金色的角拖到对面的角上，或者按「对折」。" })}</p>`;
+    } else {
+      html += `<p>${t({ en: "The crease is root two long. Don't rush; pick a side in your head: can it be written exactly as a fraction?", zh: "折痕长根号二。先别急，心里站个队：它能正好写成一个分数吗？" })}</p><div class="choices">` +
+        [{ en: "Yes, some fraction", zh: "能，总有一个分数" }, { en: "No, never exactly", zh: "不能正好相等" }].map((g, i) => `<button data-st="${i}" class="${stance === i ? "pick" : ""}">${t(g)}</button>`).join("") + `</div>`;
+      html += `<p><span class="tag-no">${t({ en: "“Measure finely enough and some fraction will fit?”", zh: "「量细点总能凑出分数？」" })}</span> ${t({ en: "Your deskmate measures it with a ruler and gets 1.414. Try fractions yourself: change b under the picture, and a jumps to the closest numerator.", zh: "同桌拿尺子一量，一点四一四。你也来凑：在图下面改 b，a 会自动跳到最接近的分子。" })}</p>`;
+      html += `<div class="mathline">${frac(a, b)} = ${fmt(a / b, 6)}, &nbsp;(${frac(a, b)})² = ${fmt((a / b) ** 2, 6)}<br>${a}² = <b>${a * a}</b>, &nbsp;2 × ${b}² = <b>${2 * b * b}</b></div>`;
+      html += `<p>${d === 0 ? "" : `<span class="tag-no">${t({ en: `Off by ${Math.abs(d)} is not equal.`, zh: `差 ${Math.abs(d)}，就不是相等。` })}</span> `}` +
+        t({ en: "Closer fractions are only off by less. Can you find one that's off by zero?", zh: "越接近的分数也只是差得更少。你能找到一个差为零的吗？" }) + `</p>` + presets();
+      html += `<p class="note">${t({ en: "On the number line the gap shrinks as b grows, but a² and 2b² are whole numbers, and they never meet. Steps 02–04 show why they never can.", zh: "数轴上，b 越大差得越少；可 a² 和 2b² 都是整数，从来没有相等过。第 2–4 步说明为什么永远不会相等。" })}</p>`;
+    }
+  } else if (step === 2) {
+    html += `<p>${t({ en: "First suppose root two equals a over b, with a and b whole numbers. If such fractions exist, take the one whose denominator b is smallest. Square both sides:", zh: "我们先假设，根号二等于 a 比 b，a 和 b 都是正整数。这样的分数要是有，就取分母 b 最小的那一个。两边平方：" })}</p>`;
+    html += `<div class="mathline">√2 = ${frac("a", "b")} &nbsp;${sp("cH", t({ en: "(b smallest)", zh: "（b 最小）" }))}<br>a² = b² + b²</div>`;
+    html += `<p>${t({ en: "By Pythagoras, that's an isosceles right triangle: both legs b, hypotenuse a. It's the folded paper again, with side one replaced by b.", zh: "按勾股定理，这就是一个等腰直角三角形，两条直角边是 b，斜边是 a。它就是刚才对折好的纸，边长一换成了 b。" })}</p>`;
+    if (f2 < 1) html += `<p class="note">${t({ en: "Fold along the bisector of the top angle (dashed), so the left leg lies flat on the hypotenuse. Drag the gold corner or press Fold.", zh: "沿着上面这个角的平分线（虚线）折一下，让左边的直角边贴到斜边上。拖动金色的角，或者按「对折」。" })}</p>`;
+    else {
+      html += `<p>${t({ en: "The folded leg is b long and the hypotenuse is a, so a piece a − b is left over. The right angle now sits on the hypotenuse, and it cuts off a small triangle in the bottom right.", zh: "折过去的这条边长 b，斜边长 a，所以斜边上还剩一段 a − b。原来的直角落在了斜边上，所以右下角切出了一个小三角形。" })}</p>`;
+      html += `<p><strong>${t({ en: "Are this small triangle's sides still whole numbers?", zh: "这个小三角形，边长还是整数吗？" })}</strong></p><div class="choices">` +
+        [{ en: "Yes", zh: "是" }, { en: "No", zh: "不是" }, { en: "Can't tell", zh: "说不准" }].map((g, i) => `<button data-pr="${i}" class="${predict === i ? (i === 0 ? "right" : "wrong") : ""}">${t(g)}</button>`).join("") + `</div>`;
+      if (predict >= 0) html += `<p class="note">${t(predict === 0 ? { en: "Right. Step 03 counts them.", zh: "对。第 3 步来数一数。" } : { en: "Count them in step 03: they are built only from a and b by subtracting.", zh: "去第 3 步数一数：它们都是由 a、b 相减得到的。" })}</p>`;
+    }
+  } else if (step === 3) {
+    const r1 = b < a && a < 2 * b, r2 = 0 < x1 && x1 < b;
+    html += `<p>${t({ en: "Its bottom-right angle is also 45°, so its two legs are equal: both a − b. The left part of the bottom edge folded up into that leg, so it's a − b too, and the rest, the small hypotenuse, is 2b − a.", zh: "它的右下角也是 45°，所以两条直角边一样长，都是 a − b。底边左边那段折上去就是这条边，也是 a − b，剩下的斜边是 2b − a。" })}</p>`;
+    html += `<div class="mathline">1 &lt; √2 &lt; 2 ⇒ b &lt; a &lt; 2b<br>${sp("cH", "0 &lt; a − b &lt; b")}</div>`;
+    html += `<p>${t({ en: "So a − b and 2b − a are both positive whole numbers, and a − b is smaller than b. Again an isosceles right triangle with whole-number sides, but with legs shorter than b. That's a contradiction: b was the smallest.", zh: "于是 a − b 和 2b − a 都是正整数，而且 a − b 比 b 小。又是一个整数边的等腰直角三角形，直角边却比 b 还小，这就矛盾了：b 本来是最小的。" })}</p>`;
+    html += `<p><strong>${t({ en: `Check with a fraction, a/b = ${a}/${b}:`, zh: `拿一个分数试试，a/b = ${a}/${b}：` })}</strong></p>`;
+    html += `<div class="mathline sm">${b} &lt; ${a} &lt; ${2 * b} ${yes(r1)} &nbsp; 0 &lt; ${fmt(x1, 0)} &lt; ${b} ${yes(r2)}<br>` +
+      `${t({ en: "big", zh: "大" })}: ${a}² = ${a * a}, 2 × ${b}² = ${2 * b * b}<br>` +
+      `${t({ en: "small", zh: "小" })}: ${fmt(x2, 0)}² = ${x2 * x2}, 2 × ${fmt(x1, 0)}² = ${2 * x1 * x1}</div>`;
+    if (!r1) html += `<p><span class="tag-no">${t({ en: `${a}/${b} = ${fmt(a / b, 4)} isn't between 1 and 2, so it can't be √2 anyway.`, zh: `${a}/${b} = ${fmt(a / b, 4)} 不在 1 和 2 之间，本来就不可能是 √2。` })}</span></p>`;
+    else html += `<p>${t({ en: `Off by ${fmt(d, 0)} for the big one, ${fmt(x2 * x2 - 2 * x1 * x1, 0)} for the small one: always (2b − a)² − 2(a − b)² = −(a² − 2b²). If the big triangle were exact, the small one would be exact too, and √2 = ${x2}/${x1} would have a smaller denominator than ${b}.`, zh: `大的差 ${fmt(d, 0)}，小的差 ${fmt(x2 * x2 - 2 * x1 * x1, 0)}：总有 (2b − a)² − 2(a − b)² = −(a² − 2b²)。大三角形要是准的，小的也是准的，√2 = ${x2}/${x1} 的分母就比 ${b} 还小。` })}</p>`;
+    html += presets() + `<p class="note">${t({ en: "The picture is drawn with the real √2; the labels use your a and b.", zh: "图是按真正的 √2 画的，标的数用的是你选的 a 和 b。" })}</p>`;
+  } else {
+    const rows = chain(), { k, tt } = cur4(), ci = tt >= 1 ? k + 1 : k;
+    html += `<p>${t({ en: "We can fold the small one again, smaller and smaller, but whole numbers can't keep shrinking.", zh: "在小三角形里还能再折一次，一个比一个小，正整数却不能一直变小。" })}</p>`;
+    let K = 0; const seq = [];
+    for (let v = b; K < 14; K++, v *= R2 - 1) { seq.push(fmt(v, v < 10 ? 3 : 1)); if (v < 1) break; }
+    html += `<p>${t({ en: `With the real √2, the legs after k folds are b × (√2 − 1)ᵏ. For b = ${b}: ${seq.join(" → ")}. After ${K} folds they are below 1, and no whole number lies between 0 and 1.`, zh: `按真正的 √2，折 k 次后直角边是 b × (√2 − 1)ᵏ。b = ${b} 时：${seq.join(" → ")}。折 ${K} 次就小于 1 了，而 0 和 1 之间没有正整数。` })}</p>`;
+    html += `<p><strong>${t({ en: `The whole numbers, starting from ${a}/${b}:`, zh: `整数这边，从 ${a}/${b} 开始：` })}</strong></p>`;
+    html += `<table class="chain"><tr><th>${t({ en: "fold", zh: "折" })}</th><th>${t({ en: "hypotenuse aₖ", zh: "斜边 aₖ" })}</th><th>${t({ en: "legs bₖ", zh: "直角边 bₖ" })}</th><th>aₖ² − 2bₖ²</th></tr>` +
+      rows.map((r) => `<tr class="${r.k === ci ? "cur" : ""} ${r.ok ? "" : "bad"}"><td>${r.k}</td><td>${fmt(r.a, 0)}</td><td>${fmt(r.b, 0)}</td><td>${fmt(r.d, 0)}</td></tr>`).join("") + `</table>`;
+    const last = rows[rows.length - 1];
+    if (!last.ok) html += `<p class="note">${sp("cN", t({ en: `Fold ${last.k}: ${fmt(last.a, 0)}/${fmt(last.b, 0)} is not between 1 and 2, so it is no longer an isosceles right triangle.`, zh: `第 ${last.k} 折：${fmt(last.a, 0)}/${fmt(last.b, 0)} 不在 1 和 2 之间，已经不是等腰直角三角形了。` }))}</p>`;
+    html += `<p>${t({ en: "The last column is never 0; it only flips sign. If √2 were exactly a/b, every row would be an exact isosceles right triangle with 0 there, and the legs b > a − b > … would be positive whole numbers shrinking forever. They can't.", zh: "最后一列从来不是 0，只是正负来回换。如果 √2 正好等于 a/b，每一行都是准确的等腰直角三角形，最后一列都是 0，直角边 b > a − b > … 会是一直变小、永不停止的正整数。这做不到。" })}</p>` + presets();
+    if (stance >= 0) html += `<p class="note">${t(stance === 1 ? { en: "In step 01 you said: no, never exactly. Now you know why.", zh: "第 1 步你选了「不能正好相等」，现在知道为什么了。" } : { en: "In step 01 you said some fraction would fit. The folds show that none can.", zh: "第 1 步你选了「总有一个分数」。折纸说明，一个也没有。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  $("cF").hidden = step > 2; $("c4").hidden = step !== 4; $("cAB").hidden = step === 2;
+  lastKey = explainKey();
+  syncCtl();
+  dirty = true;
+}
+function explainKey() {
+  const c = cur4();
+  return [step, a, b, stance, predict, f1 >= 1, f2 >= 1, step === 4 ? (c.tt >= 1 ? c.k + 1 : c.k) : 0].join();
+}
+function syncCtl() {
+  const f = step === 1 ? f1 : f2, fTo = step === 1 ? f1To : f2To;
+  $("foldBtn").textContent = t(Math.abs(fTo - f) > 1e-3 ? D.pause : f > 0.5 ? D.unfoldB : D.foldB);
+  $("foldR").value = Math.round(f * 100);
+  $("againBtn").textContent = t(Math.abs(s4To - s4) > 1e-3 ? D.pause : s4 >= NF - 1e-9 ? D.overB : D.againB);
+  $("s4R").value = Math.round(s4 * 100);
+  $("aVal").textContent = a; $("bVal").textContent = b;
+}
+
+// ---------- input ----------
+function setB(nb) { b = clamp(Math.round(nb), 1, 999); a = Math.max(1, Math.round(b * R2)); render(); }
+function setA(na) { a = clamp(Math.round(na), 1, 1999); render(); }
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, d = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") setA(a + d); else setB(b + d);
+}));
+$("explain").addEventListener("click", (e) => {
+  const st = e.target.closest("[data-st]"), pr = e.target.closest("[data-pr]"), ab = e.target.closest("[data-ab]");
+  if (st) stance = +st.dataset.st;
+  if (pr) predict = +pr.dataset.pr;
+  if (ab) [a, b] = ab.dataset.ab.split(",").map(Number);
+  if (st || pr || ab) render();
+});
+function foldClick() {
+  if (step === 1) {
+    if (Math.abs(f1To - f1) > 1e-3) f1To = f1; else { f1To = f1 > 0.5 ? 0 : 1; if (Play.reduced) f1 = f1To; }
+  } else {
+    if (Math.abs(f2To - f2) > 1e-3) f2To = f2; else { f2To = f2 > 0.5 ? 0 : 1; if (Play.reduced) f2 = f2To; }
+  }
+  render();
+}
+function againClick() {
+  if (Math.abs(s4To - s4) > 1e-3) s4To = s4;
+  else if (s4 >= NF - 1e-9) s4 = s4To = 0;
+  else { s4To = Math.min(NF, Math.floor(s4 + 1e-6) + 1); if (Play.reduced) s4 = s4To; }
+  render();
+}
+$("foldBtn").onclick = foldClick;
+$("againBtn").onclick = againClick;
+$("foldR").oninput = (e) => { const v = e.target.value / 100; if (step === 1) f1 = f1To = v; else f2 = f2To = v; render(); };
+$("s4R").oninput = (e) => { s4 = s4To = e.target.value / 100; render(); };
+$("zoomC").onchange = (e) => { zoom = e.target.checked; render(); };
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s;
+  if (s === 2) f2 = f2To = 0;
+  if (s === 4) s4 = s4To = 0;
+  f1To = f1; render();
+});
+Play.drag(cv, {
+  down(px, py) {
+    layout();
+    const near = (q) => { const [sx, sy] = S(q); return Math.hypot(px - sx, py - sy) < 26; };
+    if (step === 1) { const c = Math.cos(Math.PI * f1); if (near([0.5 + 0.5 * c, 0.5 + 0.5 * c])) { dragging = 1; f1To = f1; return true; } return false; }
+    if (step === 2 && near(flapR(0, f2))) { dragging = 2; dragK = 0; f2To = f2; return true; }
+    if (step === 4) { const { k, tt, fr } = cur4(); if (k < NF && fr <= 0.6 && near(flapR(k, tt))) { dragging = 4; dragK = k; s4To = s4; return true; } }
+    return false;
+  },
+  move(px, py) {
+    const w = toWorld(px, py);
+    if (dragging === 1) { f1 = f1To = Math.acos(clamp(w[0] + w[1] - 1, -1, 1)) / Math.PI; }
+    else if (dragging) {
+      const f = F[dragK], d = dif(T[dragK].R, f.F), tt = Math.acos(clamp(dot(dif(w, f.F), d) / dot(d, d), -1, 1)) / Math.PI;
+      if (dragging === 2) f2 = f2To = tt; else s4 = s4To = dragK + 0.6 * tt;
+    }
+    if (explainKey() !== lastKey) render(); else { syncCtl(); dirty = true; }
+  },
+  up() {
+    if (dragging === 4 && s4 - dragK > 0.59) { s4To = dragK + 1; if (Play.reduced) s4 = s4To; }
+    dragging = null; render();
+  },
+});
+function key(dx, dy) {
+  if (step === 1 || step === 3) { if (dx) setB(b + dx); if (dy) setA(a + dy); }
+  else if (step === 2) { f2 = f2To = clamp(Math.round((f2 + (dx || dy) * 0.1) * 10) / 10, 0, 1); render(); }
+  else { s4 = s4To = clamp(Math.round((s4 + (dx || dy) * 0.2) * 5) / 5, 0, NF); render(); }
+}
+Play.keys(cv, {
+  ArrowLeft: () => key(-1, 0), ArrowRight: () => key(1, 0), ArrowUp: () => key(0, 1), ArrowDown: () => key(0, -1),
+  Enter: () => (step === 4 ? againClick() : step < 3 ? foldClick() : null),
+  " ": () => (step === 4 ? againClick() : step < 3 ? foldClick() : null),
+});
+$("reset").onclick = () => {
+  a = A0; b = B0; stance = -1; predict = -1; f1 = f1To = 0; f2 = f2To = 0; s4 = s4To = 0; zoom = true; $("zoomC").checked = true;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => (dirty = true));
+
+const toward = (v, to, sp) => (Math.abs(to - v) <= sp ? to : v + Math.sign(to - v) * sp);
+Play.loop((dt) => {
+  let ch = false;
+  if (f1 !== f1To) { f1 = toward(f1, f1To, dt / 1.6); ch = true; }
+  if (f2 !== f2To) { f2 = toward(f2, f2To, dt / 1.6); ch = true; }
+  if (s4 !== s4To) { s4 = toward(s4, s4To, dt / 2.2); ch = true; }
+  if (ch) { if (explainKey() !== lastKey || (f1 === f1To && f2 === f2To && s4 === s4To)) render(); else syncCtl(); dirty = true; }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
