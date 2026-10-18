@@ -1,6 +1,7 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import EpisodeList from "../../../components/EpisodeList.astro";
+import fs from "node:fs";
 import { LANGS, type Lang, STAGES, SEEDS, GRADE_LABEL, episodes, byId, t, pickText } from "../../../data/site";
 
 export function getStaticPaths() {
@@ -14,6 +15,7 @@ const aha = pickText(e.aha, lang);
 const insight = pickText(e.insight, lang);
 const mix = pickText(e.misconception, lang);
 const non = pickText(e.non_example, lang);
+const hasPlay = fs.existsSync(`public/play/${e.slug}.html`);
 const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefined);
 ---
 
@@ -97,6 +99,28 @@ const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefine
       )
     }
   </article>
+
+  {
+    hasPlay && (
+      <section class="play-embed">
+        <h2>{t("tryIt", lang)}</h2>
+        <p class="sub">{t("tryItLead", lang)}</p>
+        <iframe
+          id="play-frame"
+          src={`/play/${e.slug}.html?lang=${lang}&embed=1`}
+          title={`${t("tryIt", lang)} · ${title}`}
+          loading="lazy"
+        />
+        <p class="open"><a href={`/play/${e.slug}.html?lang=${lang}`} target="_blank" rel="noopener">{t("openFull", lang)} ↗</a></p>
+        <script is:inline>
+          addEventListener("message", (m) => {
+            const f = document.getElementById("play-frame");
+            if (f && m.source === f.contentWindow && m.data && m.data.type === "play-height") f.style.height = m.data.h + "px";
+          });
+        </script>
+      </section>
+    )
+  }
 
   {
     related.length > 0 && (

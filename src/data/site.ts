@@ -163,6 +163,12 @@ export const UI: Record<string, T> = {
   },
   ready: { en: "Watch", zh: "可以看" },
   coming: { en: "Coming soon", zh: "即将上线" },
+  tryIt: { en: "Try it yourself", zh: "动手试试" },
+  tryItLead: {
+    en: "The same idea as the video, in your hands: drag, slide and turn the pictures.",
+    zh: "和视频讲的是同一个道理，这次自己动手：拖一拖、滑一滑、转一转。",
+  },
+  openFull: { en: "Open full screen", zh: "新窗口打开" },
   planned: { en: "Planned", zh: "计划中" },
   question: { en: "The question", zh: "要回答的问题" },
   insight: { en: "The idea", zh: "洞察" },

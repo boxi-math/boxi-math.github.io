@@ -119,6 +119,11 @@ a.chip:hover { border-color: var(--a); }
 .block.mix .label { color: var(--no); }
 .block.non .label { color: var(--c); }
 .block p { font-size: 1.1rem; }
+.play-embed { margin: 2.5rem 0 1rem; }
+.play-embed h2 { margin-top: 0; }
+.play-embed .sub { color: var(--muted); }
+.play-embed iframe { width: 100%; height: 1200px; border: 0; display: block; }
+.play-embed .open { font-size: 0.9rem; margin-top: 0.5rem; }
 .crumbs { font-size: 0.9rem; color: var(--muted); margin-bottom: 1rem; }
 .crumbs a { color: var(--muted); }
 

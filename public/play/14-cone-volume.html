@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Is a Cone One Third of a Cylinder? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools">
+      <label class="check"><input id="auto" type="checkbox" checked><span data-t="auto"></span></label>
+      <button class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" data-t="drag"></div>
+      <canvas class="main" id="main" aria-label="3D model"></canvas>
+      <div class="controls" id="c1">
+        <span data-t="put"></span>
+        <button class="small" data-k="1">1</button><button class="small" data-k="2">2</button><button class="small" data-k="3">3</button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="small" id="play" data-t="pause"></button>
+        <span data-t="together"></span><input id="split" type="range" min="0" max="100" value="0" aria-label="split"><span data-t="apart"></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span data-t="cutAt"></span><input id="cut" type="range" min="0" max="100" value="35" aria-label="height of the cut"><span class="val" id="cutVal"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <div class="sectionbar" id="cardsBar"><h3 id="cardsTitle"></h3><span id="cardsHint"></span></div>
+  <section class="cards" id="cards"></section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">V<sub data-t="cone"></sub> = <span class="frac"><span>1</span><span>3</span></span> S h</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, v, View3D, mesh, color, rgba, fmt } = Play;
+const D = {
+  title: { en: "Why Is a Cone One Third of a Cylinder?", zh: "圆锥为什么是圆柱的 1/3" },
+  eyebrow: { en: "Boxi Math · Try it · #14", zh: "Boxi Math · 动手试试 · #14" },
+  intro: { en: "Fill a cube with pyramids, cut it apart, then slice a pyramid and a cone at the same height. Drag any model to turn it, pinch or Ctrl + scroll to zoom, double-click to reset.",
+           zh: "先往正方体里放四棱锥，再把正方体切开，最后在同一高度切开四棱锥和圆锥。每个模型都能拖动旋转、双指或 Ctrl + 滚轮缩放，双击复位。" },
+  s1: { en: "Half?", zh: "一半？" }, s2: { en: "Cut the cube", zh: "切开正方体" }, s3: { en: "Equal slices", zh: "每层一样大" },
+  auto: { en: "Auto-rotate", zh: "自动旋转" }, reset: { en: "Reset", zh: "重置" }, drag: { en: "drag to turn", zh: "可拖动旋转" },
+  put: { en: "Pyramids in the cube:", zh: "放进几块四棱锥：" },
+  pause: { en: "Pause", zh: "暂停" }, playB: { en: "Play", zh: "播放" },
+  together: { en: "together", zh: "合拢" }, apart: { en: "apart", zh: "分开" }, cutAt: { en: "Cut at height", zh: "截面高度" },
+  cone: { en: "cone", zh: "锥" },
+  resT: { en: "Same base area S, same height h: a pyramid or a cone holds one third of its prism or cylinder.", zh: "同底面积 S、同高 h：锥体是柱体的三分之一。" },
+  resN: { en: "Pouring sand three times shows the 1/3, but it doesn't explain it. The cube cut into three, plus equal slices at every height, is the reason.",
+          zh: "倒三次沙子能看到 1/3，但说不出为什么。正方体切成三块、每一层截面一样大，才是道理。" },
+  moreS: { en: "Why do equal slices mean equal volume?", zh: "为什么每层一样大，体积就一样？" },
+  moreP: { en: "Stack each solid out of very thin layers. If the two solids have layers of equal area at every height, each pair of layers has (almost) the same volume, so the stacks do too. This idea is called Cavalieri's principle (in China, Zu Geng's principle). Here we show it, we don't prove it.",
+           zh: "把两个立体都切成很多很薄的层。如果在每个高度两层的面积都一样，每一对薄层的体积就（几乎）一样，叠起来的总体积也一样。这叫祖暅原理（国外叫卡瓦列里原理）。这里是演示，不是证明。" },
+  foot: { en: "Drag or swipe to turn · pinch or Ctrl + scroll to zoom · double-click to reset · arrow keys and + / − on a focused model. Solid lines are visible edges, dashed lines are hidden ones.",
+          zh: "拖动旋转 · 双指或 Ctrl + 滚轮缩放 · 双击复位 · 选中模型后可用方向键和 + / −。实线是看得见的棱，虚线是被挡住的棱。" },
+  v1: { en: "Cube and pyramids", zh: "正方体和四棱锥" }, v2: { en: "One cube, three pieces", zh: "一个正方体，三块" }, v3: { en: "Same height, same slice", zh: "同一高度切一刀" },
+};
+const STEP = {
+  1: k => ({
+    kicker: { en: "Step 01 · test the guess", zh: "观察 01 / 先试试直觉" },
+    h: { en: "If a pyramid were half the cube, two would fill it", zh: "要是四棱锥是正方体的一半，两块就该装满" },
+    p: { en: "Each pyramid here has the cube's bottom face as its base and the cube's height as its height. Put them in one at a time.",
+         zh: "这里每块四棱锥的底面都是正方体的一个面，高都是正方体的高。一块一块放进去看看。" },
+    after: k === 1 ? { en: "One pyramid: most of the cube is still empty.", zh: "放一块：大半个正方体还空着。" }
+         : k === 2 ? { en: "<span class='tag-no'>Not full.</span> Two pyramids leave a whole piece empty, so a pyramid is <strong>not</strong> half.", zh: "<span class='tag-no'>没装满。</span>两块还空着一整块，所以四棱锥<strong>不是</strong>一半。" }
+         : { en: "Three pyramids fill the cube exactly, with no gaps and no overlaps.", zh: "三块正好装满，不留空、不重叠。" },
+  }),
+  2: () => ({
+    kicker: { en: "Step 02 · one cube, three pieces", zh: "观察 02 / 一个正方体拆成三块" },
+    h: { en: "The three pyramids are exactly the same", zh: "三块四棱锥一模一样" },
+    p: { en: "All three share the top corner <span class='math'>T</span>. Each takes one face of the cube that doesn't touch <span class='math'>T</span> as its base. Turn the cards below to the same angle: they match.",
+         zh: "三块共用顶点 <span class='math'>T</span>，各自拿一个不碰到 <span class='math'>T</span> 的面当底面。把下面三张卡片转到同一个角度，它们完全重合。" },
+    after: { en: "So each one is <span class='math'><span class='frac'><span>1</span><span>3</span></span></span> of the cube: base area <span class='math'>S = a²</span>, height <span class='math'>h = a</span>, volume <span class='math'><span class='frac'><span>1</span><span>3</span></span>a³ = <span class='frac'><span>1</span><span>3</span></span>Sh</span>.",
+             zh: "所以每块是正方体的 <span class='math'><span class='frac'><span>1</span><span>3</span></span></span>：底面积 <span class='math'>S = a²</span>，高 <span class='math'>h = a</span>，体积 <span class='math'><span class='frac'><span>1</span><span>3</span></span>a³ = <span class='frac'><span>1</span><span>3</span></span>Sh</span>。" },
+  }),
+  3: () => ({
+    kicker: { en: "Step 03 · from square to round", zh: "观察 03 / 从方的到圆的" },
+    h: { en: "A pyramid and a cone with equal slices at every height", zh: "四棱锥和圆锥，每一层截面一样大" },
+    p: { en: "<span class='tag-demo'>Demo, not proof</span><br>Both have base area <span class='math'>S = 4</span> and height <span class='math'>h = 2.4</span>. Move the cut. At height <span class='math'>z</span> each slice is the base shrunk by <span class='math'>1 − z/h</span>, so its area is <span class='math'>S(1 − z/h)²</span> for both.",
+         zh: "<span class='tag-demo'>这是演示，不是证明</span><br>两者底面积都是 <span class='math'>S = 4</span>，高都是 <span class='math'>h = 2.4</span>。拖动截面：在高度 <span class='math'>z</span>，截面是底面缩小到 <span class='math'>1 − z/h</span> 倍，面积都是 <span class='math'>S(1 − z/h)²</span>。" },
+    after: null,
+  }),
+};
+
+Play.i18n(D);
+const A = 2, T = [0, 0, A];
+const pieces = [
+  { base: [[0, 0, 0], [A, 0, 0], [A, A, 0], [0, A, 0]], dir: [0, 0, -1], col: "--a", foot: [0, 0, 0] },
+  { base: [[A, 0, 0], [A, A, 0], [A, A, A], [A, 0, A]], dir: [1, 0, 0], col: "--c", foot: [A, 0, A] },
+  { base: [[0, A, 0], [A, A, 0], [A, A, A], [0, A, A]], dir: [0, 1, 0], col: "--b", foot: [0, A, A] },
+];
+const cubeEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+const cube = mesh.box(0, 0, 0, A, A, A);
+const H = 2.4, S = 4, side = 2, R = Math.sqrt(S / Math.PI);
+const PX = -1.85, CX = 1.85;
+
+let step = 1, count = 1, split = 0, playing = !Play.reduced, clock = 0, cut = 0.35, auto = !Play.reduced, dirty = true;
+const main = new View3D(document.getElementById("main"), { yaw: -0.75, pitch: 0.42, onChange: () => (dirty = true) });
+let cards = [];
+
+function pieceMesh(i, off = 0) {
+  const p = pieces[i], d = v.mul(p.dir, off), m = mesh.pyramid(p.base.map((q) => v.add(q, d)), v.add(T, d));
+  return m;
+}
+function ghostCube(view, al = 0.55) {
+  cubeEdges.forEach(([a, b]) => view.line(cube.pts[a], cube.pts[b], rgba(color("--muted"), al), 1, [3, 5]));
+}
+
+function drawMain() {
+  const view = main;
+  if (!view.size()) return;
+  if (step === 1) {
+    view.fit(cube.pts.concat([[0, 0, -0.2]]), 44);
+    ghostCube(view, 0.8);
+    const sol = [];
+    for (let i = 0; i < count; i++) sol.push(view.solid({ ...pieceMesh(i), color: color(pieces[i].col) }));
+    View3D.draw(view, sol);
+    if (count === 2) {
+      const c = v.avg([...pieces[2].base, T]);
+      view.poly(pieces[2].base, rgba(color("--no"), 0.08), rgba(color("--no"), 0.6), 1.2, [4, 4]);
+      view.label(c, Play.t({ en: "empty", zh: "空着" }), { color: color("--no"), size: 15, weight: 700 });
+    }
+    view.label(T, "T", { italic: true, size: 17, dy: -14 });
+  } else if (step === 2) {
+    const off = split * 1.25, all = [];
+    pieces.forEach((_, i) => all.push(...pieceMesh(i, 1.25).pts, ...pieceMesh(i, 0).pts));
+    view.fit(all, 30);
+    const sol = pieces.map((p, i) => view.solid({ ...pieceMesh(i, off), color: color(p.col) }));
+    View3D.draw(view, sol);
+    if (split < 0.15) view.label(T, "T", { italic: true, size: 17, dy: -14 });
+    else pieces.forEach((p, i) => {
+      const c = view.project(v.avg(pieceMesh(i, off).pts)), x = view.ctx;
+      x.beginPath(); x.arc(c[0], c[1], 11, 0, 7); x.fillStyle = color(p.col); x.fill();
+      Play.text(x, String(i + 1), c[0], c[1] + 0.5, { color: color("--surface"), size: 12, weight: 700, halo: false });
+    });
+  } else {
+    const pyr = mesh.pyramid([[PX - 1, -1, 0], [PX + 1, -1, 0], [PX + 1, 1, 0], [PX - 1, 1, 0]], [PX, 0, H]);
+    const con = mesh.cone([CX, 0, 0], R, H, 64);
+    view.fit(pyr.pts.concat(con.pts, [[PX - 1.4, -1.5, 0], [CX + 1.4, 1.5, H]]), 26);
+    const z = cut * H, k = 1 - cut;
+    const plane = [[PX - 1.45, -1.45, z], [CX + 1.45, -1.45, z], [CX + 1.45, 1.45, z], [PX - 1.45, 1.45, z]];
+    const behind = view.raw([0, 1, 0])[2] < 0;  // is +y away from viewer
+    View3D.draw(view, [view.solid({ ...pyr, color: color("--a") }), view.solid({ ...con, color: color("--c") })]);
+    view.poly(plane, rgba(color("--hl"), 0.16), rgba(color("--hl"), 0.7), 1);
+    const sq = [[PX - k, -k, z], [PX + k, -k, z], [PX + k, k, z], [PX - k, k, z]];
+    const circ = []; for (let i = 0; i < 64; i++) { const a = i / 64 * 2 * Math.PI; circ.push([CX + R * k * Math.cos(a), R * k * Math.sin(a), z]); }
+    view.poly(sq, rgba(color("--a"), 0.55), color("--a"), 2);
+    view.poly(circ, rgba(color("--c"), 0.55), color("--c"), 2);
+    const area = S * k * k;
+    view.label([PX, behind ? 1.5 : -1.5, z], "A = " + fmt(area), { color: color("--a"), size: 14, weight: 700, dy: 16 });
+    view.label([CX, behind ? 1.5 : -1.5, z], "A = " + fmt(area), { color: color("--c"), size: 14, weight: 700, dy: 16 });
+    view.line([CX + 1.45, 1.45, 0], [CX + 1.45, 1.45, z], color("--h"), 1.8, [6, 4]);
+    view.label([CX + 1.45, 1.45, z / 2], "z", { italic: true, size: 16, color: color("--h"), dx: 12 });
+  }
+}
+
+function makeCards() {
+  const box = document.getElementById("cards");
+  box.innerHTML = ""; cards = [];
+  const bar = document.getElementById("cardsBar");
+  if (step === 1) { bar.hidden = true; box.hidden = true; return; }
+  bar.hidden = false; box.hidden = false;
+  if (step === 2) {
+    document.getElementById("cardsTitle").textContent = t({ en: "The three pieces, one by one", zh: "三块四棱锥，分别看" });
+    document.getElementById("cardsHint").innerHTML = t({ en: "Tick “same angle” to compare", zh: "勾选「同一角度」来比较" }) +
+      ` <label class="check"><input type="checkbox" id="sync"> ${t({ en: "same angle", zh: "同一角度" })}</label>`;
+    pieces.forEach((p, i) => {
+      const el = document.createElement("article"); el.className = "card"; el.style.setProperty("--c-card", `var(${p.col})`);
+      const vx = ["T–ABCD", "T–BCGF", "T–DCGH"][i];
+      el.innerHTML = `<header><div class="badge">${i + 1}</div><div><h4>${t({ en: "Pyramid", zh: "四棱锥" })} ${i + 1}</h4><div class="sub">${t({ en: ["base: bottom face", "base: right face", "base: back face"][i], zh: ["底面：正方体的底面", "底面：正方体的右侧面", "底面：正方体的后侧面"][i] })}</div></div></header>
+        <canvas tabindex="0" aria-label="${t({ en: "pyramid", zh: "四棱锥" })} ${i + 1}"></canvas>
+        <div class="views"><button class="small" data-v="0">${t({ en: "Front", zh: "正面" })}</button><button class="small" data-v="1">${t({ en: "Side", zh: "侧面" })}</button><button class="small" data-v="2">${t({ en: "Top", zh: "俯看" })}</button><button class="small" data-v="3">${t({ en: "Home", zh: "复位" })}</button></div>
+        <div class="cnote"><strong>S = a², h = a</strong><br>${t({ en: "The pink dashed line is the height: from T straight to the base. It is a cube edge.", zh: "粉色虚线是高：从 T 垂直到底面，正好是正方体的一条棱。" })}</div>`;
+      box.appendChild(el);
+      const view = new View3D(el.querySelector("canvas"), { yaw: -0.75 + i * 0.9, pitch: 0.42, onChange: () => (dirty = true) });
+      view.i = i;
+      el.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => { const q = [[0, 0.12], [1.57, 0.12], [0, 1.4], null][+b.dataset.v]; q ? view.set(q[0], q[1]) : view.reset(); });
+      cards.push(view);
+    });
+    document.getElementById("sync").onchange = (e) => {
+      cards.forEach((c, i) => { c.followers = e.target.checked ? cards.filter((_, j) => j !== i) : []; });
+      if (e.target.checked) { const f = cards[0]; cards.forEach((c) => { c.yaw = f.yaw; c.pitch = f.pitch; c.zoom = f.zoom; }); }
+      dirty = true;
+    };
+  } else {
+    document.getElementById("cardsTitle").textContent = t({ en: "The two slices, seen from above", zh: "两个截面，从上往下看" });
+    document.getElementById("cardsHint").textContent = t({ en: "same scale", zh: "同一比例" });
+    [["--a", { en: "Pyramid slice: a square", zh: "四棱锥的截面：正方形" }], ["--c", { en: "Cone slice: a circle", zh: "圆锥的截面：圆" }]].forEach(([col, name], i) => {
+      const el = document.createElement("article"); el.className = "card"; el.style.setProperty("--c-card", `var(${col})`);
+      el.innerHTML = `<header><div class="badge">${i ? "○" : "□"}</div><div><h4>${t(name)}</h4><div class="sub" id="sl${i}"></div></div></header><canvas aria-hidden="true"></canvas><div class="cnote" id="sn${i}"></div>`;
+      box.appendChild(el);
+      const cv = Play.canvas(el.querySelector("canvas"), (x, w, h) => drawSlice(x, w, h, i));
+      cv.i = i; cards.push(cv);
+    });
+  }
+}
+
+function drawSlice(x, w, h, i) {
+  const k = 1 - cut, sc = Math.min(w, h) / 2 / 1.25, cx = w / 2, cy = h / 2;
+  x.strokeStyle = rgba(color("--muted"), 0.5); x.setLineDash([3, 4]); x.lineWidth = 1;
+  if (i === 0) x.strokeRect(cx - sc, cy - sc, 2 * sc, 2 * sc); else { x.beginPath(); x.arc(cx, cy, R * sc, 0, 7); x.stroke(); }
+  x.setLineDash([]);
+  x.fillStyle = rgba(color(i ? "--c" : "--a"), 0.45); x.strokeStyle = color(i ? "--c" : "--a"); x.lineWidth = 2;
+  x.beginPath();
+  if (i === 0) x.rect(cx - k * sc, cy - k * sc, 2 * k * sc, 2 * k * sc); else x.arc(cx, cy, R * k * sc, 0, 7);
+  x.fill(); x.stroke();
+  Play.text(x, "A = " + fmt(S * k * k), cx, cy, { size: 15, weight: 700 });
+  const sl = document.getElementById("sl" + i), sn = document.getElementById("sn" + i);
+  if (sl) sl.textContent = i ? `r = ${fmt(R * k, 3)}` : `${t({ en: "side", zh: "边长" })} = ${fmt(side * k)}`;
+  if (sn) sn.innerHTML = i ? `π × ${fmt(R * k, 3)}² = ${fmt(Math.PI * (R * k) ** 2)}` : `${fmt(side * k)}² = ${fmt((side * k) ** 2)}`;
+}
+
+function drawCards() {
+  if (step === 2) cards.forEach((view) => {
+    if (!view.size()) return;
+    const i = view.i, m = pieceMesh(i, 0);
+    view.fit(cube.pts, 26);
+    if (document.getElementById("ghost")?.checked !== false) ghostCube(view, 0.35);
+    view.poly(pieces[i].base, rgba(color(pieces[i].col), 0.18));
+    View3D.draw(view, [view.solid({ ...m, color: color(pieces[i].col) })]);
+    view.line(T, pieces[i].foot, color("--h"), 2.2, [6, 4]);
+    view.label(v.lerp(T, pieces[i].foot, 0.5), "h", { italic: true, size: 16, color: color("--h"), dx: 12 });
+    view.label(T, "T", { italic: true, size: 16, dy: -13 });
+    view.label(v.avg(pieces[i].base), "S", { italic: true, size: 18, color: color(pieces[i].col) });
+  });
+  else if (step === 3) cards.forEach((c) => c.redraw());
+}
+
+function render() {
+  const s = STEP[step](count), ex = document.getElementById("explain");
+  ex.innerHTML = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>` +
+    (step === 1 ? `<div class="choices" aria-hidden="true">${[0, 1, 2].map((i) => `<span class="dot" style="width:46px;height:12px;border-radius:4px;background:${i < count ? `var(${pieces[i].col})` : "var(--line)"}"></span>`).join("")}<span class="note" style="color:var(--muted)">${count}/3</span></div>` : "") +
+    (s.after ? `<p>${t(s.after)}</p>` : "") +
+    (step === 3 ? `<div class="mathline" id="live"></div><p class="note">${t({ en: "Equal slices at every height → equal volume. So the cone holds the same as the pyramid: one third of the prism, which has the same volume as the cylinder.", zh: "每一层都一样大 → 体积一样。所以圆锥和四棱锥一样，是同底同高柱体的三分之一；而这个棱柱和圆柱体积也一样。" })}</p>` : "");
+  document.getElementById("vtitle").textContent = t(D["v" + step]);
+  ["c1", "c2", "c3"].forEach((id, i) => (document.getElementById(id).hidden = i + 1 !== step));
+  document.querySelectorAll("#c1 [data-k]").forEach((b) => b.classList.toggle("on", +b.dataset.k === count));
+  live();
+  dirty = true;
+}
+function live() {
+  const el = document.getElementById("live"), k = 1 - cut;
+  document.getElementById("cutVal").textContent = "z = " + fmt(cut * H);
+  if (el) el.innerHTML = `${t({ en: "square", zh: "正方形" })} ${fmt(side * k)}² = <b>${fmt(S * k * k)}</b><br>${t({ en: "circle", zh: "圆" })} π·${fmt(R * k, 3)}² = <b>${fmt(Math.PI * (R * k) ** 2)}</b>`;
+}
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n;
+  if (n === 2) { split = 0; clock = 0; playing = !Play.reduced; document.getElementById("split").value = 0; }
+  document.getElementById("play").textContent = t(playing ? D.pause : D.playB);
+  makeCards(); render();
+});
+document.querySelectorAll("#c1 [data-k]").forEach((b) => (b.onclick = () => { count = +b.dataset.k; render(); }));
+document.getElementById("play").onclick = () => {
+  playing = !playing; if (playing) clock = Math.acos(1 - 2 * split) / Math.PI * 5;
+  document.getElementById("play").textContent = t(playing ? D.pause : D.playB);
+};
+document.getElementById("split").oninput = (e) => { playing = false; split = e.target.value / 100; document.getElementById("play").textContent = t(D.playB); dirty = true; };
+document.getElementById("cut").oninput = (e) => { cut = Math.min(0.98, e.target.value / 100); live(); dirty = true; };
+document.getElementById("auto").checked = auto;
+document.getElementById("auto").onchange = (e) => { auto = e.target.checked; if (auto) [main, ...cards].forEach((c) => (c.manual = false)); };
+document.getElementById("reset").onclick = () => {
+  main.reset(); count = 1; cut = 0.35; document.getElementById("cut").value = 35; auto = !Play.reduced; document.getElementById("auto").checked = auto; nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => (dirty = true));
+
+Play.loop((dt) => {
+  if (step === 2 && playing) { clock += dt; split = (1 - Math.cos(clock * Math.PI / 5)) / 2; document.getElementById("split").value = Math.round(split * 100); dirty = true; }
+  if (auto) [main, ...(step === 2 ? cards : [])].forEach((c) => { if (!c.manual && !(c.followers.length && c !== cards[0] && document.getElementById("sync")?.checked)) { c.yaw += dt * 0.15; c.changed(); dirty = true; } });
+  if (dirty) { dirty = false; drawMain(); drawCards(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
