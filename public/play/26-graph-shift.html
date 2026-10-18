@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Does f(x + 2) Shift Left? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1 1 140px; }
+  .controls .grp input[type=range] { flex: 1 1 90px; }
+  .controls .lbl { font-family: var(--math); font-size: 15px; color: var(--fg); }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 19px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 2px 0; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .choices button { font-family: var(--math); font-size: 16px; min-height: 38px; padding: 4px 14px; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--no); margin-right: 5px; vertical-align: 3px; }
+  .thin { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--muted); margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="coordinate grid with square-root curves"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span>x</span><input id="tR" type="range" min="2" max="9" step="1" aria-label="x"><span class="val" id="tV"></span></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span>x</span><input id="xR" type="range" min="-2" max="6" step="1" aria-label="x"><span class="val" id="xV"></span></span>
+        <button id="whole" data-t="whole"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><span class="lbl">√(x + s)</span><input id="sR" type="range" min="-4" max="4" step="1" aria-label="s"><span class="val" id="sV"></span></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="grp"><span data-t="inW"></span><input id="pR" type="range" min="-3" max="3" step="1" aria-label="inside"><span class="val" id="pV"></span></span>
+        <span class="grp"><span data-t="outW"></span><input id="qR" type="range" min="-3" max="3" step="1" aria-label="outside"><span class="val" id="qV"></span></span>
+        <span class="grp" id="pre"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><i>y</i> = <i>f</i>(<i>x</i> + 2) ⇒ <span data-t="resM"></span></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreR"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Why Does f(x + 2) Shift Left?", zh: "图像平移为什么是“左加右减”" },
+  eyebrow: { en: "Boxi Math · Try it · #26", zh: "Boxi Math · 动手试试 · #26" },
+  intro: { en: "When you learn the rule, y equals f of x plus two gets filed as two units to the left. But why should a plus sign mean left? Test the guess 'right two' on y = √(x + 2), track when the value two shows up, then move the curve yourself.",
+           zh: "背口诀的时候，y = f(x + 2) 记作往左移两格。可加号凭什么往左？先拿 y = √(x + 2) 试试「往右移两格」的说法，再盯住二这个值什么时候出现，最后亲手挪一挪曲线。" },
+  s1: { en: "Right 2?", zh: "右移 2？" }, s2: { en: "When does 2 show up?", zh: "二何时出现" }, s3: { en: "f(x − 3)", zh: "f(x − 3)" }, s4: { en: "Inside or outside", zh: "里面还是外面" },
+  reset: { en: "Reset", zh: "重置" },
+  whole: { en: "Draw the whole curve", zh: "画出整条曲线" },
+  inW: { en: "inside:", zh: "括号里：" }, outW: { en: "outside:", zh: "括号外：" },
+  v1: { en: "testing 'plus two means right two'", zh: "检验「加二就右移两格」" }, v2: { en: "y = √(x + 2), one value at a time", zh: "y = √(x + 2)，一个值一个值地看" },
+  v3: { en: "y = √(x + s)", zh: "y = √(x + s)" }, v4: { en: "y = √(x + p) + q", zh: "y = √(x + p) + q" },
+  tag1: { en: "drag the gold point", zh: "拖动金色的点" }, tag2: { en: "drag the gold point", zh: "拖动金色的点" },
+  tag3: { en: "drag the curve sideways", zh: "左右拖动曲线" }, tag4: { en: "drag a gold point", zh: "拖动金色的点" },
+  early: { en: "2 early", zh: "提前 2" },
+  resT: { en: "Ask when a value shows up", zh: "问一句：这个值什么时候出现" },
+  resM: { en: "every value 2 early, so left 2", zh: "每个值提前 2 格，左移 2" },
+  resN: { en: "At x, y = f(x + 2) takes the value f has at x + 2. No need to memorize 'plus means left'. Adding outside, f(x) + 2, changes y instead, and that curve moves up.",
+          zh: "y = f(x + 2) 在 x 处取的是 f 在 x + 2 处的值。左加右减不用死记。加在外面的 f(x) + 2 改的是 y，那条曲线是往上移。" },
+  moreS: { en: "Why does this work for every f, not just √x?", zh: "为什么对所有 f 都成立，不只是 √x？" },
+  moreP: { en: "Let g of x be f of x plus two. Then g at a minus two equals f at a minus two plus two, which is f at a. So for any point (a, f(a)) on f's graph, the point (a − 2, f(a)) is on g's graph: every point of f's graph, moved two left, lies on g's graph. Nothing here used the square root.",
+           zh: "设 g(x) = f(x + 2)。那么 g(a − 2) = f(a − 2 + 2) = f(a)。所以 f 的图像上任意一点 (a, f(a))，左移两格得到的 (a − 2, f(a)) 都在 g 的图像上：f 的图像上每一点左移两格，就在 g 的图像上。这里没有用到根号的任何性质。" },
+  moreR: { en: "Remember the vertex sits where the bracket is zero (#24)? It's the same idea. In y = (x − 1)², the value 0 that x² has at 0 now needs the bracket to be zero, at x = 1: one unit late, so the parabola sits one to the right.",
+           zh: "还记得顶点在括号等于零的地方吗（#24）？那也是同一件事。y = (x − 1)² 里，x² 在 0 处取到的零，现在要等括号等于零，也就是 x = 1 才出现：晚了一格，所以抛物线在右边一格。" },
+  moreQ: { en: "Next: if y doubles with every step to the right, what does the curve look like?", zh: "下一集：要是每往右走一格，y 就翻一倍，这条曲线会长成什么样？" },
+  foot: { en: "Grey is y = √x, green is the new curve, red is the 'right two' guess, gold is what you drag, blue shows a change inside the bracket (sideways), brown a change outside (up or down). On a focused picture, arrow keys work too (steps 1–3: ← →; step 4: arrows move the starting point).",
+          zh: "灰色是 y = √x，绿色是新曲线，红色是「右移两格」的猜想，金色是你能拖的点，蓝色表示括号里的改动（左右移），棕色表示括号外的改动（上下移）。选中图后也能用方向键（第 1–3 步：← →；第 4 步：方向键移动起点）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const hot = (s) => `<span class="hot">${s}</span>`;
+const sgn = (v) => (Math.abs(v) < EPS ? "" : (v > 0 ? " + " : " − ") + fmt(Math.abs(v)));
+const unit = (n) => t(Math.abs(n) === 1 ? { en: "unit", zh: "格" } : { en: "units", zh: "格" });
+// √n as text: exact when n is a perfect square, else "√n" (and "≈ value" with approx)
+function rootS(n, approx) {
+  const r = Math.sqrt(Math.max(0, n));
+  if (Math.abs(r - Math.round(r)) < 1e-9) return fmt(Math.round(r));
+  return "√" + fmt(n) + (approx ? " ≈ " + fmt(r) : "");
+}
+const eqS = (p, q) => "y = " + (Math.abs(p) < EPS ? "√x" : `√(x${sgn(p)})`) + sgn(q);
+
+// ---------- state ----------
+let t1, tried;                 // step 1: point on the guess y = √(x − 2) at x = t1
+let x2, seen, all2;            // step 2: point on y = √(x + 2) at x = x2
+let s3, sD, pick;              // step 3: y = √(x + s); sD = displayed (tweened)
+let p4, q4, pD, qD;            // step 4: y = √(x + p) + q
+function init() {
+  t1 = 6; tried = new Set([6]);
+  x2 = 4; seen = new Set([4]); all2 = false;
+  s3 = sD = 2; pick = null;
+  p4 = pD = 0; q4 = qD = 2;
+}
+init();
+let step = 1, dirty = true, grab = null, frozen = null;
+
+// ---------- view: equal units; fits a world rectangle below a 30 px title strip ----------
+const TOP = 30;
+const RECT = { 1: { x0: -1, x1: 10, y0: -0.8, y1: 4.2 }, 2: { x0: -3, x1: 8, y0: -0.8, y1: 3.8 },
+               3: { x0: -5, x1: 9.5, y0: -0.8, y1: 4.2 }, 4: { x0: -4.5, x1: 9.5, y0: -3.6, y1: 6 } };
+function fitHeight() {                 // canvas height follows the content
+  const W = cvEl.getBoundingClientRect().width || 600, R = RECT[step];
+  const h = Math.round(clamp(TOP + 8 + (R.y1 - R.y0) * W / (R.x1 - R.x0), 230, 400));
+  if (cvEl.style.height !== h + "px") cvEl.style.height = h + "px";
+}
+function vw() {
+  if (grab && frozen) return frozen;
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360, R = RECT[step];
+  const u = Math.max(14, Math.min(W / (R.x1 - R.x0), (H - TOP) / (R.y1 - R.y0)));
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2, my = TOP + (H - TOP) / 2;
+  const V = { W, H, u, X: (x) => W / 2 + (x - cx) * u, Y: (y) => my - (y - cy) * u,
+    wx: (px) => cx + (px - W / 2) / u, wy: (py) => cy - (py - my) / u };
+  V.xmin = V.wx(0); V.xmax = V.wx(W); V.ymin = V.wy(H); V.ymax = V.wy(0);
+  return V;
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick0 = null, inside = null;
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (!(bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2)) continue;
+    inside = inside || c;
+    if (!boxes.some((b) => hit(b, bx))) { pick0 = c; break; }
+  }
+  if (!pick0) { if (o.optional) return; pick0 = inside || cands[0]; }   // never clip a required label
+  boxes.push(boxOf(x, s, pick0[0], pick0[1], size, pick0[2] || "center"));
+  Play.text(x, s, pick0[0], pick0[1], { weight: 700, ...o, size, align: pick0[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+// around a point: right-below, left-below, right-above, left-above, below, above (first = preferred side)
+function around(p, side, below, d = 14) {
+  const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
+  const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
+  const S = side >= 0 ? [r, l] : [l, r];
+  return [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
+          [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4],
+          [p[0] - d - 8, p[1], "right"], [p[0] + d + 8, p[1], "left"], [p[0], p[1] + 2 * d + 6], [p[0], p[1] - 2 * d - 6]];
+}
+
+// ---------- drawing ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 30 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (bx[0] < 2 || bx[2] > V.W - 2 || bx[1] < 2 || bx[3] > V.H - 2 || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+  put("x", V.W - 12, V.Y(0) - 13, "center");
+  put("y", V.X(0) + 13, 40, "center");
+}
+// points of y = √(x + p) + q, sampled along the root (x = −p + r², y = q + r) so the start is smooth
+function rootPts(V, p, q) {
+  const x0 = -p, out = [];
+  if (x0 > V.xmax + 1) return out;
+  const rmax = Math.sqrt(Math.max(0, V.xmax + 1 - x0));
+  for (let r = 0; ; r += 0.02) {
+    const rr = Math.min(r, rmax);
+    out.push([V.X(x0 + rr * rr), clamp(V.Y(q + rr), -80, V.H + 80)]);
+    if (rr >= rmax) break;
+  }
+  return out;
+}
+function rootCurve(x, V, p, q, col, w, dash) {
+  const P = rootPts(V, p, q);
+  if (P.length < 2) return;
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.lineJoin = "round"; x.lineCap = "round";
+  x.beginPath(); P.forEach((pt, i) => (i ? x.lineTo(...pt) : x.moveTo(...pt))); x.stroke(); x.setLineDash([]);
+}
+function curveBoxes(V, p, q) {         // keep labels off the curve
+  let last = null;
+  for (const pt of rootPts(V, p, q)) {
+    if (last && Math.hypot(pt[0] - last[0], pt[1] - last[1]) < 6) continue;
+    last = pt;
+    if (pt[1] > -10 && pt[1] < V.H + 10 && pt[0] > -10 && pt[0] < V.W + 10) reserve(pt[0], pt[1], 4);
+  }
+}
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, px, py, ring) {
+  if (ring) dot(x, px, py, 16, null, rgba(color("--hl"), 0.85), 2.5);
+  dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
+  reserve(px, py, ring ? 17 : 11);
+}
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]);
+}
+function arrow(x, p, q, col, dash) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  if (L < 12) return false;
+  seg(x, p, q, col, 2.4, dash);
+  const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L;
+  x.fillStyle = col; x.beginPath(); x.moveTo(...q);
+  x.lineTo(q[0] - ux * 10 - uy * 5.5, q[1] - uy * 10 + ux * 5.5); x.lineTo(q[0] - ux * 10 + uy * 5.5, q[1] - uy * 10 - ux * 5.5); x.closePath(); x.fill();
+  boxes.push([Math.min(p[0], q[0]) - 5, Math.min(p[1], q[1]) - 5, Math.max(p[0], q[0]) + 5, Math.max(p[1], q[1]) + 5]);
+  return true;
+}
+const pt = (a, b) => `(${fmt(a)}, ${b})`;
+const eqCorner = (x, V, s) => place(x, s, [[V.W - 14, 48, "right"], [14, 48, "left"], [V.W - 14, V.H - 18, "right"], [14, V.H - 18, "left"]], { color: color("--a"), size: 16 });
+// grey y = √x with its own small label near the right end
+function base(x, V) {
+  const MU = color("--muted");
+  rootCurve(x, V, 0, 0, rgba(MU, 0.9), 2);
+  curveBoxes(V, 0, 0);
+}
+function baseLabel(x, V) {
+  const xr = V.xmax - 0.3, p = [V.X(xr), V.Y(Math.sqrt(Math.max(0, xr)))];
+  place(x, "y = √x", [[p[0], p[1] + 18, "right"], [p[0], p[1] + 36, "right"], [p[0], p[1] - 18, "right"]], { color: color("--muted"), size: 13, optional: true });
+}
+// horizontal arrow label: above, then below
+const hLab = (x, s, a, b, col) => place(x, s, [[(a[0] + b[0]) / 2, a[1] - 15], [(a[0] + b[0]) / 2, a[1] + 16]], { color: col, size: 14, optional: true });
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, TOP]];
+  grid(x, V);
+  ({ 1: draw1, 2: draw2, 3: draw3, 4: draw4 })[step](x, V);
+  ticks(x, V);
+}
+
+function draw1(x, V) {
+  const A = color("--a"), NO = color("--no"), MU = color("--muted");
+  base(x, V);
+  rootCurve(x, V, -2, 0, NO, 2.5, [7, 5]);
+  curveBoxes(V, -2, 0);
+  eqCorner(x, V, "y = √(x + 2)");
+  const M = [V.X(4), V.Y(2)], M6 = [V.X(6), V.Y(2)];
+  dot(x, ...M, 6, MU, color("--surface"), 2); reserve(...M, 9);
+  if (Math.abs(t1 - 6) > EPS) { dot(x, ...M6, 5, NO, color("--surface"), 2); reserve(...M6, 8); }
+  arrow(x, [M[0] + 9, M[1]], [M6[0] - 10, M6[1]], NO, [5, 4]);
+  const gv = Math.sqrt(t1 - 2), av = Math.sqrt(t1 + 2);
+  const G = [V.X(t1), V.Y(gv)], T = [V.X(t1), V.Y(av)];
+  seg(x, [G[0], G[1] - 10], [T[0], T[1] + 8], rgba(MU, 0.95), 1.5, [3, 4]);
+  boxes.push([G[0] - 4, T[1], G[0] + 4, G[1]]);
+  dot(x, ...T, 7, A, color("--surface"), 2); reserve(...T, 10);
+  handle(x, ...G, true);
+  place(x, pt(4, 2), around(M, -1, false), { color: MU, size: 13 });
+  place(x, t({ en: "right 2?", zh: "右移 2？" }), [[(M[0] + M6[0]) / 2, M[1] - 16], [(M[0] + M6[0]) / 2, M[1] + 16]], { color: NO, size: 13, optional: true });
+  place(x, pt(t1, rootS(t1 - 2)) + "?", around(G, 1, true, 18), { color: NO, size: 14 });
+  place(x, "√(" + fmt(t1) + " + 2) = " + rootS(t1 + 2, true), [[T[0] - 14, T[1] - 14, "right"], [T[0] + 14, T[1] - 16, "left"], [T[0] - 14, T[1] + 4, "right"], [T[0], T[1] - 22]], { color: A, size: 14 });
+  baseLabel(x, V);
+}
+
+function draw2(x, V) {
+  const A = color("--a"), C = color("--c"), MU = color("--muted"), HL = color("--hl");
+  seg(x, [0, V.Y(2)], [V.W, V.Y(2)], rgba(MU, 0.7), 1.5, [4, 5]);
+  base(x, V);
+  const full = all2 || seen.size >= 6;
+  if (full) { rootCurve(x, V, 2, 0, A, 3.5); curveBoxes(V, 2, 0); }
+  eqCorner(x, V, "y = √(x + 2)");
+  const M = [V.X(4), V.Y(2)];
+  dot(x, ...M, 7, HL, color("--surface"), 2); reserve(...M, 10);
+  for (const s of seen) { const q = [V.X(s), V.Y(Math.sqrt(s + 2))]; dot(x, ...q, 5, A); reserve(...q, 7); }
+  const y = Math.sqrt(x2 + 2), P = [V.X(x2), V.Y(y)], F = [V.X(x2 + 2), V.Y(y)];
+  dot(x, ...F, 5.5, MU, color("--surface"), 2); reserve(...F, 8);
+  const drawn = arrow(x, [F[0] - 8, F[1]], [P[0] + 18, P[1]], C);
+  handle(x, ...P, true);
+  if (drawn) hLab(x, t(D.early), F, P, C);
+  place(x, pt(x2, rootS(x2 + 2)), around(P, -1, false, 18), { size: 14 });
+  if (Math.abs(x2 - 2) > EPS) place(x, pt(4, 2), around(M, 1, true), { color: MU, size: 13, optional: true });
+  else place(x, "2 + 2 = 4", around(M, 1, true), { color: C, size: 14, optional: true });
+  baseLabel(x, V);
+}
+
+function draw3(x, V) {
+  const A = color("--a"), C = color("--c"), MU = color("--muted");
+  const s = sD;
+  base(x, V);
+  rootCurve(x, V, s, 0, A, 3.5);
+  curveBoxes(V, s, 0);
+  eqCorner(x, V, eqS(s3, 0));
+  const M0 = [V.X(4), V.Y(2)], M = [V.X(4 - s), V.Y(2)], S0 = [V.X(0), V.Y(0)], S = [V.X(-s), V.Y(0)];
+  dot(x, ...M0, 5.5, MU, color("--surface"), 2); reserve(...M0, 8);
+  const dir = Math.sign(-s) || 1;
+  const a1 = arrow(x, [M0[0] + dir * 8, M0[1]], [M[0] - dir * 18, M[1]], C);
+  const a2 = arrow(x, [S0[0] + dir * 6, S0[1] - 7], [S[0] - dir * 9, S[1] - 7], C);
+  dot(x, ...S, 6.5, A, color("--surface"), 2); reserve(...S, 9);
+  handle(x, ...M, true);
+  const n = Math.round(Math.abs(s3)), lab = s3 > 0 ? "← " + n : s3 < 0 ? n + " →" : "";
+  if (Math.abs(s - s3) < 0.05) {
+    place(x, pt(4 - s3, 2), around(M, -dir, false, 18), { size: 14 });
+    place(x, pt(-s3, 0), [[S[0], S[1] + 34], [S[0] + 14, S[1] + 22, "left"], [S[0] - 14, S[1] + 22, "right"], [S[0] - 14, S[1] - 18, "right"]], { color: A, size: 14 });
+    if (a1 && lab) place(x, lab, [[(M0[0] + M[0]) / 2, M0[1] - 15], [(M0[0] + M[0]) / 2, M0[1] + 16], [(M0[0] + M[0]) / 2, M0[1] - 30]], { color: C, size: 14, optional: true });
+  }
+  if (!a2) reserve(...S0, 6);
+  baseLabel(x, V);
+}
+
+function draw4(x, V) {
+  const A = color("--a"), C = color("--c"), Bc = color("--b");
+  const p = pD, q = qD;
+  base(x, V);
+  rootCurve(x, V, p, q, A, 3.5);
+  curveBoxes(V, p, q);
+  eqCorner(x, V, eqS(p4, q4));
+  const settled = Math.abs(p - p4) < 0.05 && Math.abs(q - q4) < 0.05, later = [];
+  for (const [x0, y0, big] of [[0, 0, false], [4, 2, true]]) {
+    const A0 = [V.X(x0), V.Y(y0)], A1 = [V.X(x0 - p), V.Y(y0)], A2 = [V.X(x0 - p), V.Y(y0 + q)];
+    const dx = Math.sign(-p), dy = Math.sign(q);
+    const h1 = arrow(x, A0, [A1[0] - dx * (Math.abs(q) > 0.3 ? 0 : 18), A1[1]], C);
+    const v1 = arrow(x, A1, [A2[0], A2[1] + dy * 18], Bc);
+    if (big && settled) {
+      if (h1) later.push(() => hLab(x, p4 > 0 ? "← " + fmt(p4) : fmt(-p4) + " →", A0, A1, C));
+      if (v1) later.push(() => place(x, (q4 > 0 ? "↑ " : "↓ ") + fmt(Math.abs(q4)), [[A1[0] + 10, (A1[1] + A2[1]) / 2, "left"], [A1[0] - 10, (A1[1] + A2[1]) / 2, "right"]], { color: Bc, size: 14, optional: true }));
+    }
+  }
+  const S = [V.X(-p), V.Y(q)], M = [V.X(4 - p), V.Y(2 + q)];
+  handle(x, ...S, true);
+  handle(x, ...M, true);
+  if (settled) {
+    place(x, pt(-p4, fmt(q4)), around(S, -1, q4 >= 0 ? false : true, 18), { size: 14 });
+    place(x, pt(4 - p4, fmt(2 + q4)), around(M, 1, true, 18), { size: 14 });
+  }
+  later.forEach((f) => f());
+  baseLabel(x, V);
+}
+
+// ---------- explanations ----------
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+
+function explain1() {
+  const gv = rootS(t1 - 2), av = rootS(t1 + 2, true), same = Math.abs(Math.sqrt(t1 - 2) - Math.sqrt(t1 + 2)) < EPS;
+  const n = tried.size;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the rule", zh: "第 1 步 · 先试试口诀" })}</div>
+    <h2>${t({ en: "Plus two means shift right by two?", zh: "加二就是往右移两格？" })}</h2>
+    <p>${t({ en: "Someone at the back mutters: plus two should obviously mean two units to the right. The red dashed curve is √x moved two to the right, so its two only shows up at six. Drag the gold point along it and plug its x into y = √(x + 2).",
+              zh: "后排有人小声嘀咕：加二，明明该往右移两格。红色虚线就是 √x 右移两格，它的二要到六才出现。沿着它拖动金色的点，把横坐标代进 y = √(x + 2) 看看。" })}</p>
+    <div class="rows">
+      <div><span class="dot" style="background:var(--no)"></span>${t({ en: "right-shift guess at x = ", zh: "右移猜想，x = " })}${fmt(t1)}: <span class="m">y = ${gv}</span></div>
+      <div><span class="dot" style="background:var(--a)"></span>${t({ en: "real y = √(x + 2)", zh: "真正的 y = √(x + 2)" })}: <span class="m">√(${fmt(t1)} + 2) = ${av}</span></div>
+    </div>
+    <div class="mathline">√(${fmt(t1)} + 2) = ${rootS(t1 + 2)} ${hot(same ? "=" : "≠")} ${gv}</div>
+    ${chk(n >= 3, { en: "Plus 2 → right 2?", zh: "加 2 → 右移 2？" }, { en: `${n} points tried, none on the curve.`, zh: `试了 ${n} 个点，没有一个在曲线上。` })}`;
+  if (n >= 3) out += `<p class="big" style="margin-top:8px">${t({ en: "Moved right, every point comes out too high. To get two, the bracket must be four. x plus two equals four, so x equals two is enough. Go to step 2.",
+                                                         zh: "右移的每个点，代进去都偏高。要得到二，括号里得是四：x + 2 = 4，x 等于二就够了。去第 2 步看看。" })}</p>`;
+  else out += `<p class="note" style="margin-top:8px">${t({ en: `But plug in six: six plus two is eight, and root eight is not two. Try ${3 - n} more ${3 - n === 1 ? "point" : "points"}.`, zh: `可把六代进去，六加二等于八，根号八不等于二。再试 ${3 - n} 个点。` })}</p>`;
+  return out + legend([dotI("--no", { en: "right-shift guess", zh: "右移的猜想" }), dotI("--a", { en: "real value", zh: "真正的值" }), dotI("--hl", { en: "point you drag", zh: "你拖的点" })]);
+}
+
+function explain2() {
+  const n = x2 + 2, full = all2 || seen.size >= 6, at2 = Math.abs(x2 - 2) < EPS;
+  let out = `<div class="kicker">${t({ en: "Step 02 · when does 2 show up?", zh: "第 2 步 · 二什么时候出现" })}</div>
+    <h2>${t({ en: "Where does y = √(x + 2) reach two?", zh: "y = √(x + 2) 在哪里等于二？" })}</h2>
+    <p>${t({ en: "Take the square root of x. At x equals four, y is two. Now drag the gold point: at each x, the bracket x + 2 decides the value.",
+              zh: "拿根号 x 来看，它在 x 等于四的时候，y 等于二。现在拖动金色的点：每个 x 处的值，由括号 x + 2 决定。" })}</p>
+    <div class="mathline">x = ${fmt(x2)}<br>x + 2 = ${fmt(x2)} + 2 = ${hot(fmt(n))}<br>y = √${fmt(n)} ${Number.isInteger(Math.sqrt(n)) ? "= " + fmt(Math.sqrt(n)) : "≈ " + fmt(Math.sqrt(n))}</div>
+    <p>${t({ en: `That is the value √x has at x = ${fmt(n)}. Here it already shows up at x = ${fmt(x2)}: two units early.`,
+              zh: `这正是 √x 在 x = ${fmt(n)} 处的值。在这里，x = ${fmt(x2)} 就出现了：提前了两格。` })}</p>`;
+  if (at2) out += `<p class="big">${t({ en: "2 + 2 = 4. The two that used to need x equals four now appears at x equals two: two units early.",
+                                         zh: "2 + 2 = 4。原来走到四才有的二，现在走到二就有了，提前了两格。" })}</p>`;
+  else if (!seen.has(2)) out += `<p class="note">${t({ en: "Find the x where y = √(x + 2) equals two.", zh: "找一找 y = √(x + 2) 等于二的那个 x。" })}</p>`;
+  if (full) out += `<p class="big">${t({ en: "Every value shows up two units early, so the whole curve shifts two units left. The start moves from 0 to −2.",
+                                          zh: "每一个值都提前两格出现，整条曲线就往左移两格。起点也从零挪到了负二。" })}</p>`;
+  else out += `<p class="note">${t({ en: `Points so far: ${seen.size}. Try more x values, or draw the whole curve.`, zh: `已经看了 ${seen.size} 个点。多试几个 x，或者直接画出整条曲线。` })}</p>`;
+  return out + legend([dotI("--hl", { en: "point you drag", zh: "你拖的点" }), dotI("--muted", { en: "same value on √x", zh: "√x 上同样的值" }), dotI("--c", { en: "two units early", zh: "提前两格" })]);
+}
+
+function explain3() {
+  if (pick === null) {
+    return `<div class="kicker">${t({ en: "Step 03 · predict", zh: "第 3 步 · 先预测" })}</div>
+      <h2>${t({ en: "By the same logic, if it's f of x minus three, which way will it move?", zh: "照这个道理，换成 f 括号 x 减三，会往哪边移？" })}</h2>
+      <div class="mathline">y = √(x ${hot("− 3")})</div>
+      <p>${t({ en: "The picture shows y = √(x + 2): two units left. Decide first, then tap your answer.", zh: "图上是 y = √(x + 2)：左移两格。先想好，再点你的答案。" })}</p>
+      <div class="choices"><button data-pick="0">${t({ en: "← left 3", zh: "← 左移 3" })}</button><button data-pick="1">${t({ en: "right 3 →", zh: "右移 3 →" })}</button></div>`;
+  }
+  const s = s3, k = Math.abs(s), right = pick === 1;
+  let out = `<div class="kicker">${t({ en: "Step 03 · minus three", zh: "第 3 步 · 换成减三" })}</div>
+    <h2>${t({ en: "Ask when the two shows up", zh: "问一句：二什么时候出现" })}</h2>
+    <p>${right ? `<span class="ok-t">${t({ en: "You chose right 3. Right.", zh: "你选了右移 3，对。" })}</span> ` : `<span class="no-t">${t({ en: "Not quite: it moves right 3.", zh: "不对，是右移 3。" })}</span> `}${t({ en: "For the bracket to be four, x has to be seven. Three units late, so it shifts three to the right. Now move s yourself.",
+              zh: "括号里要等于四，x 就得等于七，晚出现三格，所以是往右移三格。现在自己改 s 试试。" })}</p>
+    <div class="mathline">${eqS(s, 0)}<br>x${sgn(s)} = 4 ⇒ x = ${fmt(4 - s)}: ${hot(fmt(4 - s) + sgn(s) + " = 4")}<br>x${sgn(s)} = 0 ⇒ x = ${fmt(-s)}</div>`;
+  let txt;
+  if (s > 0) txt = { en: `Plus ${k}: the two shows up at x = ${fmt(4 - s)} instead of 4, ${k} ${unit(k)} early. The start moves from 0 to ${fmt(-s)}. Every value is early, so the curve shifts ${k} left.`,
+                     zh: `加 ${k}：二在 x = ${fmt(4 - s)} 就出现了，不用等到 4，提前 ${k} 格。起点从 0 挪到 ${fmt(-s)}。每个值都提前，曲线就左移 ${k} 格。` };
+  else if (s < 0) txt = { en: `Minus ${k}: the two only shows up at x = ${fmt(4 - s)}, ${k} ${unit(k)} late. The start moves from 0 to ${fmt(-s)}. Every value is late, so the curve shifts ${k} right.`,
+                          zh: `减 ${k}：二要等到 x = ${fmt(4 - s)} 才出现，晚了 ${k} 格。起点从 0 挪到 ${fmt(-s)}。每个值都推迟，曲线就右移 ${k} 格。` };
+  else txt = { en: "With s = 0 the bracket is just x: every value shows up on time, and the curve is √x itself.", zh: "s = 0 时括号就是 x：每个值都按时出现，曲线就是 √x 本身。" };
+  return out + `<p class="big">${t(txt)}</p>` + legend([dotI("--hl", { en: "where the two shows up", zh: "二出现的地方" }), dotI("--a", { en: "start (bracket = 0)", zh: "起点（括号 = 0）" }), dotI("--c", { en: "early or late", zh: "提前或推迟" })]);
+}
+
+function explain4() {
+  const p = p4, q = q4;
+  let out = `<div class="kicker">${t({ en: "Step 04 · inside or outside", zh: "第 4 步 · 加在里面还是外面" })}</div>
+    <h2>${t({ en: "And what if the two is added outside the bracket?", zh: "那要是把二加在括号外面呢？" })}</h2>
+    <p>${t({ en: "Outside, it changes y. Every y gets two more, and the curve moves up, the same way as the sign. Only inside the bracket does it change x, and only then does the curve move sideways.",
+              zh: "加在外面改的是 y，每个 y 都多二，曲线往上移，和符号同一个方向。只有加在括号里，改的是 x，曲线才会左右移。" })}</p>
+    <div class="mathline">${eqS(p, q)}<br>x = ${fmt(4 - p)}: ${p ? `√(${fmt(4 - p)}${sgn(p)})` : "√4"}${sgn(q)} = ${q ? "2" + sgn(q) + " = " : ""}${hot(fmt(2 + q))}</div>
+    <div class="rows">
+      <div><span class="dot" style="background:var(--c)"></span>${t({ en: "inside", zh: "括号里" })} <span class="m">${p ? (p > 0 ? "+" : "−") + " " + fmt(Math.abs(p)) : "0"}</span>: ${t(p > 0 ? { en: `${fmt(p)} early, left ${fmt(p)}`, zh: `提前 ${fmt(p)} 格，左移 ${fmt(p)}` } : p < 0 ? { en: `${fmt(-p)} late, right ${fmt(-p)}`, zh: `推迟 ${fmt(-p)} 格，右移 ${fmt(-p)}` } : { en: "no sideways move", zh: "不左右移" })}</div>
+      <div><span class="dot" style="background:var(--b)"></span>${t({ en: "outside", zh: "括号外" })} <span class="m">${q ? (q > 0 ? "+" : "−") + " " + fmt(Math.abs(q)) : "0"}</span>: ${t(q > 0 ? { en: `every y gets ${fmt(q)} more, up ${fmt(q)}`, zh: `每个 y 多 ${fmt(q)}，上移 ${fmt(q)}` } : q < 0 ? { en: `every y gets ${fmt(-q)} less, down ${fmt(-q)}`, zh: `每个 y 少 ${fmt(-q)}，下移 ${fmt(-q)}` } : { en: "no up or down move", zh: "不上下移" })}</div>
+    </div>
+    <p class="note">${t({ en: "Inside, the sign and the direction look opposite; outside, they agree. Drag a gold point and watch the formula.", zh: "括号里，符号和方向看着相反；括号外，两者一致。拖动金色的点，看式子怎么变。" })}</p>`;
+  return out + legend([dotI("--c", { en: "inside: sideways", zh: "括号里：左右移" }), dotI("--b", { en: "outside: up or down", zh: "括号外：上下移" }), `<span><span class="thin"></span>y = √x</span>`]);
+}
+
+// ---------- render ----------
+const PRE = [[2, 0], [0, 2]];
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3, 4: explain4 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3, 4].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("tR").value = t1; el("tV").textContent = "x = " + fmt(t1);
+  el("xR").value = x2; el("xV").textContent = "x = " + fmt(x2);
+  el("whole").disabled = all2 || seen.size >= 6;
+  el("sR").value = s3; el("sV").textContent = "s = " + fmt(s3); el("sR").disabled = pick === null;
+  el("pR").value = p4; el("pV").textContent = (p4 >= 0 ? "+" : "−") + " " + fmt(Math.abs(p4));
+  el("qR").value = q4; el("qV").textContent = (q4 >= 0 ? "+" : "−") + " " + fmt(Math.abs(q4));
+  el("pre").innerHTML = PRE.map(([p, q], i) => { const on = p === p4 && q === q4; return `<button data-pre="${i}" class="${on ? "on" : ""}" aria-pressed="${on}" style="font-family:var(--math)">${eqS(p, q).slice(4)}</button>`; }).join(" ");
+  fitHeight();
+  dirty = true;
+}
+
+// ---------- actions ----------
+function setT(v) { const n = clamp(Math.round(v), 2, 9); if (n === t1) return; t1 = n; tried.add(n); render(); }
+function setX(v) { const n = clamp(Math.round(v), -2, 6); if (n === x2) return; x2 = n; seen.add(n); render(); }
+function setS(v, now) { const n = clamp(Math.round(v), -4, 4); if (n === s3) return; s3 = n; if (now || Play.reduced) sD = n; render(); }
+function setPQ(p, q, now) {
+  const np = clamp(Math.round(p), -3, 3), nq = clamp(Math.round(q), -3, 3);
+  if (np === p4 && nq === q4) return;
+  p4 = np; q4 = nq; if (now || Play.reduced) { pD = np; qD = nq; }
+  render();
+}
+function choose(i) { pick = i; s3 = -3; if (Play.reduced) sD = -3; render(); }
+
+// ---------- pointer + keys ----------
+let g0 = null;
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw();
+    if (step === 1 || step === 2) { grab = "x"; frozen = V; return true; }
+    if (step === 3) { if (pick === null) return false; grab = "s"; frozen = V; g0 = [s3, V.wx(px)]; return true; }
+    const S = [V.X(-p4), V.Y(q4)], M = [V.X(4 - p4), V.Y(2 + q4)];
+    const dS = Math.hypot(S[0] - px, S[1] - py), dM = Math.hypot(M[0] - px, M[1] - py);
+    if (Math.min(dS, dM) > 40) return false;
+    grab = dS <= dM ? "S" : "M"; frozen = V; return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw(), wx = V.wx(px), wy = V.wy(py);
+    if (step === 1) setT(wx);
+    else if (step === 2) setX(wx);
+    else if (step === 3) setS(g0[0] - (wx - g0[1]), true);
+    else if (grab === "S") setPQ(-wx, wy, true);
+    else setPQ(4 - wx, wy - 2, true);
+  },
+  up() { grab = null; frozen = null; dirty = true; },
+});
+const key = (dx, dy) => () => {
+  if (step === 1) { if (dx) setT(t1 + dx); }
+  else if (step === 2) { if (dx) setX(x2 + dx); }
+  else if (step === 3) { if (dx && pick !== null) setS(s3 - dx); }
+  else setPQ(p4 - dx, q4 + dy);
+};
+Play.keys(cvEl, { ArrowLeft: key(-1, 0), ArrowRight: key(1, 0), ArrowUp: key(0, 1), ArrowDown: key(0, -1) });
+
+el("tR").addEventListener("input", (e) => setT(+e.target.value));
+el("xR").addEventListener("input", (e) => setX(+e.target.value));
+el("whole").onclick = () => { all2 = true; render(); };
+el("sR").addEventListener("input", (e) => setS(+e.target.value));
+el("pR").addEventListener("input", (e) => setPQ(+e.target.value, q4));
+el("qR").addEventListener("input", (e) => setPQ(p4, +e.target.value));
+el("pre").addEventListener("click", (e) => { const b = e.target.closest("[data-pre]"); if (b) setPQ(...PRE[+b.dataset.pre]); });
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) choose(+b.dataset.pick); });
+addEventListener("resize", () => { fitHeight(); dirty = true; });
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; grab = null; frozen = null; render(); });
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+const tween = (v, tgt, r) => { const d = tgt - v; if (Math.abs(d) < 1e-3) return tgt; dirty = true; return v + d * r; };
+Play.loop((dt) => {
+  const r = Play.reduced ? 1 : Math.min(1, dt * 5);
+  if (sD !== s3) { sD = tween(sD, s3, r); dirty = true; }
+  if (pD !== p4) { pD = tween(pD, p4, r); dirty = true; }
+  if (qD !== q4) { qD = tween(qD, q4, r); dirty = true; }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

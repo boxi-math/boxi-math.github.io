@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exponentials and Logs: One Graph, Two Readings · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1 1 140px; }
+  .controls .grp input[type=range] { flex: 1 1 90px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 19px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+  .rows .m.q { color: var(--muted); }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .choices button { font-family: var(--math); font-size: 16px; min-height: 38px; padding: 4px 14px; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); margin-right: 5px; vertical-align: 3px; }
+  sup { font-size: .7em; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="graph of y = 2 to the x"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span>y</span><input id="yR" type="range" min="0.5" max="9.5" step="0.5" aria-label="y"><span class="val" id="yV"></span></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span>M</span><input id="aR" type="range" min="-1" max="3" step="0.5" aria-label="M"><span class="val" id="aV"></span></span>
+        <span class="grp"><span>N</span><input id="bR" type="range" min="-1" max="3" step="0.5" aria-label="N"><span class="val" id="bV"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><button id="flipB"></button><input id="fR" type="range" min="0" max="1" step="0.01" aria-label="flip"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">log<sub>2</sub> 8 = 3 ⟺ 2<sup>3</sup> = 8<br>log<sub>2</sub>(<i>M</i> × <i>N</i>) = log<sub>2</sub><i>M</i> + log<sub>2</sub><i>N</i></div></div>
+    <div class="rn" id="rn"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Exponentials and Logs: One Graph, Two Readings", zh: "指数增长与对数：同一张图的两种读法" },
+  eyebrow: { en: "Boxi Math · Try it · #27", zh: "Boxi Math · 动手试试 · #27" },
+  intro: { en: "Take log base two of eight: what question is it answering? And on someone's scrap paper: the log of two plus four equals the log of two plus the log of four. Read y = 2ˣ forwards and backwards to test it, then see why multiplying turns into adding.",
+           zh: "以二为底八的对数，它在回答什么问题？草稿纸上还有人写：二加四的对数，等于二的对数加四的对数。把 y = 2ˣ 顺着读、倒着读，试一试这句话，再看乘法怎么变成加法。" },
+  s1: { en: "log₂(2 + 4)?", zh: "log₂(2 + 4)？" }, s2: { en: "Multiply ↔ add", zh: "乘 ↔ 加" }, s3: { en: "Flip over y = x", zh: "沿 y = x 翻" },
+  reset: { en: "Reset", zh: "重置" },
+  v1: { en: "y = 2ˣ, read backwards", zh: "y = 2ˣ，倒着读" }, v2: { en: "two points on y = 2ˣ", zh: "y = 2ˣ 上的两个点" }, v3: { en: "y = 2ˣ and y = log₂x", zh: "y = 2ˣ 和 y = log₂x" },
+  tag1: { en: "drag the gold point", zh: "拖动金色的点" }, tag2: { en: "drag the gold points", zh: "拖动金色的点" }, tag3: { en: "drag a gold point", zh: "拖动金色的点" },
+  resT: { en: "A log asks: how many times?", zh: "对数问的是：乘几次？" },
+  moreS: { en: "Why is 2ᵃ × 2ᵇ = 2ᵃ⁺ᵇ, and why is there no rule for a sum?", zh: "为什么 2ᵃ × 2ᵇ = 2ᵃ⁺ᵇ？和为什么没有这样的规律？" },
+  moreP: { en: "For whole numbers, 2ᵃ is a twos multiplied together and 2ᵇ is b more. Side by side that is a + b twos, so 2ᵃ × 2ᵇ = 2ᵃ⁺ᵇ (powers like 2^0.5 are defined so that this rule keeps working). Now read it backwards: if M = 2ᵃ and N = 2ᵇ, then M × N = 2ᵃ⁺ᵇ, so log₂(M × N) = a + b = log₂M + log₂N. A sum has nothing like this: 2ᵃ + 2ᵇ is usually not a power of two at all (2 + 4 = 6), so log₂(M + N) has no simple formula. The product rule is useful though: given log₂ 5 ≈ 2.32, log₂ 10 = log₂(2 × 5) = 1 + 2.32 = 3.32.",
+           zh: "对整数来说，2ᵃ 是 a 个二连乘，2ᵇ 是再乘 b 个。放在一起就是 a + b 个二，所以 2ᵃ × 2ᵇ = 2ᵃ⁺ᵇ（像 2^0.5 这样的幂，正是按「这条规律继续成立」来定义的）。倒过来读：如果 M = 2ᵃ，N = 2ᵇ，那么 M × N = 2ᵃ⁺ᵇ，所以 log₂(M × N) = a + b = log₂M + log₂N。和就没有这样的规律：2ᵃ + 2ᵇ 一般根本不是二的幂（2 + 4 = 6），所以 log₂(M + N) 没有简单的公式。乘积的规律却很好用：已知 log₂ 5 ≈ 2.32，那么 log₂ 10 = log₂(2 × 5) = 1 + 2.32 = 3.32。" },
+  moreQ: { en: "Next: if a point goes round a circle at a steady speed, what shape does its height trace out?", zh: "下一集：要是一个点绕着圆匀速转圈，它的高度画出来，会是什么形状？" },
+  foot: { en: "Green is y = 2ˣ, blue is reading backwards (and the log curve), gold is what you drag, brown is one step right (times two), red is the scrap-paper claim. On a focused picture, arrow keys work too (step 1 and 3: ↑ ↓ change y, ← → move x by a half; step 2: ← → move M, ↑ ↓ move N).",
+          zh: "绿色是 y = 2ˣ，蓝色是倒着读（和对数曲线），金色是你能拖的点，棕色是往右走一格（乘二），红色是草稿纸上的说法。选中图后也能用方向键（第 1、3 步：↑ ↓ 改 y，← → 横着挪半格；第 2 步：← → 挪 M，↑ ↓ 挪 N）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9, L2 = Math.log2;
+const hot = (s) => `<span class="hot">${s}</span>`;
+const par = (v) => (v < -EPS ? `(${fmt(v)})` : fmt(v));
+const exact = (v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;     // fmt shows it exactly
+const eq = (...vs) => (vs.every(exact) ? "=" : "≈");
+const P2 = (e) => `2<sup>${fmt(e)}</sup>`;
+const TMAX = L2(9.5);
+
+// ---------- state ----------
+let t1, seen;            // step 1: point (t1, 2^t1); which of 2, 4, 6, 8 were visited
+let a2, b2, pick;        // step 2: M = 2^a, N = 2^b; prediction
+let t3, f3, playing;     // step 3: point, flip amount 0..1
+function init() {
+  t1 = 0; seen = new Set();
+  a2 = 1; b2 = 2; pick = null;
+  t3 = 3; f3 = 0; playing = false;
+}
+init();
+let step = 1, dirty = true, grab = null, frozen = null;
+
+// ---------- view ----------
+const TOP = 30;
+function vw() {
+  if (grab && frozen) return frozen;
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  let ux, uy, ox, oy;
+  if (step === 3) {                      // equal units so the flip is a true mirror
+    const lo = -1.6, hi = 9.9, u = Math.min(W / (hi - lo + 0.4), (H - TOP - 8) / (hi - lo));
+    ux = uy = u; ox = W / 2 - ((lo + hi) / 2) * u; oy = TOP + 4 + (H - TOP - 8) / 2 + ((lo + hi) / 2) * u;
+  } else {                               // room under the axis for read-outs
+    const x0 = -1.4, x1 = 4.3, top = step === 1 ? 9.8 : 8.9, padB = step === 1 ? 54 : 76;
+    ux = (W - 12) / (x1 - x0); ox = 6 - x0 * ux;
+    oy = H - padB; uy = (oy - TOP - 8) / top;
+  }
+  const V = { W, H, ux, uy, X: (x) => ox + x * ux, Y: (y) => oy - y * uy, wx: (px) => (px - ox) / ux, wy: (py) => (oy - py) / uy };
+  V.xmin = V.wx(0); V.xmax = V.wx(W); V.ymin = V.wy(H); V.ymax = V.wy(0);
+  V.p = (q) => [V.X(q[0]), V.Y(q[1])];
+  return V;
+}
+
+// ---------- labels that avoid each other (tick numbers are reserved first) ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const fits = (bx) => bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx));
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  cands = cands.map((c) => {             // slide a spot sideways back into the picture
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    const dx = bx[0] < 2 ? 2 - bx[0] : bx[2] > W0 - 2 ? W0 - 2 - bx[2] : 0;
+    return dx ? [c[0] + dx, c[1], c[2]] : c;
+  });
+  let p = null;
+  for (const c of cands) if (fits(boxOf(x, s, c[0], c[1], size, c[2] || "center"))) { p = c; break; }
+  if (!p) {
+    if (o.optional) return false;
+    let bs = Infinity;                   // least crowded spot inside the picture
+    for (const c of cands) {
+      const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+      if (bx[0] < 2 || bx[2] > W0 - 2 || bx[1] < 2 || bx[3] > H0 - 2) continue;
+      const n = boxes.filter((b) => hit(b, bx)).length;
+      if (n < bs) { bs = n; p = c; }
+    }
+    p = p || cands[0];
+  }
+  boxes.push(boxOf(x, s, p[0], p[1], size, p[2] || "center"));
+  Play.text(x, s, p[0], p[1], { weight: 700, ...o, size, align: p[2] || "center" });
+  return true;
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+function around(p, side, below, d = 14) {
+  const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
+  const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
+  const S = side >= 0 ? [r, l] : [l, r];
+  return [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
+          [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4]];
+}
+
+// ---------- drawing helpers ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+// tick numbers: their boxes go in first, so no label or read-out is ever placed on top of one
+function tickList(x, V) {
+  const sx = V.ux < (step === 3 ? 20 : 30) ? 2 : 1, sy = V.uy < 20 ? 2 : 1, out = [];
+  for (let i = Math.ceil(V.xmin / sx) * sx; i <= V.xmax; i += sx) if (i) out.push([fmt(i), V.X(i), V.Y(0) + 13, "center"]);
+  for (let j = Math.ceil(V.ymin / sy) * sy; j <= V.ymax; j += sy) if (j && (step === 3 || j > 0)) out.push([fmt(j), V.X(0) - 7, V.Y(j), "right"]);
+  out.push(["x", V.W - 12, V.Y(0) - 13, "center"], ["y", V.X(0) + 13, TOP + 12, "center"]);
+  return out.filter((k) => { const bx = boxOf(x, k[0], k[1], k[2], 13, k[3]); if (!fits(bx)) return false; boxes.push(bx); return true; });
+}
+function drawTicks(x, list) { const mu = color("--muted"); for (const k of list) Play.text(x, k[0], k[1], k[2], { size: 13, color: mu, align: k[3], weight: 500 }); }
+// any parametric curve P(t) -> [x, y]
+function curve(x, V, P, t0, t1, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.lineJoin = "round"; x.beginPath();
+  for (let i = 0; i <= 500; i++) {
+    const q = P(t0 + ((t1 - t0) * i) / 500), px = clamp(V.X(q[0]), -200, V.W + 200), py = clamp(V.Y(q[1]), -200, V.H + 200);
+    i ? x.lineTo(px, py) : x.moveTo(px, py);
+  }
+  x.stroke(); x.setLineDash([]);
+}
+function curveBoxes(V, P, t0, t1) {
+  for (let i = 0; i <= 240; i++) {
+    const q = V.p(P(t0 + ((t1 - t0) * i) / 240));
+    if (q[0] > -10 && q[0] < V.W + 10 && q[1] > -10 && q[1] < V.H + 10) reserve(q[0], q[1], 4);
+  }
+}
+function nearestT(V, P, t0, t1, px, py) {
+  let best = t0, bd = Infinity;
+  for (let i = 0; i <= 600; i++) {
+    const tt = t0 + ((t1 - t0) * i) / 600, q = V.p(P(tt)), d = (q[0] - px) ** 2 + (q[1] - py) ** 2;
+    if (d < bd) { bd = d; best = tt; }
+  }
+  return best;
+}
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, px, py, ring) {
+  if (ring) dot(x, px, py, 15, null, rgba(color("--hl"), 0.85), 2.5);
+  dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
+  reserve(px, py, ring ? 16 : 11);
+}
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]);
+}
+function arrow(x, p, q, col, w = 2.2, dash) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  if (L < 12) return;
+  const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L;
+  seg(x, p, [q[0] - ux * 6, q[1] - uy * 6], col, w, dash);
+  x.fillStyle = col; x.beginPath(); x.moveTo(...q);
+  x.lineTo(q[0] - ux * 10 - uy * 5, q[1] - uy * 10 + ux * 5); x.lineTo(q[0] - ux * 10 + uy * 5, q[1] - uy * 10 - ux * 5); x.closePath(); x.fill();
+}
+const EXP = (tt) => [tt, 2 ** tt];
+const eqCorner = (x, V, s, col) => place(x, s, [[14, TOP + 18, "left"], [V.W - 14, TOP + 18, "right"], [V.W - 14, V.H - 16, "right"]], { color: col, size: 16 });
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, TOP]];
+  grid(x, V);
+  const tk = tickList(x, V);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
+  drawTicks(x, tk);
+}
+
+// ---------- step 1: read backwards; test log2(2 + 4) ----------
+function draw1(x, V) {
+  const A = color("--a"), Bc = color("--b"), C = color("--c"), NO = color("--no"), MU = color("--muted"), HL = color("--hl");
+  for (let n = 0; n < 3; n++) {                                  // one step right, y doubles
+    const p = V.p([n, 2 ** n]), c = V.p([n + 1, 2 ** n]), q = V.p([n + 1, 2 ** (n + 1)]);
+    seg(x, p, c, rgba(Bc, 0.75), 1.5); seg(x, c, q, rgba(Bc, 0.75), 1.5);
+  }
+  curve(x, V, EXP, V.xmin, V.xmax, A, 3.5);
+  curveBoxes(V, EXP, V.xmin, V.xmax);
+  for (let n = 0; n <= 3; n++) { const q = V.p([n, 2 ** n]); dot(x, ...q, 4.5, HL, color("--surface"), 1.5); reserve(...q, 7); }
+  eqCorner(x, V, "y = 2ˣ", A);
+
+  const y = 2 ** t1, P = V.p([t1, y]), Ya = [V.X(0), V.Y(y)], Xa = [V.X(t1), V.Y(0)];
+  const R = V.p([3, 6]), at6 = Math.abs(y - 6) < 1e-6;
+  // the scrap-paper claim: log2 6 would be 3, i.e. the point (3, 6)
+  if (at6) { seg(x, P, [R[0] - 8, R[1]], NO, 2, [5, 4]); seg(x, [R[0], R[1] + 8], V.p([3, 0]), rgba(NO, 0.8), 1.5, [5, 4]); }
+  dot(x, ...R, 7, color("--surface"), NO, 2.5); reserve(...R, 10);
+  // backwards: across from y, then down to x
+  arrow(x, [Ya[0] + 2, Ya[1]], [P[0] - 11, P[1]], C, 2.2, [6, 4]);
+  arrow(x, [P[0], P[1] + 11], [Xa[0], Xa[1] - 2], C, 2.2, [6, 4]);
+  boxes.push([Math.min(Ya[0], P[0]), Ya[1] - 4, Math.max(Ya[0], P[0]), Ya[1] + 4], [P[0] - 4, P[1], P[0] + 4, Xa[1]]);
+  seg(x, [Xa[0], Xa[1] - 6], [Xa[0], Xa[1] + 6], C, 3);
+  handle(x, ...P, true);
+  for (let n = 0; n < 3; n++) {
+    const c = V.p([n + 1, 2 ** n]), q = V.p([n + 1, 2 ** (n + 1)]);
+    if (q[1] < c[1] - 22) place(x, "×2", [[c[0] + 7, (c[1] + q[1]) / 2, "left"], [c[0] - 7, (c[1] + q[1]) / 2, "right"]], { color: Bc, size: 13, optional: true });
+  }
+  const rc = [[R[0] + 13, R[1], "left"], [R[0], R[1] + 22], [R[0], R[1] - 22], [R[0] - 13, R[1], "right"], [R[0] + 13, R[1] + 18, "left"], [R[0] + 13, R[1] - 18, "left"]];
+  if (!place(x, "log₂ 6 = 3?", rc, { color: NO, size: 14, optional: true })) place(x, "3?", rc, { color: NO, size: 14 });
+  place(x, `y = ${fmt(y)}`, [[Ya[0] + 8, Ya[1] - 13, "left"], [Ya[0] + 8, Ya[1] + 13, "left"], [P[0] + 20, P[1] - 18, "left"], [P[0] + 20, P[1] + 18, "left"]], { color: C, size: 14, optional: true });
+  const lx = `log₂ ${fmt(y)} ${eq(y, t1)} ${fmt(t1)}`, by = V.Y(0) + 34;
+  place(x, lx, [[Xa[0], by], [Xa[0] + 20, by, "left"], [Xa[0] - 20, by, "right"], [Xa[0], by + 4], [V.W - 8, by, "right"], [8, by, "left"]], { color: C, size: 15 });
+}
+
+// ---------- step 2: multiply up y, add along x ----------
+function draw2(x, V) {
+  const A = color("--a"), Bc = color("--b"), C = color("--c"), MU = color("--muted"), HL = color("--hl");
+  curve(x, V, EXP, V.xmin, V.xmax, A, 3.5);
+  curveBoxes(V, EXP, V.xmin, V.xmax);
+  eqCorner(x, V, "y = 2ˣ", A);
+  if (pick === null) {
+    const pts = [1, 2, 3].map((n) => V.p([n, 2 ** n]));
+    pts.forEach((q, i) => { seg(x, q, [q[0], V.Y(0)], rgba(MU, 0.9), 1.5, [4, 4]); dot(x, ...q, 7, HL, color("--fg"), 1.5); reserve(...q, 10); boxes.push([q[0] - 3, q[1], q[0] + 3, V.Y(0)]); });
+    pts.forEach((q, i) => place(x, `y = ${fmt(2 ** (i + 1))}`, around(q, -1, false), { size: 15 }));
+    place(x, "2 × 4 = 8", [[V.W - 14, V.Y(0) + 46, "right"], [14, V.Y(0) + 46, "left"]], { size: 16 });
+    return;
+  }
+  const a = a2, b = b2, S = a + b, M = 2 ** a, N = 2 ** b, MN = 2 ** S;
+  const PA = V.p([a, M]), PB = V.p([b, N]), PS = V.p([S, MN]), Y0 = V.Y(0);
+  seg(x, PB, [PB[0], Y0], rgba(Bc, 0.7), 1.5, [3, 4]);
+  seg(x, PA, [PA[0], Y0], rgba(C, 0.9), 1.5, [5, 4]);
+  seg(x, PS, [PS[0], Y0], rgba(A, 0.9), 1.5, [5, 4]);
+  [PA, PB, PS].forEach((q) => boxes.push([q[0] - 3, Math.min(q[1], Y0), q[0] + 3, Math.max(q[1], Y0)]));
+  // walk b steps right from M: y gets multiplied by N
+  const Cn = V.p([S, M]);
+  if (Math.abs(b) > EPS) {
+    arrow(x, PA, [Cn[0] - Math.sign(b) * 2, Cn[1]], Bc, 2.2);
+    if (Math.abs(PS[1] - Cn[1]) > 14) arrow(x, Cn, [PS[0], PS[1] + Math.sign(Cn[1] - PS[1]) * 10], Bc, 2.2);
+    boxes.push([Math.min(PA[0], Cn[0]), Cn[1] - 3, Math.max(PA[0], Cn[0]), Cn[1] + 3], [Cn[0] - 3, Math.min(Cn[1], PS[1]), Cn[0] + 3, Math.max(Cn[1], PS[1])]);
+  }
+  // bars under the axis: a, then b more
+  const r1 = Y0 + 28, r2 = Y0 + 37;
+  x.lineCap = "round";
+  seg(x, [V.X(0), r1], [V.X(a), r1], C, 6); seg(x, [V.X(a), r2], [V.X(S), r2], Bc, 6);
+  x.lineCap = "butt";
+  seg(x, [V.X(S), Y0], [V.X(S), r2 + 6], A, 2);
+  boxes.push([Math.min(V.X(0), V.X(a), V.X(S)) - 4, r1 - 5, Math.max(V.X(0), V.X(a), V.X(S)) + 4, r2 + 5]);
+  dot(x, ...PS, 8, A, color("--surface"), 2); reserve(...PS, 11);
+  handle(x, ...PA, false); handle(x, ...PB, false);
+  const z = (v) => Math.abs(v) < EPS, same = z(a - b);
+  place(x, `M × N ${z(a) ? "= N " : z(b) ? "= M " : ""}${eq(M, N, MN)} ${fmt(MN)}`, around(PS, -1, false).concat(around(PS, -1, false, 26)), { color: A, size: 15 });
+  if (!z(b)) place(x, `${same ? "M = N" : "M"} ${eq(M)} ${fmt(M)}`, around(PA, -1, false).concat(around(PA, -1, false, 26)), { color: C, size: 15 });
+  if (!z(a) && !same) place(x, `N ${eq(N)} ${fmt(N)}`, around(PB, 1, true).concat(around(PB, 1, true, 26)), { color: Bc, size: 15 });
+  if (Math.abs(b) > EPS) {
+    const mx = (PA[0] + Cn[0]) / 2;
+    place(x, `${b > 0 ? "+" : "−"}${fmt(Math.abs(b))}`, [[mx, Cn[1] + 14], [mx, Cn[1] - 14], [mx - 30, Cn[1] + 14], [mx + 30, Cn[1] + 14], [mx - 30, Cn[1] - 14], [mx + 30, Cn[1] - 14]], { color: Bc, size: 14, optional: true });
+    const my = (Cn[1] + PS[1]) / 2;
+    if (Math.abs(PS[1] - Cn[1]) > 22) place(x, `×${fmt(N)}`, [[Cn[0] + 8, my, "left"], [Cn[0] - 8, my, "right"]], { color: Bc, size: 14, optional: true });
+  }
+  const lo = Math.min(0, a, S), hi = Math.max(0, a, S), cx = V.X((lo + hi) / 2), by = Y0 + 56;
+  place(x, `${fmt(a)} ${b < 0 ? "−" : "+"} ${fmt(Math.abs(b))} = ${fmt(S)}`, [[cx, by], [V.X(S), by], [V.W - 10, by, "right"], [10, by, "left"]], { size: 15 });
+}
+
+// ---------- step 3: flip over y = x ----------
+const LOG = (tt) => [2 ** tt, tt];
+const MIX = (tt) => { const p = EXP(tt), q = LOG(tt); return [p[0] + (q[0] - p[0]) * f3, p[1] + (q[1] - p[1]) * f3]; };
+function draw3(x, V) {
+  const A = color("--a"), C = color("--c"), MU = color("--muted");
+  curve(x, V, (s) => [s, s], -2, 10.5, rgba(MU, 0.9), 1.5, [7, 5]);
+  curve(x, V, EXP, -4, 3.7, f3 > 0.005 ? rgba(A, 0.9) : A, 3.5);
+  if (f3 > 0.005) curve(x, V, MIX, -4, 3.7, C, 3.5);
+  curveBoxes(V, EXP, -4, 3.7); curveBoxes(V, (s) => [s, s], -2, 10.5);
+  if (f3 > 0.005) curveBoxes(V, MIX, -4, 3.7);
+  const y = 2 ** t3, P = V.p([t3, y]), Q = V.p(MIX(t3)), done = f3 > 0.999;
+  if (f3 > 0.005) seg(x, P, Q, rgba(MU, 0.9), 1.5, [3, 4]);
+  handle(x, ...P, true);
+  if (done) handle(x, ...Q, true); else if (f3 > 0.005) { dot(x, ...Q, 7, C, color("--surface"), 2); reserve(...Q, 10); }
+  place(x, `(${fmt(t3)}, ${fmt(y)})`, around(P, -1, false).concat([[P[0] - 20, P[1], "right"]], around(P, -1, false, 26), around(P, 1, true, 26)), { size: 14, optional: true });
+  if (done) place(x, `(${fmt(y)}, ${fmt(t3)})`, around(Q, 1, false).concat(around(Q, -1, true), around(Q, 1, false, 26), around(Q, 1, true, 26)), { color: C, size: 14, optional: true });
+  const gl = [];
+  for (const s of [2.6, 2.2, 1.8, 3]) { const g = V.p(EXP(s)); gl.push([g[0] - 12, g[1], "right"], [g[0] + 12, g[1] + 8, "left"]); }
+  place(x, "y = 2ˣ", gl, { color: A, size: 16, optional: true });
+  const dl = [];
+  for (const s of [8.6, 7.6, 6.6]) { const d = V.p([s, s]); dl.push([d[0] - 10, d[1] - 6, "right"], [d[0] + 8, d[1] + 14, "left"]); }
+  place(x, "y = x", dl, { color: MU, size: 14, optional: true });
+  if (done) {
+    const ll = [];
+    const xr = V.wx(V.W - 10), yr = V.Y(L2(xr));
+    ll.push([V.W - 10, yr + 30, "right"], [V.W - 10, yr + 48, "right"], [V.W - 10, yr - 22, "right"]);
+    place(x, "y = log₂x", ll, { color: C, size: 16, optional: true });
+  }
+}
+
+// ---------- explanations ----------
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+// how many times do you multiply by two to reach 2^e?
+function times(e) {
+  const n = Math.round(e);
+  if (Math.abs(e - n) < EPS) {
+    if (n >= 1) return `${Array(n).fill("2").join(" × ")} = ${fmt(2 ** n)}<br>` + t({ en: `multiply by two ${n} time${n > 1 ? "s" : ""}`, zh: `二乘了 ${n} 次` });
+    if (n === 0) return "2<sup>0</sup> = 1<br>" + t({ en: "multiply by two 0 times: you are already at 1", zh: "二一次也不乘：本来就是 1" });
+    return `1 ÷ ${Array(-n).fill("2").join(" ÷ ")} = ${fmt(2 ** n, 3)}<br>` + t({ en: `a negative log: divide by two ${-n} time${-n > 1 ? "s" : ""}`, zh: `对数是负的：除以二 ${-n} 次` });
+  }
+  const k = Math.floor(e);
+  return `${P2(k)} = ${fmt(2 ** k)} &lt; ${fmt(2 ** e)} &lt; ${fmt(2 ** (k + 1))} = ${P2(k + 1)}<br>` +
+    t({ en: `between ${k} and ${k + 1} multiplications`, zh: `介于乘 ${k} 次和 ${k + 1} 次之间` });
+}
+function explain1() {
+  const y = 2 ** t1, l6 = L2(6);
+  const row = (k) => `<div><span class="m${seen.has(k) ? "" : " q"}">log₂ ${k} = ${seen.has(k) ? fmt(L2(k)) : "?"}</span></div>`;
+  const busted = seen.has(2) && seen.has(4) && seen.has(6);
+  let out = `<div class="kicker">${t({ en: "Step 01 · read it backwards", zh: "第 1 步 · 倒着读" })}</div>
+    <h2>${t({ en: "Scrap paper says log<sub>2</sub>(2 + 4) = log<sub>2</sub>2 + log<sub>2</sub>4. True?", zh: "草稿纸上写着 log<sub>2</sub>(2 + 4) = log<sub>2</sub>2 + log<sub>2</sub>4，对吗？" })}</h2>
+    <p>${t({ en: "First, what does a log answer? Read y = 2ˣ backwards: given y, go across to the curve, then down. The x you land on is log₂ y, the number of times you multiply by two to get y. Drag the gold point or use the y slider.",
+              zh: "先弄清对数在回答什么。把 y = 2ˣ 倒过来读：已知 y，横着走到曲线，再往下落到横轴，落到的 x 就是 log₂ y，也就是二要乘几次才到 y。拖动金色的点，或者用 y 滑块。" })}</p>
+    <div class="mathline">${t({ en: "forwards", zh: "顺着读" })}: ${P2(t1)} ${eq(t1, y)} ${fmt(y)}<br>${t({ en: "backwards", zh: "倒着读" })}: log₂ ${fmt(y)} ${eq(y, t1)} ${hot(fmt(t1))}</div>
+    <p class="big">${times(t1)}</p>
+    <div class="rows">${[2, 4, 6, 8].map(row).join("")}</div>
+    ${chk(busted, { en: "log₂(2 + 4) = log₂2 + log₂4 = 1 + 2 = 3?", zh: "log₂(2 + 4) = log₂2 + log₂4 = 1 + 2 = 3？" }, { en: `log₂ 6 ≈ ${fmt(l6)}, not 3`, zh: `log₂ 6 ≈ ${fmt(l6)}，不是 3` })}`;
+  if (!busted) out += `<p class="note" style="margin-top:8px">${t({ en: "Find log₂ 2 and log₂ 4 first, then put y at 6. Does x reach the red point at 3?", zh: "先找到 log₂ 2 和 log₂ 4，再把 y 放到 6。x 走得到红点那里的 3 吗？" })}</p>`;
+  else if (!seen.has(8)) out += `<p class="big" style="margin-top:8px">${t({ en: `Two plus four is six. Find six on the curve: x has only gone a bit past two and a half (${fmt(l6)}), not three. So which y does sit at x = 3? Try y = 8.`, zh: `二加四是六，在曲线上找六，横轴只走了两格半多一点（${fmt(l6)}），不是三格。那 x = 3 对应的是哪个 y？试试 y = 8。` })}</p>`;
+  else out += `<p class="big" style="margin-top:8px">${t({ en: `Three steps give eight, not six, and 8 = 2 × 4. So 1 + 2 = 3 belongs to the product 2 × 4, not the sum 2 + 4: the log of a sum is not the sum of the logs. Step 2 shows why products work.`, zh: `三格对应的是八，不是六，而 8 = 2 × 4。所以 1 + 2 = 3 属于乘积 2 × 4，不属于和 2 + 4：和的对数不等于对数的和。第 2 步看为什么乘积可以。` })}</p>`;
+  return out + legend([dotI("--c", { en: "reading backwards", zh: "倒着读" }), dotI("--b", { en: "one step right: ×2", zh: "右走一格：×2" }), dotI("--no", { en: "the scrap-paper claim", zh: "草稿纸上的说法" })]);
+}
+const CH = ["1 + 2 = 3", "1 × 2 = 2", { en: "no pattern", zh: "没有规律" }];
+function explain2() {
+  if (pick === null) {
+    return `<div class="kicker">${t({ en: "Step 02 · predict", zh: "第 2 步 · 先预测" })}</div>
+      <h2>${t({ en: "Two times four is eight. On the x-axis, how are these three numbers related?", zh: "二乘四等于八，在横轴上，这三个数又是什么关系？" })}</h2>
+      <p>${t({ en: "On the curve, 2 sits above x = 1, 4 above x = 2 and 8 above x = 3. Decide first, then tap your answer.", zh: "曲线上，2 在 x = 1 的上方，4 在 x = 2，8 在 x = 3。先想好，再点你的答案。" })}</p>
+      <div class="choices">${CH.map((c, i) => `<button data-pick="${i}">${t(c)}</button>`).join("")}</div>`;
+  }
+  const a = a2, b = b2, S = a + b, M = 2 ** a, N = 2 ** b, MN = 2 ** S;
+  let out = `<div class="kicker">${t({ en: "Step 02 · multiply ↔ add", zh: "第 2 步 · 乘 ↔ 加" })}</div>
+    <h2>${t({ en: "Multiplying up the y-axis means adding along the x-axis", zh: "纵轴上乘起来，横轴上就加起来" })}</h2>
+    <p>${pick === 0 ? `<span class="ok-t">${t({ en: "You chose 1 + 2 = 3. Right.", zh: "你选了 1 + 2 = 3，对。" })}</span> ` : `<span class="no-t">${t({ en: "Not quite: 1 + 2 = 3.", zh: "不对，是 1 + 2 = 3。" })}</span> `}${t({ en: "Each step right, y doubles. So walking b more steps right multiplies y by 2ᵇ = N: start at M, walk b steps, and you land on M × N.", zh: "x 每往右走一格，y 就翻一倍。所以再往右走 b 格，y 就乘上 2ᵇ = N：从 M 出发走 b 格，正好落在 M × N。" })}</p>
+    <div class="mathline">M × N = ${fmt(M)} × ${fmt(N)} ${eq(M, N, MN)} ${fmt(MN)}<br>${P2(a)} × ${P2(b)} = 2<sup>${fmt(a)} + ${par(b)}</sup> = ${P2(S)}<br>log₂(${fmt(M)} × ${fmt(N)}) = ${fmt(a)} + ${par(b)} = ${hot(fmt(S))}</div>
+    <p class="big">${t({ en: "Logs turn multiplication into addition: log₂(M × N) = log₂M + log₂N.", zh: "对数把乘法变成了加法：log₂(M × N) = log₂M + log₂N。" })}</p>`;
+  if (a < -EPS || b < -EPS) out += `<p class="note">${t({ en: "A number below 1 has a negative log: walking left halves y each step, so adding a negative number divides.", zh: "小于 1 的数，对数是负的：往左走一格 y 减半，所以加上负数就是在除。" })}</p>`;
+  else out += `<p class="note">${t({ en: "Drag either gold point, or use the M and N sliders: the green point always sits at a + b.", zh: "拖动任一个金色的点，或用 M、N 滑块：绿点总在 a + b 的位置。" })}</p>`;
+  return out + legend([dotI("--c", { en: "a = log₂M", zh: "a = log₂M" }), dotI("--b", { en: "b = log₂N more steps", zh: "再走 b = log₂N 格" }), dotI("--a", { en: "M × N, at a + b", zh: "M × N，在 a + b" })]);
+}
+function explain3() {
+  const y = 2 ** t3, done = f3 > 0.999;
+  let out = `<div class="kicker">${t({ en: "Step 03 · flip over y = x", zh: "第 3 步 · 沿 y = x 翻过去" })}</div>
+    <h2>${t({ en: "Swap across and up: the graph of the log function", zh: "把横竖对调，就是对数函数的图像" })}</h2>
+    <p>${t({ en: "Flipping over the line y equals x swaps the two numbers of every point. Press Flip, or drag the slider.", zh: "沿着 y = x 翻过去，每个点的横、纵坐标就对调了。按「翻过去」，或拖滑块。" })}</p>
+    <div class="mathline">(${fmt(t3)}, ${fmt(y)}) ↔ (${fmt(y)}, ${fmt(t3)})<br>${P2(t3)} ${eq(t3, y)} ${fmt(y)} ⟺ log₂ ${fmt(y)} ${eq(y, t3)} ${hot(fmt(t3))}</div>`;
+  if (done) out += `<p class="big">${t({ en: `On y = log₂x you read the log straight off: go to x = ${fmt(y)}, and the height ${fmt(t3)} is how many times you multiply by two to get there. Powers and logs are the same graph, one read forwards, one read backwards.`,
+                                 zh: `在 y = log₂x 上可以直接读出对数：走到 x = ${fmt(y)}，高度 ${fmt(t3)} 就是二要乘几次才到它。指数和对数是同一张图，一个顺着读，一个倒着读。` })}</p>
+    <p class="note">${t({ en: "Drag either gold point: the two stay mirror images across y = x.", zh: "拖动任一个金色的点：两个点始终关于 y = x 对称。" })}</p>`;
+  else out += `<p class="note">${t({ en: `The point (${fmt(t3)}, ${fmt(y)}) on y = 2ˣ will land on (${fmt(y)}, ${fmt(t3)}).`, zh: `y = 2ˣ 上的点 (${fmt(t3)}, ${fmt(y)}) 会落到 (${fmt(y)}, ${fmt(t3)})。` })}</p>`;
+  return out + legend([dotI("--a", { en: "y = 2ˣ", zh: "y = 2ˣ" }), dotI("--c", { en: "y = log₂x", zh: "y = log₂x" }), `<span><span class="dsh"></span>y = x</span>`]);
+}
+
+// ---------- render ----------
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  const y = 2 ** t1;
+  el("yR").value = clamp(Math.round(y * 2) / 2, 0.5, 9.5); el("yV").textContent = "y = " + fmt(y);
+  el("aR").value = a2; el("aV").textContent = `M = ${fmt(2 ** a2)}`;
+  el("bR").value = b2; el("bV").textContent = `N = ${fmt(2 ** b2)}`;
+  el("aR").disabled = el("bR").disabled = pick === null;
+  el("fR").value = f3;
+  el("flipB").textContent = t(playing ? { en: "Pause", zh: "暂停" } : f3 > 0.999 ? { en: "Flip back", zh: "翻回来" } : { en: "Flip", zh: "翻过去" });
+  dirty = true;
+}
+
+// ---------- actions ----------
+const TARGETS = [];
+for (let v = 0.5; v <= 9.5; v += 0.5) TARGETS.push(L2(v));
+for (let v = -1; v <= 3; v += 0.5) TARGETS.push(v);
+function snapT(V, P, tt, px, py) {            // snap to a nice y or half-step x when close, else to 0.01
+  let best = null, bd = 12;
+  for (const s of TARGETS) { const q = V.p(P(s)); const d = Math.hypot(q[0] - px, q[1] - py); if (d < bd) { bd = d; best = s; } }
+  return best ?? Math.round(tt * 100) / 100;
+}
+function set1(tt) {
+  t1 = clamp(tt, -1, TMAX);
+  const y = 2 ** t1;
+  for (const k of [2, 4, 6, 8]) if (Math.abs(y - k) < 1e-6) seen.add(k);
+  render();
+}
+function set2(a, b) {
+  b = clamp(Math.round(b * 2) / 2, -1, 3);
+  a = clamp(Math.round(a * 2) / 2, Math.max(-1, -1 - b), Math.min(3, 3 - b));
+  if (a + b > 3) b = 3 - a;
+  a2 = a; b2 = b; render();
+}
+function set3(tt) { t3 = clamp(tt, -1, TMAX); render(); }
+const yUp = (tt, d) => { const y = 2 ** tt; let n = d > 0 ? Math.floor(y + 1e-9) + 1 : Math.ceil(y - 1e-9) - 1; if (n < 1) n = 0.5; return L2(clamp(n, 0.5, 9.5)); };
+const halfStep = (tt, d) => (d > 0 ? Math.floor(tt * 2 + 1e-9) + 1 : Math.ceil(tt * 2 - 1e-9) - 1) / 2;
+function toggleFlip() {
+  if (Play.reduced) { f3 = f3 > 0.999 ? 0 : 1; playing = false; }
+  else if (playing) playing = false;
+  else { if (f3 > 0.999) f3 = 0; playing = true; }
+  render();
+}
+
+// ---------- pointer + keys ----------
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw();
+    if (step === 1) { grab = "t"; frozen = V; return true; }
+    if (step === 2) {
+      if (pick === null) return false;
+      const dA = Math.hypot(...V.p(EXP(a2)).map((v, i) => v - [px, py][i])), dB = Math.hypot(...V.p(EXP(b2)).map((v, i) => v - [px, py][i]));
+      if (Math.min(dA, dB) > 40) return false;
+      grab = dB < dA ? "b" : "a"; frozen = V; return true;
+    }
+    const dP = Math.hypot(...V.p(EXP(t3)).map((v, i) => v - [px, py][i])), dQ = f3 > 0.999 ? Math.hypot(...V.p(LOG(t3)).map((v, i) => v - [px, py][i])) : Infinity;
+    if (Math.min(dP, dQ) > 40) return false;
+    grab = dQ < dP ? "Q" : "P"; playing = false; frozen = V; return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw();
+    if (step === 1) set1(snapT(V, EXP, nearestT(V, EXP, -1, TMAX, px, py), px, py));
+    else if (step === 2) { const tt = nearestT(V, EXP, -1, 3, px, py); grab === "a" ? set2(tt, b2) : set2(a2, tt); }
+    else { const P = grab === "Q" ? LOG : EXP; set3(snapT(V, P, nearestT(V, P, -1, TMAX, px, py), px, py)); }
+  },
+  up() { grab = null; frozen = null; dirty = true; },
+});
+const key = (dx, dy) => () => {
+  if (step === 1) set1(dx ? halfStep(t1, dx) : yUp(t1, dy));
+  else if (step === 2) { if (pick !== null) set2(a2 + dx * 0.5, b2 + dy * 0.5); }
+  else set3(dx ? halfStep(t3, dx) : yUp(t3, dy));
+};
+Play.keys(cvEl, { ArrowLeft: key(-1, 0), ArrowRight: key(1, 0), ArrowUp: key(0, 1), ArrowDown: key(0, -1) });
+
+el("yR").addEventListener("input", (e) => set1(L2(+e.target.value)));
+el("aR").addEventListener("input", (e) => set2(+e.target.value, b2));
+el("bR").addEventListener("input", (e) => set2(a2, +e.target.value));
+el("fR").addEventListener("input", (e) => { playing = false; f3 = +e.target.value; render(); });
+el("flipB").addEventListener("click", toggleFlip);
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) { pick = +b.dataset.pick; render(); } });
+addEventListener("resize", () => (dirty = true));
+el("rn").textContent = t({ en: `Next time you see a log, first ask: how many multiplications is it asking about? One more multiplication is one more step, so the log of a product is the sum of the logs. A sum is different: log₂(2 + 4) ≈ ${fmt(L2(6))}, not 3.`,
+                           zh: `下次再看到对数，先问一句：它在问的是乘几次？多乘一次就是多走一格，所以乘积的对数等于对数的和。和就不一样了：log₂(2 + 4) ≈ ${fmt(L2(6))}，不是 3。` });
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; grab = null; frozen = null; playing = false; render(); });
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (playing) {
+    f3 = Math.min(1, f3 + dt / 1.6);
+    if (f3 >= 1) { f3 = 1; playing = false; render(); }
+    else { el("fR").value = f3; dirty = true; }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sine and Cosine on the Unit Circle · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 42px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; margin: 0 3px; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .explain .mathline { font-size: 18px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .tbl td, .tbl th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .tbl th { color: var(--muted); font-weight: 600; }
+  .tbl td:first-child, .tbl th:first-child { text-align: left; white-space: normal; }
+  .tbl tr.r td { color: var(--fg); font-weight: 700; }
+  .tbl tr.dim td { color: var(--muted); opacity: .6; }
+  .tbl tr.cur td { background: var(--soft); }
+  .chk { margin: 2px 0 8px; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .picks { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
+  .picks button { font-size: 13px; padding: 6px 11px; }
+  .picks button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  /* the circle and the graph share one unit, so the picture wants the full width */
+  .stage { grid-template-columns: 1fr; }
+  .stage .visual { border-right: 0; border-bottom: 1px solid var(--line); }
+  .explain { min-height: 0; }
+  @media (min-width: 861px) {
+    .explain { display: block; column-count: 2; column-gap: 32px; }
+    .explain > * { break-inside: avoid; }
+    .explain .kicker, .explain h2 { column-span: all; }
+  }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" data-t="drag"></div>
+      <canvas class="main" id="main"></canvas>
+      <div class="controls">
+        <span class="grp" id="gUnit"><span data-t="axis"></span><button class="small" id="uRad" data-t="rad"></button><button class="small" id="uDeg" data-t="deg"></button></span>
+        <button class="small" id="play" hidden></button>
+        <button class="small" id="cosB" hidden></button>
+        <span class="grp" id="snaps"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><i>P</i> = (cos <i>t</i>, sin <i>t</i>)</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t: tr, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Sine and Cosine on the Unit Circle", zh: "单位圆上的 sin 和 cos" },
+  eyebrow: { en: "Boxi Math · Try it · #28", zh: "Boxi Math · 动手试试 · #28" },
+  intro: { en: "Sine comes from a circle, so why is its graph a wave? Walk a point around a circle of radius one, lay the distance walked flat along the x-axis, and watch its height trace the curve.",
+           zh: "正弦来自圆，它的图像凭什么是波浪？让一个点沿半径为一的圆走，把走过的路摊平在横轴上，看它的高度画出曲线。" },
+  s1: { en: "Radians = degrees?", zh: "弧度 = 度数？" }, s2: { en: "Walk and trace", zh: "走一圈，描出来" }, s3: { en: "P = (cos t, sin t)", zh: "P = (cos t, sin t)" },
+  reset: { en: "Reset", zh: "重置" }, drag: { en: "drag P or the graph", zh: "拖 P 或者拖右边的图" },
+  axis: { en: "x-axis:", zh: "横轴：" }, rad: { en: "radians", zh: "弧度" }, deg: { en: "degrees", zh: "度数" },
+  playB: { en: "Play", zh: "播放" }, pauseB: { en: "Pause", zh: "暂停" }, againB: { en: "Play again", zh: "再走一遍" },
+  cosOn: { en: "Hide cos x", zh: "隐藏 cos x" }, cosOff: { en: "Show cos x", zh: "显示 cos x" },
+  v1: { en: "Unit circle and the walk laid flat", zh: "单位圆，和摊平的路" }, v2: { en: "Height traced against distance walked", zh: "高度随走过的路描出来" }, v3: { en: "Cosine and sine together", zh: "余弦和正弦一起看" },
+  resT: { en: "t is the arc walked on the unit circle, so radians are distance walked.", zh: "t 是单位圆上走过的弧长，弧度就是走过的路。" },
+  resN: { en: "One lap is 2π long and brings P back to the start, so the height repeats every 2π: the graph of sine is a wave. Cosine is the same wave, a quarter lap ahead.",
+          zh: "一圈长 2π，走完回到起点，所以高度每隔 2π 重复一次：正弦的图像是波浪。余弦是同一条波浪，提前四分之一圈。" },
+  moreS: { en: "One to think about: if the radius becomes two, does the wave get taller, or longer?", zh: "想一想：要是圆的半径变成二，这条波浪会变高，还是变长？" },
+  moreP: { en: "Both, if the x-axis still records the distance walked. The height now goes up to 2, so the wave is twice as tall; and one lap is now 2π × 2 = 4π long, so the wave is twice as long too.",
+           zh: "如果横轴还是记走过的路，两样都变。高度最高到 2，波浪高了一倍；一圈的长度变成 2π × 2 = 4π，波浪也长了一倍。" },
+  moreQ: { en: "That's why the unit circle is used: with radius one, the arc walked and the angle in radians are the same number, and the height is exactly sin t.",
+           zh: "所以才用单位圆：半径是一，走过的弧长和转过的弧度是同一个数，高度正好是 sin t。" },
+  foot: { en: "Gold is the distance walked (on the circle and laid flat on the x-axis), brown is the height (sine), blue is the horizontal position (cosine), red is the degree axis. With the picture focused: ← → walk π/12, ↑ ↓ jump a quarter lap; in step 2 Space plays.",
+          zh: "金色是走过的路（圆上那段和摊在横轴上那段），棕色是高度（正弦），蓝色是横坐标（余弦），红色是用度数的横轴。选中图以后：← → 走 π/12，↑ ↓ 跳四分之一圈；第 2 步空格播放。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const PI = Math.PI, TAU = 2 * PI, HP = PI / 2, DEG = 180 / PI, EPS = 1e-6, SPEED = HP / 1.5;
+const hot = (s) => `<span class="hot">${s}</span>`;
+
+// ---------- state ----------
+let t, s, unit, seenDeg, pick, playing, showCos, step = 1, dirty = true, grab = null, lastA = 0, lastHtml = "";
+function init() { t = PI / 3; s = 0; unit = "rad"; seenDeg = false; pick = null; playing = false; showCos = true; }
+init();
+const tMax = () => (step === 2 ? 2 * TAU : TAU);
+
+// "π/2", "π", "3π/2", "2π" … for k half-pis
+function piLabel(k) {
+  if (k === 0) return "0";
+  if (k % 2 === 0) return k === 2 ? "π" : k / 2 + "π";
+  return (k === 1 ? "" : k) + "π/2";
+}
+// t as a multiple of π, e.g. "0.75π"
+const inPi = (v) => { const k = v / HP; return Math.abs(k - Math.round(k)) < 1e-6 ? piLabel(Math.round(k)) : fmt(v / PI, 2) + "π"; };
+
+// ---------- layout: circle on the left, graph on the right, same unit u ----------
+function lay(W) {
+  const G = W < 480 ? 24 : 34, u = Math.min((W - 34 - G) / (2 + TAU), 86);
+  const used = 34 + G + (2 + TAU) * u, L = 10 + Math.max(0, (W - used) / 2), cy = 52 + u;
+  return { u, G, L, cy, H: Math.round(cy + u + 32) };
+}
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, o = lay(W), H = r.height || o.H;
+  const cx = o.L + o.u, gx0 = cx + o.u + o.G, gx1 = gx0 + TAU * o.u;
+  return { W, H, u: o.u, G: o.G, cx, cy: o.cy, gx0, gx1, X: (x) => gx0 + (x - s) * o.u, Y: (y) => o.cy - y * o.u, wx: (px) => s + (px - gx0) / o.u };
+}
+function sizeCanvas() {
+  const h = lay(cvEl.getBoundingClientRect().width || 600).H + "px";
+  if (cvEl.style.height !== h) cvEl.style.height = h;
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, str, px, py, size) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(str).width + 8, h = size + 6;
+  return [px - w / 2, py - h / 2, px + w / 2, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
+function place(x, str, cands, o = {}) {
+  const size = o.size || 15;
+  let pk = null;
+  for (const c of cands) { const bx = boxOf(x, str, c[0], c[1], size); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pk = c; break; } }
+  if (!pk) { if (o.optional) return false; pk = cands[0]; }
+  boxes.push(boxOf(x, str, pk[0], pk[1], size));
+  Play.text(x, str, pk[0], pk[1], { weight: 700, ...o, size });
+  return true;
+}
+const boxW = (x, str, size) => { const b = boxOf(x, str, 0, 0, size); return b[2] - b[0]; };
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+
+// ---------- drawing helpers ----------
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.lineCap = "round"; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
+}
+function dot(x, p, r, fill) { x.beginPath(); x.arc(p[0], p[1], r, 0, 7); x.fillStyle = fill; x.fill(); x.strokeStyle = color("--surface"); x.lineWidth = 1.5; x.stroke(); }
+function handle(x, px, py) {
+  x.beginPath(); x.arc(px, py, 15, 0, 7); x.strokeStyle = rgba(color("--hl"), 0.8); x.lineWidth = 2.5; x.stroke();
+  x.beginPath(); x.arc(px, py, 9, 0, 7); x.fillStyle = color("--hl"); x.fill(); x.strokeStyle = color("--fg"); x.lineWidth = 1.5; x.stroke();
+  reserve(px, py, 16);
+}
+function arrowHead(x, tip, dir, col, size = 8) {
+  const [dx, dy] = dir, nx = -dy, ny = dx;
+  x.beginPath(); x.moveTo(...tip);
+  x.lineTo(tip[0] - dx * size + nx * size * 0.55, tip[1] - dy * size + ny * size * 0.55);
+  x.lineTo(tip[0] - dx * size - nx * size * 0.55, tip[1] - dy * size - ny * size * 0.55);
+  x.closePath(); x.fillStyle = col; x.fill();
+}
+// y = f(x) over [a, b] on the graph (already clipped to the window)
+function curve(x, V, f, a, b, col, w, alpha = 1) {
+  if (b <= a) return;
+  const n = Math.max(2, Math.ceil((b - a) * V.u / 2));
+  x.beginPath();
+  for (let i = 0; i <= n; i++) { const xv = a + (b - a) * i / n, px = V.X(xv), py = V.Y(f(xv)); i ? x.lineTo(px, py) : x.moveTo(px, py); }
+  x.strokeStyle = alpha < 1 ? rgba(col, alpha) : col; x.lineWidth = w; x.lineJoin = "round"; x.stroke();
+}
+
+function draw(x, w, h) {
+  W0 = w; H0 = h; boxes = [[0, 0, w, 30]];
+  const V = vw(), A = color("--a"), HL = color("--hl"), BR = color("--b"), BL = color("--c"), NO = color("--no"), MU = color("--muted");
+  const st = Math.sin(t), ct = Math.cos(t), P = [V.cx + ct * V.u, V.cy - st * V.u], O = [V.cx, V.cy], foot = [P[0], V.cy];
+  const deg = step === 1 && unit === "deg";
+  const a0 = Math.max(0, s), a1 = s + TAU;
+
+  // grid on the graph: y = ±1, vertical lines at multiples of π/2 (or whole numbers on the degree axis)
+  const xt = [];
+  if (deg) for (let i = Math.ceil(a0); i <= a1 + EPS; i++) xt.push([i, String(i)]);
+  else for (let k = Math.ceil(a0 / HP - EPS); k * HP <= a1 + EPS; k++) xt.push([k * HP, piLabel(k)]);
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  [1, -1].forEach((y) => { x.moveTo(V.gx0, V.Y(y)); x.lineTo(V.gx1, V.Y(y)); });
+  xt.forEach(([xv]) => { x.moveTo(V.X(xv), V.Y(1.12)); x.lineTo(V.X(xv), V.Y(-1.12)); });
+  // circle's own frame
+  x.moveTo(V.cx - V.u, V.Y(1)); x.lineTo(V.cx + V.u, V.Y(1)); x.moveTo(V.cx - V.u, V.Y(-1)); x.lineTo(V.cx + V.u, V.Y(-1));
+  x.stroke();
+  // axes: one horizontal line through the circle centre and the graph, the circle's vertical axis, the graph's left edge
+  x.strokeStyle = rgba(MU, 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(V.cx - V.u - 8, V.cy); x.lineTo(V.gx1 + 4, V.cy);
+  x.moveTo(V.cx, V.cy - V.u - 8); x.lineTo(V.cx, V.cy + V.u + 8);
+  x.moveTo(V.gx0, V.Y(1.15)); x.lineTo(V.gx0, V.Y(-1.15));
+  x.stroke();
+
+  // the unit circle and the arc walked
+  x.beginPath(); x.arc(V.cx, V.cy, V.u, 0, 7); x.strokeStyle = A; x.lineWidth = 2.5; x.stroke();
+  if (t > 0.002) {
+    x.beginPath();
+    if (t >= TAU - EPS) x.arc(V.cx, V.cy, V.u, 0, 7); else x.arc(V.cx, V.cy, V.u, 0, -t, true);
+    x.strokeStyle = HL; x.lineWidth = 5; x.lineCap = "round"; x.stroke(); x.lineCap = "butt";
+  }
+  seg(x, O, P, MU, 1.5);
+  if (step === 3) seg(x, O, foot, BL, 4);
+  seg(x, foot, P, BR, 4);
+
+  // graph contents, clipped to the window [s, s + 2π]
+  x.save(); x.beginPath(); x.rect(V.gx0 - 1, 0, V.gx1 - V.gx0 + 6, V.H); x.clip();
+  if (t > 0.002) seg(x, [V.X(Math.max(0, a0)), V.cy], [V.X(Math.min(t, a1)), V.cy], HL, 5);   // the walk laid flat
+  if (deg) curve(x, V, (xv) => Math.sin(xv / DEG), a0, a1, NO, 3);
+  else if (step === 3) {
+    curve(x, V, Math.sin, a0, a1, A, 2, 0.35);
+    if (showCos) curve(x, V, Math.cos, a0, a1, BL, 2.5);
+    curve(x, V, Math.sin, a0, t, A, 3.5);
+  } else {
+    if (step === 1) curve(x, V, Math.sin, a0, a1, A, 1.5, 0.25);
+    curve(x, V, Math.sin, a0, Math.min(t, a1), A, 3.5);
+  }
+  x.restore();
+
+  // where P's height lands on the graph
+  if (!deg) {
+    const G = [V.X(t), V.Y(st)];
+    seg(x, P, G, rgba(HL, 0.85), 1.5, [5, 4]);
+    seg(x, [G[0], V.cy], G, BR, 3);
+    if (step === 3 && showCos) {
+      const C = [V.X(t) + 4, V.Y(ct)];
+      seg(x, [C[0], V.cy], C, BL, 2, [4, 3]);
+      dot(x, C, 5.5, BL); reserve(...C, 8);
+    }
+    dot(x, G, 6, HL); reserve(...G, 9);
+  } else {
+    const xd = t * DEG, inWin = xd <= a1;
+    const G = inWin ? [V.X(xd), V.Y(st)] : [V.gx1 + 2, V.Y(st)];
+    seg(x, P, G, rgba(NO, 0.85), 1.5, [5, 4]);
+    if (inWin) { dot(x, G, 6, NO); reserve(...G, 9); }
+    else {
+      arrowHead(x, G, [1, 0], NO, 9);
+      const lab = "x = " + fmt(xd, 1) + " →", lw = boxW(x, lab, 14);
+      place(x, lab, [[V.gx1 - lw / 2 - 6, G[1] - 15], [V.gx1 - lw / 2 - 6, G[1] + 15]], { color: NO, size: 14 });
+    }
+  }
+
+  handle(x, ...P);
+  boxes.push([V.gx0 - 2, V.Y(1) - 6, V.gx0 + 2, V.Y(-1) + 6]);   // keep labels off the graph's left axis
+  // P, and the segment names on the circle
+  const r0 = 27;
+  place(x, "P", [[P[0] + ct * r0, P[1] - st * r0], [P[0] + 22, P[1] - 18], [P[0] - 22, P[1] - 18], [P[0] - 29, P[1] + 2], [P[0] + 29, P[1] + 2], [P[0] + 22, P[1] + 18], [P[0] - 22, P[1] + 18]], { italic: true, size: 16 });
+  if (Math.abs(st) * V.u > 26) {
+    const sx = ct >= 0 ? 1 : -1, wl = boxW(x, "sin t", 13);
+    place(x, "sin t", [[foot[0] + sx * (wl / 2 + 5), (foot[1] + P[1]) / 2], [foot[0] - sx * (wl / 2 + 5), (foot[1] + P[1]) / 2]], { color: BR, size: 13, optional: true });
+  }
+  if (step === 3 && Math.abs(ct) * V.u > 34) place(x, "cos t", [[(O[0] + foot[0]) / 2, V.cy + (st >= 0 ? 13 : -13)], [(O[0] + foot[0]) / 2, V.cy + (st >= 0 ? -13 : 13)]], { color: BL, size: 13, optional: true });
+
+  // quarter-lap shift between the two waves
+  if (step === 3 && showCos && s < EPS) {
+    const yA = V.Y(1) - 11, p0 = [V.X(HP), yA], p1 = [V.X(0) + 3, yA];
+    seg(x, p0, p1, color("--h"), 2.5); arrowHead(x, p1, [-1, 0], color("--h"), 8);
+    boxes.push([p1[0], yA - 6, p0[0], yA + 6]);
+    place(x, "π/2", [[p0[0] + 8 + boxW(x, "π/2", 13) / 2, yA]], { color: color("--h"), size: 13, optional: true });
+  }
+
+  // tick labels
+  const mu = MU, put = (str, px, py) => { const bx = boxOf(x, str, px, py, 13); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { boxes.push(bx); Play.text(x, str, px, py, { size: 13, color: mu, weight: 500 }); } };
+  xt.forEach(([xv, lab]) => put(lab, V.X(xv), V.Y(-1) + 20));
+  put("1", V.gx0 - 11, V.Y(1)); put("−1", V.gx0 - 16, V.Y(-1) - 1);
+  if (deg) put("x°", V.gx1 + 12, V.Y(-1) + 20);
+}
+
+// ---------- text ----------
+const lineI = (v, o) => `<span><span class="ln" style="border-color:var(${v})"></span>${tr(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const tStr = () => `${fmt(t)}${t > EPS ? ` (${inPi(t)})` : ""}`;
+
+function explain1() {
+  const deg = unit === "deg", xd = t * DEG, st = Math.sin(t), flat = Math.sin(TAU / DEG);
+  let out = `<div class="kicker">${tr({ en: "Step 01 · test the claim", zh: "第 1 步 · 先试试这个说法" })}</div>
+    <h2>${tr({ en: "“Radians are just another way of writing degrees”?", zh: "「弧度只是度数的另一种写法」？" })}</h2>
+    <p>${tr({ en: "Here is a circle of radius one. Drag P (or drag along the graph) to walk around it. The gold arc is the distance walked; the gold bar on the x-axis is that same distance laid flat. Then switch the x-axis to degrees.",
+               zh: "这是一个半径为一的圆。拖 P（或者沿右边的图拖）让它沿圆走。金色的弧是走过的路，横轴上金色的一段是把同样的路摊平。然后把横轴换成度数试试。" })}</p>
+    <table class="tbl">
+      <tr><td><span class="dot" style="background:var(--hl)"></span>${tr({ en: "arc walked t", zh: "走过的弧长 t" })}</td><td>${fmt(t)}</td></tr>
+      <tr${deg ? ' class="dim"' : ' class="r"'}><td>${tr({ en: "angle in radians", zh: "转过的弧度" })}</td><td>${fmt(t)}</td></tr>
+      <tr${deg ? ' class="r"' : ' class="dim"'}><td>${tr({ en: "angle in degrees", zh: "转过的度数" })}</td><td>${fmt(xd, 1)}°</td></tr>
+      <tr><td><span class="dot" style="background:var(--b)"></span>${tr({ en: "height", zh: "高度" })}</td><td>${fmt(st)}</td></tr></table>`;
+  if (!deg) {
+    out += `<div class="mathline">x = ${hot(fmt(t))} = ${tr({ en: "arc walked", zh: "走过的弧长" })}</div>
+      <p>${tr({ en: "The radius is one, so however long the arc you've walked, that's how many radians you've turned. The dot on the graph sits exactly at the end of the gold bar: one to one.",
+                 zh: "半径是一，所以走过的弧长有多长，转过的角就是多少弧度。图上的点正好落在金色那段的末端：一比一。" })}</p>`;
+  } else {
+    out += `<div class="mathline">x = ${hot(fmt(xd, 1))}, ${tr({ en: "walk", zh: "走过" })} = ${fmt(t)}<br>${tr({ en: "every 1 walked → x moves", zh: "每走 1，x 就要走" })} ${fmt(DEG, 1)}</div>
+      <p>${tr({ en: `The same walk has to stretch out to ${fmt(xd, 1)} on the x-axis, and a lap counts as three hundred sixty. On this axis y = sin(x°) only reaches sin(${fmt(TAU, 2)}°) ≈ ${fmt(flat, 2)} by x = 2π: the wave is pulled almost flat.`,
+                 zh: `走同样长的路，横轴却要记到 ${fmt(xd, 1)}，一圈记成三百六十。在这条横轴上，y = sin(x°) 到 x = 2π 时也才 sin(${fmt(TAU, 2)}°) ≈ ${fmt(flat, 2)}：波浪被拉得几乎是平的。` })}</p>`;
+  }
+  if (seenDeg) out += `<div class="chk"><span class="x">✗</span><s>${tr({ en: "Radians are just another way of writing degrees, with nothing to do with arc length.", zh: "弧度只是度数的另一种写法，和弧长没有关系。" })}</s></div>
+    <p class="big">${tr({ en: "With degrees, height and distance walked are no longer one to one. Radians are the arc walked on the unit circle.", zh: "用度数，高度和走过的路不再一比一。弧度就是单位圆上走过的弧长。" })}</p>`;
+  else out += `<p class="note">${tr({ en: "Now press “degrees” under the picture and walk again.", zh: "现在点图下面的「度数」，再走一走。" })}</p>`;
+  return out + legend([lineI("--hl", { en: "distance walked", zh: "走过的路" }), lineI("--b", { en: "height", zh: "高度" }), deg ? lineI("--no", { en: "y = sin(x°)", zh: "y = sin(x°)" }) : lineI("--a", { en: "y = sin x", zh: "y = sin x" })]);
+}
+
+const PICKS = [{ en: "A wave", zh: "波浪" }, { en: "A circle", zh: "一个圆" }, { en: "A straight line", zh: "一条直线" }];
+function explain2() {
+  let out = `<div class="kicker">${tr({ en: "Step 02 · walk and trace", zh: "第 2 步 · 走一圈，描出来" })}</div>
+    <h2>${tr({ en: "Lay the distance walked flat along the x-axis", zh: "把走过的路摊平在横轴上" })}</h2>`;
+  if (pick == null) {
+    return out + `<p class="big">${tr({ en: "If the point walks one lap at a steady pace, what shape does its height trace along the x-axis?", zh: "点匀速走一圈，高度摊在横轴上，会画出什么形状？" })}</p>
+      <div class="picks">${PICKS.map((p, i) => `<button data-pick="${i}">${tr(p)}</button>`).join("")}</div>
+      <p class="note">${tr({ en: "Pick one, then watch it walk.", zh: "先选一个，再看它走。" })}</p>`;
+  }
+  const lap = Math.min(2, Math.floor(t / TAU - EPS) + 1), st = Math.sin(t);
+  out += `<p>${tr({ en: "Press Play, or drag P. The x-axis is the distance walked; the height at x is sin x.", zh: "点「播放」，或者拖 P。横轴是走过的路，x 处的高度就是 sin x。" })}</p>
+    <div class="mathline">t = ${tStr()}<br>${tr({ en: "height", zh: "高度" })} = sin t = ${hot(fmt(st))}</div>`;
+  const ROWS = [{ en: "a quarter lap", zh: "四分之一圈" }, { en: "half a lap", zh: "半圈" }, { en: "three quarters", zh: "四分之三圈" }, { en: "a full lap", zh: "一整圈" }];
+  out += `<table class="tbl"><tr><th></th><th>${tr({ en: "arc", zh: "弧长" })}</th><th>${tr({ en: "height", zh: "高度" })}</th></tr>${ROWS.map((r, i) => {
+    const a = (i + 1) * HP, got = t >= a - EPS;
+    return `<tr class="${got ? "r" : "dim"}"><td>${tr(r)}</td><td>${piLabel(i + 1)} ≈ ${fmt(a)}</td><td>${got ? fmt(Math.sin(a)) : "?"}</td></tr>`;
+  }).join("")}</table>`;
+  if (t >= TAU - EPS) {
+    out += `<p class="big">${tr({ en: "After a full lap, an arc of two pi, it's back where it started. Keep walking and the same stretch repeats again and again. That's the wave.",
+                                  zh: "走完一整圈，弧长二派，回到起点。接着走，同样的一段会一遍遍重复，这就是波浪。" })}</p>`;
+    if (t > TAU + 0.05) out += `<div class="mathline">${tr({ en: `lap ${lap}`, zh: `第 ${lap} 圈` })}: sin(${fmt(t)}) = sin(${fmt(t)} − 2π) = ${fmt(Math.sin(t - TAU))}</div>`;
+    out += `<p>${pick === 0 ? `<span class="ok-t">${tr({ en: "You predicted a wave: right.", zh: "你猜的是波浪：对了。" })}</span>` : `<span class="no-t">${tr({ en: "Not quite: it's a wave.", zh: "不对：是波浪。" })}</span> ${tr({ en: "The height goes up and down, while the x-axis keeps moving forward.", zh: "高度上上下下，横轴却一直往前走。" })}`}</p>`;
+  } else if (t >= PI - EPS) out += `<p>${tr({ en: "On the bottom half the height goes negative.", zh: "下半圈高度变成负的。" })}</p>`;
+  return out + legend([lineI("--hl", { en: "distance walked", zh: "走过的路" }), lineI("--b", { en: "height", zh: "高度" }), lineI("--a", { en: "y = sin x", zh: "y = sin x" })]);
+}
+
+function explain3() {
+  const ct = Math.cos(t), st = Math.sin(t);
+  let out = `<div class="kicker">${tr({ en: "Step 03 · the formula", zh: "第 3 步 · 写成式子" })}</div>
+    <h2>${tr({ en: "P = (cos t, sin t), where t is the arc walked", zh: "P = (cos t, sin t)，t 是走过的弧长" })}</h2>
+    <p>${tr({ en: "Blue is P's horizontal position, the cosine; brown is its height, the sine. Drag P and both numbers follow.", zh: "蓝色是 P 的横坐标，就是余弦；棕色是它的高度，就是正弦。拖 P，两个数一起变。" })}</p>
+    <div class="mathline">t = ${tStr()}<br>P = (${hot(fmt(ct))}, ${hot(fmt(st))})</div>`;
+  const keys = [0, 1, 2, 3, 4], near = keys.find((k) => Math.abs(t - k * HP) < 1e-6);
+  out += `<table class="tbl"><tr><th>t</th><th><span class="dot" style="background:var(--c)"></span>cos t</th><th><span class="dot" style="background:var(--b)"></span>sin t</th></tr>${keys.map((k) =>
+    `<tr class="r${near === k ? " cur" : ""}"><td>${piLabel(k)}</td><td>${fmt(Math.cos(k * HP))}</td><td>${fmt(Math.sin(k * HP))}</td></tr>`).join("")}${near == null
+    ? `<tr class="r cur"><td>${fmt(t)}</td><td>${fmt(ct)}</td><td>${fmt(st)}</td></tr>` : ""}</table>`;
+  if (showCos) {
+    out += `<p>${tr({ en: "Remember that showing up early means shifting left? The cosine wave is exactly a quarter lap ahead: it is the sine wave shifted left by π/2.",
+                     zh: "还记得提前出现就是左移吗？余弦的波浪正好提前四分之一圈：就是正弦波左移 π/2。" })}</p>
+      <div class="mathline">cos(${fmt(t)}) = ${fmt(ct)}<br>sin(${fmt(t)} + π/2) = sin(${fmt(t + HP)}) = ${fmt(Math.sin(t + HP))}</div>`;
+  }
+  return out + legend([lineI("--c", { en: "cos t / y = cos x", zh: "cos t / y = cos x" }), lineI("--b", { en: "sin t", zh: "sin t" }), lineI("--a", { en: "y = sin x", zh: "y = sin x" }), ...(showCos ? [lineI("--h", { en: "quarter lap ahead", zh: "提前四分之一圈" })] : [])]);
+}
+
+// ---------- controls ----------
+function snapsHtml() {
+  const ks = step === 2 ? [1, 2, 3, 4, 8] : [1, 2, 3, 4];
+  return ks.map((k) => `<button class="small" data-k="${k}">${piLabel(k)}</button>`).join("");
+}
+function render() {
+  sizeCanvas();
+  el("vtitle").textContent = tr(D["v" + step]);
+  el("gUnit").hidden = step !== 1;
+  el("play").hidden = step !== 2 || pick == null;
+  el("cosB").hidden = step !== 3;
+  el("snaps").innerHTML = snapsHtml();
+  el("uRad").classList.toggle("on", unit === "rad"); el("uDeg").classList.toggle("on", unit === "deg");
+  el("uRad").setAttribute("aria-pressed", unit === "rad"); el("uDeg").setAttribute("aria-pressed", unit === "deg");
+  el("cosB").textContent = tr(showCos ? D.cosOn : D.cosOff);
+  lastHtml = "";
+  update();
+}
+function update() {
+  const html = step === 1 ? explain1() : step === 2 ? explain2() : explain3();
+  if (html !== lastHtml) { el("explain").innerHTML = html; lastHtml = html; }
+  document.querySelectorAll("#snaps [data-k]").forEach((b) => b.classList.toggle("on", Math.abs(+b.dataset.k * HP - t) < 1e-6));
+  playLabel();
+  cvEl.setAttribute("aria-label", tr({ en: `Unit circle: P has walked an arc of ${fmt(t)}, height ${fmt(Math.sin(t))}, horizontal position ${fmt(Math.cos(t))}`,
+                                       zh: `单位圆：P 走过的弧长 ${fmt(t)}，高度 ${fmt(Math.sin(t))}，横坐标 ${fmt(Math.cos(t))}` }));
+  dirty = true;
+}
+function playLabel() { el("play").textContent = tr(playing ? D.pauseB : t >= tMax() - EPS ? D.againB : D.playB); }
+
+function setT(v) {
+  t = clamp(v, 0, tMax());
+  s = step === 2 ? clamp(s, Math.max(0, t - TAU), t) : 0;
+  if (step === 1 && unit === "deg" && t > 0.2) seenDeg = true;
+  update();
+}
+// a jump (button or key) shows the window that ends at t, or starts at 0
+function jumpT(v) { s = Math.max(0, clamp(v, 0, tMax()) - TAU); setT(v); }
+function startPlay() {
+  if (t >= tMax() - EPS) { t = 0; s = 0; }
+  playing = true; update();
+}
+
+el("uRad").onclick = () => { unit = "rad"; render(); };
+el("uDeg").onclick = () => { unit = "deg"; if (t > 0.2) seenDeg = true; render(); };
+el("cosB").onclick = () => { showCos = !showCos; render(); };
+el("play").onclick = () => { if (playing) { playing = false; update(); } else startPlay(); };
+el("snaps").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) { playing = false; jumpT(+b.dataset.k * HP); } });
+el("explain").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pick]"); if (!b) return;
+  pick = +b.dataset.pick; t = 0; s = 0; playing = !Play.reduced; render();
+});
+
+// ---------- pointer + keys ----------
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw(); playing = false;
+    if (px < V.gx0 - V.G / 2) { grab = "c"; lastA = Math.atan2(V.cy - py, px - V.cx); }
+    else { grab = "g"; setT(V.wx(px)); }
+    return true;
+  },
+  move(px, py) {
+    const V = vw();
+    if (grab === "c") {
+      const a = Math.atan2(V.cy - py, px - V.cx);
+      let d = a - lastA; d -= TAU * Math.round(d / TAU); lastA = a;
+      setT(t + d);
+    } else if (grab === "g") setT(V.wx(px));
+  },
+  up() { grab = null; update(); },
+});
+const stepTo = (dir) => { playing = false; const k = dir > 0 ? Math.floor(t / HP + EPS) + 1 : Math.ceil(t / HP - EPS) - 1; jumpT(k * HP); };
+Play.keys(cvEl, {
+  ArrowLeft: () => { playing = false; setT(t - PI / 12); },
+  ArrowRight: () => { playing = false; setT(t + PI / 12); },
+  ArrowUp: () => stepTo(1),
+  ArrowDown: () => stepTo(-1),
+  " ": () => { if (step === 2 && pick != null) el("play").click(); },
+});
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n; grab = null; playing = false; s = 0;
+  if (n === 2) { t = 0; if (pick != null && !Play.reduced) playing = true; }
+  else t = clamp(t, 0, TAU);
+  render();
+});
+el("reset").onclick = () => { init(); nav.set(1); };
+addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (step === 2 && playing) {
+    const m = tMax();
+    setT(Math.min(m, t + dt * SPEED));
+    if (t >= m - EPS) { playing = false; update(); }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
