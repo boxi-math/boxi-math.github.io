@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>(a+b)²: Where the Extra 2ab Comes From · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stage canvas.main { height: 400px; }
+  @media (max-width: 560px) { .stage canvas.main { height: 340px; } }
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.4em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; text-align: left; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .ka { color: var(--a); font-weight: 700; }
+  .kb { color: var(--c); font-weight: 700; }
+  .kh { color: var(--hl); font-weight: 700; }
+  .kn { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .term { font: inherit; padding: 0 3px; border: 0; border-bottom: 2px dotted currentColor; border-radius: 4px; background: transparent; min-height: 0; min-width: 0; }
+  .term.sel { background: var(--soft); border-bottom-style: solid; }
+  .term:hover { border-color: currentColor; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0"></canvas>
+      <div class="controls" id="cAB">
+        <span class="stepper"><i class="ka">a</i><button data-d="a-" aria-label="a minus one">−</button><b id="aVal" class="ka"></b><button data-d="a+" aria-label="a plus one">+</button></span>
+        <span class="stepper"><i class="kb">b</i><button data-d="b-" aria-label="b minus one">−</button><b id="bVal" class="kb"></b><button data-d="b+" aria-label="b plus one">+</button></span>
+        <button class="big" id="placeBtn"></button>
+        <button class="big" id="fillBtn"></button>
+        <button id="twelveBtn" data-t="twelve"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><i class="ka">a = b</i><button data-d="e-" aria-label="minus one">−</button><b id="eVal" class="ka"></b><button data-d="e+" aria-label="plus one">+</button></span>
+        <button class="big" id="halfBtn"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resMath"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "(a+b)²: Where the Extra 2ab Comes From", zh: "完全平方公式：多出来的 2ab" },
+  eyebrow: { en: "Boxi Math · Try it · #17", zh: "Boxi Math · 动手试试 · #17" },
+  intro: { en: "A square patch, a metres on a side, grows by b metres on each side. Cut the new square once across and once down, and find every piece of its area.",
+           zh: "边长 a 米的正方形菜园，每边再加 b 米。把新的正方形横竖各切一刀，把面积一块一块找全。" },
+  s1: { en: "Squaring each part?", zh: "各自平方？" }, s2: { en: "Fill the gaps", zh: "填空的两块" },
+  s3: { en: "When a = b", zh: "a 等于 b 时" }, s4: { en: "The formula", zh: "公式" },
+  reset: { en: "Reset", zh: "重置" },
+  place: { en: "Put in a² and b²", zh: "放进 a² 和 b²" }, unplace: { en: "Take them out", zh: "拿出来" },
+  fill: { en: "Fill", zh: "填上" }, empty: { en: "Empty again", zh: "再空出来" }, pause: { en: "Pause", zh: "暂停" },
+  half: { en: "Only a² + b²", zh: "只数 a² + b²" }, all4: { en: "All four pieces", zh: "四块都数" },
+  twelve: { en: "12 × 12", zh: "12 × 12" },
+  v1: { en: "A square with side a + b", zh: "边长 a + b 的正方形" }, v2: { en: "The two empty corners", zh: "空着的两个角" },
+  v3: { en: "Side a + a: four equal squares", zh: "边长 a + a：四个一样的小正方形" }, v4: { en: "Picture and formula", zh: "图和公式" },
+  tag1: { en: "drag the pink dot", zh: "拖动粉点" }, tag2: { en: "drag the pink dot", zh: "拖动粉点" },
+  tag3: { en: "tap the picture", zh: "点图切换" }, tag4: { en: "drag the dot · tap a piece", zh: "拖粉点 · 点一块" },
+  resT: { en: "Cut a square with side a + b once across and once down:", zh: "边长 a + b 的正方形横竖各切一刀：" },
+  resN: { en: "Squaring isn't squaring each part. Neither of those two strips can be left out.", zh: "平方不是各自平方，中间那两条长条，一条也不能丢。" },
+  moreS: { en: "Why is the picture enough? And what comes next?", zh: "为什么一张图就够？下一步是什么？" },
+  moreP: { en: "For any lengths a and b, the big square is made of exactly these four pieces with no overlaps and no gaps, so its area is their sum: a² + ab + ab + b². With numbers it is the same as working out (a + b) × (a + b) with two cuts, like long multiplication: 12 × 12 = 100 + 20 + 20 + 4. The two areas a² + b² and (a + b)² only agree when a or b is 0, because only then do the strips disappear. Next: what if we go the other way and cut a small square out of a big one?",
+           zh: "不管 a、b 是多长，大正方形都正好由这四块拼成，不重叠、不留空，所以面积就是四块的和：a² + ab + ab + b²。换成数，就是切两刀算 (a + b) × (a + b)，和竖式一样：12 × 12 = 100 + 20 + 20 + 4。a² + b² 和 (a + b)² 只有在 a 或 b 是 0 的时候才一样大，因为只有那时长条才消失。下一集：要是反过来，从正方形里挖掉一个小正方形呢？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → move the cut, ↑ ↓ change b, Enter does the step's main button.",
+          zh: "鼠标、触屏、键盘都能用：选中图后 ← → 挪切线，↑ ↓ 改 b，回车按这一步的主按钮。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · your cousin's answer", zh: "第 1 步 · 表弟的答案" },
+       h: { en: "Your cousin's vegetable patch is a square, a metres on a side. Each side grows by b metres. What's the new area?", zh: "表弟家的菜园是边长 a 米的正方形，每边再加 b 米，面积是多少？" },
+       p: { en: "Try a = 3 and b = 2. Settle on an answer before you read on.", zh: "试试 a 是三、b 是二。先自己定个答案，再往下看。" } },
+  2: { kicker: { en: "Step 02 · fill the gaps", zh: "第 2 步 · 填上空着的两块" },
+       h: { en: "What shape is each of those empty pieces, and how big?", zh: "空着的这两块，各是什么形状、有多大？" },
+       p: { en: "Pick an answer, then press Fill.", zh: "先选一个答案，再按「填上」。" } },
+  3: { kicker: { en: "Step 03 · a non-example", zh: "第 3 步 · 一个非例" },
+       h: { en: "What if a and b are the same length, so all four pieces are equal squares? Surely it works then?", zh: "要是 a 和 b 一样长，四块都成了一样的正方形，总该对了吧？" },
+       p: { en: "a squared plus b squared only counts two of them. The other two are still the a b strips.", zh: "a 方加 b 方只数了其中两个，另外两个还是那两条 a b。" } },
+  4: { kicker: { en: "Step 04 · the formula", zh: "第 4 步 · 公式" },
+       h: { en: "So a plus b squared equals a squared plus two a b plus b squared.", zh: "所以 a 加 b 的平方，等于 a 方加二 a b 加 b 方。" },
+       p: { en: "This piece is a squared, these two strips are two a b, and that piece is b squared. Drag the pink dot or change a and b; tap a piece or a term to match them up.", zh: "这块是 a 方，这两条是二 a b，那块是 b 方。拖粉点或改 a、b；点图里的一块或式子里的一项，看它们怎么对上。" } },
+};
+Play.i18n(D);
+
+// script numbers: a = 3, b = 2 (5 × 5 = 25, 3 × 3 + 2 × 2 = 13); revisit #5: 12 × 12 = 100 + 2 × 20 + 4
+const A0 = 3, B0 = 2, TMAX = 12, EMAX = 6;
+let step = 1, a = A0, b = B0, guess = -1, placed = false;
+let predict = -1, fill = 0, fillTo = 0;
+let e = 3, half = false;
+let sel = null, dirty = true, geo = null, grab = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+// ---------- drawing ----------
+const gridCol = () => rgba(color("--muted"), 0.32);
+function rectPx(g, ux, uy, uw, uh) { return [g.x0 + ux * g.p, g.y0 + uy * g.p, uw * g.p, uh * g.p]; }
+function grid(x, g, r, col) {
+  const [X, Y, W, H] = r;
+  if (g.p < 7 || W <= 0 || H <= 0) return;
+  x.strokeStyle = col; x.lineWidth = 1; x.beginPath();
+  for (let u = X + g.p; u < X + W - 0.5; u += g.p) { x.moveTo(u, Y); x.lineTo(u, Y + H); }
+  for (let v = Y + g.p; v < Y + H - 0.5; v += g.p) { x.moveTo(X, v); x.lineTo(X + W, v); }
+  x.stroke();
+}
+function piece(x, g, r, col, o = {}) {
+  const [X, Y, W, H] = r;
+  if (W <= 0 || H <= 0) return;
+  x.save(); x.globalAlpha = o.alpha ?? 1;
+  x.fillStyle = rgba(col, o.fa ?? 0.26); x.fillRect(X, Y, W, H);
+  grid(x, g, r, rgba(col, 0.45));
+  x.strokeStyle = col; x.lineWidth = o.lw || 2; x.setLineDash(o.dash || []);
+  x.strokeRect(X + 1, Y + 1, W - 2, H - 2); x.setLineDash([]);
+  x.restore();
+}
+// label inside a rectangle: two lines if they fit, else one, else the shortest, else nothing
+function label(x, r, lines, col, alpha) {
+  const [X, Y, W, H] = r, cx = X + W / 2, cy = Y + H / 2;
+  const tw = (s, z) => { x.font = `700 ${z}px Inter, system-ui, sans-serif`; return x.measureText(s).width; };
+  x.save(); x.globalAlpha = alpha ?? 1;
+  const o = { size: 17, weight: 700, color: col || color("--fg") };
+  if (lines.length > 1 && H >= 46 && Math.max(tw(lines[0], 17), tw(lines[1], 17)) + 10 <= W) {
+    Play.text(x, lines[0], cx, cy - 10, o); Play.text(x, lines[1], cx, cy + 11, o);
+  } else {
+    const one = lines.join(" "), last = lines[lines.length - 1];
+    if (H >= 22 && tw(one, 15) + 8 <= W) Play.text(x, one, cx, cy, { ...o, size: 15 });
+    else if (H >= 18 && tw(last, 13) + 6 <= W) Play.text(x, last, cx, cy, { ...o, size: 13 });
+  }
+  x.restore();
+}
+// side labels for the segments a and b along the top and the left
+function sideLabels(x, g, na, nb, ca, cb) {
+  const { x0, y0, p, a: ua, b: ub } = g;
+  const tw = (s) => { x.font = "700 15px Inter, system-ui, sans-serif"; return x.measureText(s).width; };
+  const pick = (name, v, seg) => (tw(`${name} = ${v}`) + 6 <= seg ? `${name} = ${v}` : tw(String(v)) + 4 <= seg ? String(v) : String(v));
+  const sa = pick(na, ua, ua * p), sb = pick(nb, ub, ub * p);
+  // top: brackets and text, the narrower one lifted if they collide
+  const bracket = (x1, x2, y, col) => { x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(x1 + 3, y + 4); x.lineTo(x1 + 3, y); x.lineTo(x2 - 3, y); x.lineTo(x2 - 3, y + 4); x.stroke(); };
+  let ta = x0 + ua * p / 2, tb = x0 + (ua + ub / 2) * p, ya = y0 - 22, yb = y0 - 22;
+  if (ua && ub && ta + tw(sa) / 2 + 6 > tb - tw(sb) / 2) { if (ua < ub) ya -= 18; else yb -= 18; }
+  if (ua) { bracket(x0, x0 + ua * p, y0 - 9, ca); Play.text(x, sa, ta, ya, { size: 15, weight: 700, color: ca }); }
+  if (ub) { bracket(x0 + ua * p, x0 + (ua + ub) * p, y0 - 9, cb); Play.text(x, sb, tb, yb, { size: 15, weight: 700, color: cb }); }
+  // left: right-aligned, pushed apart vertically if they collide
+  let la = y0 + ua * p / 2, lb = y0 + (ua + ub / 2) * p;
+  if (ua && ub && lb - la < 18) { const d = (18 - (lb - la)) / 2; la -= d; lb += d; }
+  const vb = (y1, y2, col) => { x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(x0 - 5, y1 + 3); x.lineTo(x0 - 9, y1 + 3); x.lineTo(x0 - 9, y2 - 3); x.lineTo(x0 - 5, y2 - 3); x.stroke(); };
+  if (ua) { vb(y0, y0 + ua * p, ca); Play.text(x, sa, x0 - 14, la, { size: 15, weight: 700, color: ca, align: "right" }); }
+  if (ub) { vb(y0 + ua * p, y0 + (ua + ub) * p, cb); Play.text(x, sb, x0 - 14, lb, { size: 15, weight: 700, color: cb, align: "right" }); }
+}
+// layout: the square (ua + ub) units wide, room for labels on top / left and one text line below
+function layout(w, h, ua, ub) {
+  const T = Math.max(1, ua + ub), left = 64, top = 70, bottom = 44;
+  const S = Math.max(60, Math.min(w - left - 20, h - top - bottom, 420));
+  const p = S / T, x0 = left + (w - left - 20 - S) / 2, y0 = top + (h - top - bottom - S) / 2;
+  return { x0, y0, p, S, a: ua, b: ub };
+}
+// mode: "blank" (nothing placed), "myth" (a², b² and empty corners), "fill" (strips at fill), "full"
+function drawSquare(x, w, h, ua, ub, mode, f, o = {}) {
+  const g = layout(w, h, ua, ub), CA = o.ca || color("--a"), CB = o.cb || color("--c"), HL = color("--hl"), NO = color("--no"), FG = color("--fg");
+  geo = g;
+  const { x0, y0, p, S } = g;
+  const rA = rectPx(g, 0, 0, ua, ua), rB = rectPx(g, ua, ua, ub, ub), rT = rectPx(g, ua, 0, ub, ua), rL = rectPx(g, 0, ua, ua, ub);
+  const nA = o.na || "a", nB = o.nb || "b";
+  x.fillStyle = rgba(color("--muted"), 0.05); x.fillRect(x0, y0, S, S);
+  grid(x, g, [x0, y0, S, S], gridCol());
+  const dimOf = (k) => (sel && sel !== k ? 0.35 : 1);
+  const lw = (k) => (sel === k ? 3.5 : 2);
+  if (mode !== "blank") {
+    piece(x, g, rA, CA, { alpha: dimOf("a2"), lw: lw("a2") });
+    piece(x, g, rB, CB, { alpha: dimOf("b2"), lw: lw("b2") });
+    label(x, rA, [`${nA}²`, `${ua * ua}`], null, dimOf("a2"));
+    label(x, rB, [`${nB}²`, `${ub * ub}`], null, dimOf("b2"));
+  }
+  const strips = [[rL, 0], [rT, 1]];
+  if (mode === "myth" || (mode === "fill" && f < 1)) {
+    for (const [r] of strips) {
+      if (r[2] <= 0 || r[3] <= 0) continue;
+      x.save(); x.globalAlpha = mode === "fill" ? 1 - f : 1;
+      piece(x, g, r, NO, { fa: 0.1, dash: [6, 4] });
+      label(x, r, ["?"], NO);
+      x.restore();
+    }
+  }
+  if (mode === "fill" || mode === "full") {
+    const u = mode === "full" ? 1 : f * f * (3 - 2 * f);
+    for (const [r, i] of strips) {
+      if (u <= 0 || r[2] <= 0 || r[3] <= 0) continue;
+      const d = (1 - u) * 34, rr = i === 0 ? [r[0], r[1] + d, r[2], r[3]] : [r[0] + d, r[1], r[2], r[3]];
+      piece(x, g, rr, HL, { alpha: u * dimOf("ab"), lw: lw("ab"), fa: 0.3 });
+      if (u > 0.95) label(x, rr, [o.nab || `${nA}${nB}`, `${ua * ub}`], null, dimOf("ab"));
+    }
+  }
+  x.strokeStyle = FG; x.lineWidth = 2.4; x.strokeRect(x0, y0, S, S);
+  sideLabels(x, g, nA, nB, CA, CB);
+  // the two cuts and the drag handle at their crossing
+  if (o.handle) {
+    const cx = x0 + ua * p, cy = y0 + ua * p, A = color("--h");
+    x.strokeStyle = A; x.lineWidth = 2.5; x.setLineDash([7, 5]);
+    x.beginPath();
+    if (ua > 0 && ub > 0) { x.moveTo(cx, y0); x.lineTo(cx, y0 + S); x.moveTo(x0, cy); x.lineTo(x0 + S, cy); }
+    x.stroke(); x.setLineDash([]);
+    x.fillStyle = A; x.beginPath(); x.arc(cx, cy, 11, 0, 2 * Math.PI); x.fill();
+    x.strokeStyle = color("--surface"); x.lineWidth = 2;
+    x.beginPath(); x.moveTo(cx - 5, cy - 5); x.lineTo(cx + 5, cy + 5); x.moveTo(cx - 5, cy - 1); x.lineTo(cx - 5, cy - 5); x.lineTo(cx - 1, cy - 5);
+    x.moveTo(cx + 5, cy + 1); x.lineTo(cx + 5, cy + 5); x.lineTo(cx + 1, cy + 5); x.stroke();
+  }
+  return g;
+}
+function bottomText(x, w, g, s, col) {
+  Play.text(x, s, w / 2, g.y0 + g.S + 26, { size: 16, weight: 700, color: col || color("--fg") });
+}
+
+function draw(x, w, h) {
+  const T = a + b;
+  if (step === 1) {
+    const g = drawSquare(x, w, h, a, b, placed ? "myth" : "blank", 0, { handle: true });
+    bottomText(x, w, g, placed ? `${T}² = ${T * T}   ≠   ${a * a} + ${b * b} = ${a * a + b * b}` : `(${a} + ${b})² = ?`, placed && a * b ? color("--no") : null);
+  } else if (step === 2) {
+    const g = drawSquare(x, w, h, a, b, "fill", fill, { handle: true });
+    bottomText(x, w, g, `${T * T} − ${a * a + b * b} = 2 × ${a} × ${b} = ${2 * a * b}`);
+  } else if (step === 3) {
+    const g = drawSquare(x, w, h, e, e, half ? "myth" : "full", 1, { cb: color("--a"), nb: "a", nab: "ab" });
+    bottomText(x, w, g, half ? `${e * e} + ${e * e} = ${2 * e * e}  ≠  ${4 * e * e}` : `4 × ${e * e} = ${4 * e * e}`, half ? color("--no") : null);
+  } else {
+    const g = drawSquare(x, w, h, a, b, "full", 1, { handle: true });
+    bottomText(x, w, g, `${a * a} + ${a * b} + ${a * b} + ${b * b} = ${T * T}`);
+  }
+}
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+const term = (k, cls, s) => `<button class="term ${cls}${sel === k ? " sel" : ""}" data-sel="${k}">${s}</button>`;
+function render() {
+  const s = STEP[step], ex = $("explain"), T = a + b, sq = T * T, my = a * a + b * b, gap = sq - my;
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>`;
+  if (step === 1) {
+    html += `<div class="mathline">(${sp("ka", a)} + ${sp("kb", b)})² = ?</div><div class="choices">` +
+      [my, sq].map((v) => `<button data-g="${v}" class="${guess === v ? (v === sq ? "right" : "wrong") : ""}">${v}</button>`).join("") +
+      `<button data-g="-2" class="${guess === -2 ? "on" : ""}">${t({ en: "Something else", zh: "别的数" })}</button></div>`;
+    if (guess !== -1) {
+      html += `<p>${t({ en: "Your cousin answers straight away: squaring squares each part, a squared plus b squared.", zh: "表弟张口就答：平方就各自平方，a 方加 b 方。" })}</p>` +
+        `<div class="mathline"><span class="kn">(a+b)² = a² + b² ?</span></div>`;
+      if (!placed) html += `<p>${t({ en: "A square number is a square. Press “Put in a² and b²” to see what his answer covers.", zh: "平方就是正方形。按「放进 a² 和 b²」，看看他的答案盖住了哪些。" })}</p>`;
+      else if (a * b === 0) html += `<p>${t({ en: `With ${a === 0 ? "a" : "b"} = 0 there are no empty corners: this is the only time a² + b² works. Make both a and b bigger than 0.`, zh: `${a === 0 ? "a" : "b"} = 0 时没有空角，只有这时 a² + b² 才对。把 a、b 都调到大于 0。` })}</p>`;
+      else html += `<p>${t({ en: "If it equalled a squared plus b squared, the square would hold just these two pieces. But two pieces in the other corners are still empty. The square isn't filled.", zh: "要是它等于 a 方加 b 方，正方形里就只有这两块。可是另外两个角上还空着两块，正方形根本没填满。" })}</p>` +
+        `<div class="mathline">${T} × ${T} = <b>${sq}</b><br>${sp("ka", `${a} × ${a}`)} + ${sp("kb", `${b} × ${b}`)} = <span class="kn">${my}</span></div>` +
+        `<p><span class="tag-no">${t({ en: `Only ${my}, a whole ${gap} short.`, zh: `只有 ${my}，差了整整 ${gap}。` })}</span> ${t({ en: "Drag the pink dot: the corners never fill.", zh: "拖动粉点试试：两个角总是空着。" })}</p>`;
+    }
+  } else if (step === 2) {
+    const opts = [{ en: "a b-by-b square", zh: "边长 b 的正方形" }, { en: "a strip, a long and b wide", zh: "长 a、宽 b 的长条" }, { en: "an a-by-a square", zh: "边长 a 的正方形" }];
+    html += `<div class="choices">` + opts.map((o, i) => `<button data-p="${i}" class="${predict === i ? (fill > 0.98 ? (i === 1 ? "right" : "wrong") : "on") : ""}">${t(o)}</button>`).join("") + `</div>`;
+    if (fill > 0.98 && a * b > 0) {
+      html += `<p>${t({ en: "The bottom-left piece is a long and b wide, so its area is a times b. The top-right piece is a times b too. The two are exactly the same.", zh: "左下这块，长是 a，宽是 b，它的面积是 a 乘 b。右上这块也是 a 乘 b，两块一模一样。" })}</p>` +
+        `<div class="mathline">${sp("kh", `${a} × ${b} = ${a * b}`)} &nbsp; ${sp("kh", `${a} × ${b} = ${a * b}`)}<br>${sq} − ${my} = 2 × ${a} × ${b} = <b>${2 * a * b}</b></div>` +
+        `<p><strong>${t({ en: "So the extra part is two a b's: two a b.", zh: "所以多出来的是两个 a b，也就是二 a b。" })}</strong> ${t({ en: `The missing ${gap} is exactly two lots of ${a} times ${b}: these two strips.`, zh: `差的这 ${gap} 正好是两个 ${a} 乘 ${b}，就是这两条长条。` })}</p>`;
+    } else if (a * b === 0) {
+      html += `<p>${t({ en: "With a or b equal to 0 the strips have no area. Make both bigger than 0.", zh: "a 或 b 是 0 时，长条没有面积。把两个都调到大于 0。" })}</p>`;
+    } else {
+      html += `<div class="mathline">${sq} − ${my} = <span class="kn">${gap}</span></div><p class="note">${t({ en: "Count the grid squares in each empty piece, then press Fill.", zh: "数一数每块空白里有几格，再按「填上」。" })}</p>`;
+    }
+  } else if (step === 3) {
+    const q = e * e;
+    html += `<div class="mathline">(${sp("ka", e)} + ${sp("ka", e)})² = ${2 * e} × ${2 * e} = <b>${4 * q}</b><br>${sp("ka", `${e}²`)} + ${sp("ka", `${e}²`)} = <span class="kn">${2 * q}</span><br>${sp("kh", `2 × ${e} × ${e}`)} = ${sp("kh", 2 * q)}</div>`;
+    html += `<p>${t({ en: `Here the strips happen to be squares too, but a² + b² still counts only half: ${2 * q} out of ${4 * q}.`, zh: `这回两条长条碰巧也是正方形，可 a² + b² 还是只数了一半：${4 * q} 里的 ${2 * q}。` })}</p>` +
+      `<p><span class="tag-no">${t({ en: "Equal pieces don't help: the a b strips are still there.", zh: "四块一样大也没用：a b 长条还在。" })}</span></p>`;
+  } else {
+    html += `<div class="mathline">(${sp("ka", "a")} + ${sp("kb", "b")})² = ${term("a2", "ka", "a²")} + ${term("ab", "kh", "2ab")} + ${term("b2", "kb", "b²")}<br>` +
+      `(${sp("ka", a)} + ${sp("kb", b)})² = ${term("a2", "ka", a * a)} + ${term("ab", "kh", `2 × ${a * b}`)} + ${term("b2", "kb", b * b)} = <b>${sq}</b></div>`;
+    if (a === 10 && b === 2) html += `<p><strong>${t({ en: "Twelve times twelve in long multiplication is the same: a hundred, two twenties, and four.", zh: "竖式算十二乘十二，也是一百、两个二十，再加四。" })}</strong> 12 × 12 = 100 + 2 × 20 + 4 = 144</p>`;
+    else html += `<p>${t({ en: "Remember cutting a rectangle once? This time we cut once across and once down, into four pieces.", zh: "还记得切一刀吗？这回是横竖各切一刀，切出四块。" })}</p>`;
+    if (a * b === 0) html += `<p class="note">${t({ en: "With a or b equal to 0 the strips vanish: the only case where a² + b² is right.", zh: "a 或 b 是 0 时长条消失了：只有这时 a² + b² 才对。" })}</p>`;
+    else html += `<p class="note">${t({ en: `a² + b² alone would be ${my}, missing the two strips (${2 * a * b}).`, zh: `只算 a² + b² 是 ${my}，漏了两条长条（${2 * a * b}）。` })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  cv.setAttribute("aria-label", step === 3 ? `(${e} + ${e})² = ${4 * e * e}` : `(${a} + ${b})² = ${a * a} + 2 × ${a * b} + ${b * b} = ${sq}`);
+  $("cAB").hidden = step === 3; $("c3").hidden = step !== 3;
+  $("placeBtn").hidden = step !== 1; $("fillBtn").hidden = step !== 2; $("twelveBtn").hidden = step !== 4;
+  $("placeBtn").textContent = t(placed ? D.unplace : D.place);
+  $("fillBtn").textContent = t(Math.abs(fillTo - fill) > 1e-3 ? D.pause : fill > 0.5 ? D.empty : D.fill);
+  $("halfBtn").textContent = t(half ? D.all4 : D.half);
+  $("halfBtn").classList.toggle("on", half);
+  $("twelveBtn").classList.toggle("on", a === 10 && b === 2);
+  $("aVal").textContent = a; $("bVal").textContent = b; $("eVal").textContent = e;
+  dirty = true;
+}
+$("explain").addEventListener("click", (ev) => {
+  const g = ev.target.closest("[data-g]"), q = ev.target.closest("[data-p]"), k = ev.target.closest("[data-sel]");
+  if (g) { guess = +g.dataset.g; placed = true; }
+  if (q) predict = +q.dataset.p;
+  if (k) sel = sel === k.dataset.sel ? null : k.dataset.sel;
+  if (g || q || k) render();
+});
+$("resMath").textContent = "(a + b)² = a² + 2ab + b²";
+
+// ---------- input ----------
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; sel = null;
+  if (s === 2 && Play.reduced) fill = fillTo;
+  render();
+});
+function setAB(na, nb) {
+  na = clamp(na, 0, TMAX); nb = clamp(nb, 0, TMAX);
+  if (na + nb < 1 || na + nb > TMAX) return;
+  a = na; b = nb; render();
+}
+const moveCut = (d) => setAB(clamp(a + d, 0, a + b), a + b - clamp(a + d, 0, a + b));
+function fillClick() {
+  if (Math.abs(fillTo - fill) > 1e-3) { fillTo = fill; return render(); }   // pause
+  fillTo = fill > 0.5 ? 0 : 1;
+  if (Play.reduced) fill = fillTo;
+  render();
+}
+$("placeBtn").onclick = () => { placed = !placed; render(); };
+$("fillBtn").onclick = fillClick;
+$("halfBtn").onclick = () => { half = !half; render(); };
+$("twelveBtn").onclick = () => { if (a === 10 && b === 2) setAB(A0, B0); else setAB(10, 2); };
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, d = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") setAB(a + d, b);
+  else if (k[0] === "b") setAB(a, b + d);
+  else { e = clamp(e + d, 1, EMAX); render(); }
+}));
+
+function pickPiece(px, py) {
+  const { x0, y0, p, S } = geo, ux = (px - x0) / p, uy = (py - y0) / p;
+  if (px < x0 || py < y0 || px > x0 + S || py > y0 + S) return null;
+  const left = ux < a, up = uy < a;
+  return left && up ? "a2" : !left && !up ? "b2" : "ab";
+}
+Play.drag(cv, {
+  down(px, py) {
+    if (!geo) return false;
+    if (step === 3) { half = !half; render(); return false; }
+    const { x0, y0, p, S } = geo, cx = x0 + a * p, cy = y0 + a * p;
+    const inside = px > x0 - 8 && px < x0 + S + 8 && py > y0 - 8 && py < y0 + S + 8;
+    if (Math.hypot(px - cx, py - cy) < 22) grab = "dot";
+    else if (inside && Math.abs(px - cx) < 12) grab = "v";
+    else if (inside && Math.abs(py - cy) < 12) grab = "h";
+    else grab = null;
+    if (grab) return true;
+    if (step === 4) { const k = pickPiece(px, py); sel = k && sel !== k ? k : null; render(); }
+    return false;
+  },
+  move(px, py) {
+    if (!grab || !geo) return;
+    const { x0, y0, p } = geo, T = a + b;
+    const u = grab === "v" ? (px - x0) / p : grab === "h" ? (py - y0) / p : ((px - x0) + (py - y0)) / 2 / p;
+    const na = clamp(Math.round(u), 0, T);
+    if (na !== a) setAB(na, T - na);
+  },
+  up() { grab = null; },
+});
+const enter = () => (step === 1 ? $("placeBtn").onclick() : step === 2 ? fillClick() : step === 3 ? $("halfBtn").onclick() : $("twelveBtn").onclick());
+Play.keys(cv, {
+  ArrowLeft: () => (step === 3 ? (e = clamp(e - 1, 1, EMAX), render()) : moveCut(-1)),
+  ArrowRight: () => (step === 3 ? (e = clamp(e + 1, 1, EMAX), render()) : moveCut(1)),
+  ArrowUp: () => (step === 3 ? (e = clamp(e + 1, 1, EMAX), render()) : setAB(a, b + 1)),
+  ArrowDown: () => (step === 3 ? (e = clamp(e - 1, 1, EMAX), render()) : setAB(a, b - 1)),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  a = A0; b = B0; guess = -1; placed = false; predict = -1; fill = fillTo = 0; e = 3; half = false; sel = null;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => (dirty = true));
+
+Play.loop((dt) => {
+  if (fill !== fillTo) {
+    fill = clamp(fill + Math.sign(fillTo - fill) * dt / 0.9, 0, 1);
+    if (Math.abs(fill - fillTo) < 1e-3) { fill = fillTo; render(); }
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

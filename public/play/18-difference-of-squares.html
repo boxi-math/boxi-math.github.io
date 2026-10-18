@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Difference of Squares: Cut and Paste · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.6em; text-align: center; color: var(--fg); }
+  .stepper .lab { font-family: var(--math); font-style: italic; font-size: 18px; font-weight: 700; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; font-weight: 650; font-family: var(--math); font-size: 16px; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); background: var(--surface); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); background: var(--surface); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .strike { text-decoration: line-through; text-decoration-thickness: 2px; }
+  .presets { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .presets button { font-family: var(--math); }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="square with a corner cut out"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="ovBtn"></button>
+        <span class="stepper"><span class="lab cB">b</span><button data-d="b-" aria-label="b minus">−</button><b class="bVal"></b><button data-d="b+" aria-label="b plus">+</button></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="big" id="turnBtn"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><span class="lab cA">a</span><button data-d="a-" aria-label="a minus">−</button><b id="aVal"></b><button data-d="a+" aria-label="a plus">+</button></span>
+        <span class="stepper"><span class="lab cB">b</span><button data-d="b-" aria-label="b minus">−</button><b class="bVal"></b><button data-d="b+" aria-label="b plus">+</button></span>
+        <span class="presets"><button data-p="5,2">5, 2</button><button data-p="20,1">21 × 19</button><button data-p="30,1">31 × 29</button></span>
+        <button class="big" id="turn3"></button>
+        <button class="big" id="plusBtn"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">a² − b² = (a + b)(a − b)</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "Difference of Squares: Cut and Paste", zh: "平方差：剪下来补上去" },
+  eyebrow: { en: "Boxi Math · Try it · #18", zh: "Boxi Math · 动手试试 · #18" },
+  intro: { en: "A square room with side a has a square pillar with side b standing in one corner. The floor to cover is a² − b². Test the builder's guess, then cut the L-shape once and turn one strip round. Each grid square is 1 unit².",
+           zh: "边长 a 的正方形房间，角落里立着边长 b 的方柱。要铺的地板是 a² − b²。先试试装修师傅的说法，再把 L 形剪一刀、把一条转过来。每个小方格面积是 1。" },
+  s1: { en: "(a − b)²?", zh: "(a − b)²？" }, s2: { en: "Cut and turn", zh: "剪开，转过来" }, s3: { en: "(a + b)(a − b)", zh: "(a + b)(a − b)" },
+  reset: { en: "Reset", zh: "重置" }, pause: { en: "Pause", zh: "暂停" },
+  ovOn: { en: "Show (a − b)²", zh: "画出 (a − b)²" }, ovOff: { en: "Hide (a − b)²", zh: "收起 (a − b)²" },
+  turn: { en: "Cut and turn", zh: "剪开，转过来" }, back: { en: "Put it back", zh: "放回去" },
+  plusOn: { en: "What about a² + b²?", zh: "a² + b² 呢？" }, plusOff: { en: "Back to a² − b²", zh: "回到 a² − b²" },
+  v1: { en: "The builder's guess", zh: "装修师傅的说法" }, v2: { en: "Cut along this line", zh: "沿这条线剪开" }, v3: { en: "Picture and formula", zh: "图和算式" },
+  tag1: { en: "drag the pillar's corner", zh: "拖动方柱的角" }, tag2: { en: "drag the top strip", zh: "拖动上面那一条" }, tag3: { en: "change a and b", zh: "改一改 a 和 b" },
+  resT: { en: "Cut the L-shape once and turn the top strip round to the side: it becomes a rectangle.", zh: "L 形剪一刀，把上面一条转过来补到旁边，就拼成了长方形。" },
+  resN: { en: "The long side is the old a plus the moved b, a plus b; the short side is a with b taken away, a minus b; the area hasn't changed.", zh: "长边是原来的 a 接上补过来的 b，就是 a + b；短边是 a 去掉挖掉的 b，就是 a − b；面积没变。" },
+  moreS: { en: "Where else does this show up?", zh: "这个式子还能用在哪？" },
+  moreP: { en: "Read it backwards for mental arithmetic: twenty-one times nineteen is twenty squared minus one, 400 − 1 = 399; 31 × 29 = 30² − 1² = 899. It is the same move as cutting a rectangle once (#4): cutting and moving never changes the area. Next question: what if a strip is stuck on the side of a square? Can we make it a square?",
+           zh: "倒过来读，可以心算：二十一乘十九就是二十方减一，400 − 1 = 399；31 × 29 = 30² − 1² = 899。这和切一刀（#4）是同一个道理：剪下来再补上去，面积一点也不会变。下一个问题：要是正方形旁边多贴了一条，能补成正方形吗？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → or ↑ ↓ resize the pillar (step 01), ← → move the strip (step 02), ↑ ↓ change a and ← → change b (step 03), Enter plays.",
+          zh: "鼠标、触屏、键盘都能用：选中图后，← → 或 ↑ ↓ 改方柱大小（第 1 步），← → 挪长条（第 2 步），↑ ↓ 改 a、← → 改 b（第 3 步），回车播放。" },
+};
+Play.i18n(D);
+
+// script numbers: a = 5, b = 2 (5² − 2² = 21, 3² = 9)
+const A0 = 5, B0 = 2, AMAX = 30;
+let step = 1, a = A0, b = B0, guess = -1, ov = false, predict = -1, plus = false;
+let u = 0, uTo = null, grab = null, dirty = true, V = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+// ---------- view: world units (y up) to canvas px ----------
+const PAD = { l: 56, r: 86, t: 56, b: 62 };
+const gapW = () => Math.max(1, Math.round(a * 0.2));
+function box() {
+  if (step === 1) return [0, a, 0, a];
+  if (step === 3 && plus) return [0, a + gapW() + b, 0, a];
+  return [0, a + b, 0, a];
+}
+function scaleFor(w, hg, bx) {
+  const s = Math.min(46, (w - PAD.l - PAD.r) / Math.max(1, bx[1] - bx[0]));
+  return hg ? Math.min(s, (hg - PAD.t - PAD.b) / Math.max(1, bx[3] - bx[2])) : s;
+}
+function sizeCanvas() {
+  const w = cv.clientWidth; if (!w) return;
+  const bx = box(), sc = scaleFor(w, 0, bx);
+  cv.style.height = Math.round(clamp((bx[3] - bx[2]) * sc + PAD.t + PAD.b, 220, 420)) + "px";
+}
+function setView(w, hg) {
+  const bx = box(), sc = scaleFor(w, hg, bx);
+  const bw = (bx[1] - bx[0]) * sc, bh = (bx[3] - bx[2]) * sc;
+  const left = PAD.l + (w - PAD.l - PAD.r - bw) / 2, top = PAD.t + (hg - PAD.t - PAD.b - bh) / 2;
+  V = { sc, X: (x) => left + (x - bx[0]) * sc, Y: (y) => top + (bx[3] - y) * sc,
+    x: (px) => (px - left) / sc + bx[0], y: (py) => bx[3] - (py - top) / sc };
+}
+
+// ---------- geometry of the moving strip ----------
+// The L = bottom piece [0,a]×[0,a−b] + top strip [0,a−b]×[a−b,a].
+// The strip turns a quarter clockwise and lands on [a,a+b]×[0,a−b].
+function strip(uu) {
+  const d = a - b, c0 = [d / 2, d + b / 2], c1 = [a + b / 2, d / 2];
+  const s = uu * uu * (3 - 2 * uu);   // ease
+  return { c: [c0[0] + (c1[0] - c0[0]) * s, c0[1] + (c1[1] - c0[1]) * s], th: (Math.PI / 2) * s, w: d, h: b, c0, c1 };
+}
+
+// ---------- drawing helpers ----------
+function rectPath(x, x0, y0, x1, y1) { x.beginPath(); x.rect(V.X(x0), V.Y(y1), (x1 - x0) * V.sc, (y1 - y0) * V.sc); }
+// a w×h block (world units) centred at screen (cx, cy), turned clockwise by th, with a unit grid
+function block(x, cx, cy, w, h, th, col, alpha) {
+  if (w < 1e-6 || h < 1e-6) return;
+  const W = w * V.sc, H = h * V.sc, C = color(col);
+  x.save(); x.translate(cx, cy); x.rotate(th);
+  x.fillStyle = color("--surface"); x.fillRect(-W / 2, -H / 2, W, H);
+  x.fillStyle = rgba(C, alpha); x.fillRect(-W / 2, -H / 2, W, H);
+  if (V.sc >= 10) {
+    x.strokeStyle = rgba(C, 0.38); x.lineWidth = 1; x.beginPath();
+    for (let k = 1; k < w - 1e-6; k++) { x.moveTo(-W / 2 + k * V.sc, -H / 2); x.lineTo(-W / 2 + k * V.sc, H / 2); }
+    for (let k = 1; k < h - 1e-6; k++) { x.moveTo(-W / 2, -H / 2 + k * V.sc); x.lineTo(W / 2, -H / 2 + k * V.sc); }
+    x.stroke();
+  }
+  x.strokeStyle = C; x.lineWidth = 2.2; x.strokeRect(-W / 2, -H / 2, W, H);
+  x.restore();
+}
+function blockW(x, x0, y0, x1, y1, col, alpha) { block(x, V.X((x0 + x1) / 2), V.Y((y0 + y1) / 2), x1 - x0, y1 - y0, 0, col, alpha); }
+function fits(x, s, wpx, hpx, size) { x.font = `700 ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width + 10 < wpx && size + 6 < hpx; }
+function inLabel(x, s, x0, y0, x1, y1, col) {   // centred label inside a world rect, only if it fits
+  const w = (x1 - x0) * V.sc, h = (y1 - y0) * V.sc;
+  if (fits(x, s, w, h, 15)) Play.text(x, s, V.X((x0 + x1) / 2), V.Y((y0 + y1) / 2), { size: 15, weight: 700, color: col });
+}
+const lbl = (x, s, X, Y, col, align) => Play.text(x, s, X, Y, { size: 15, weight: 700, color: col || color("--fg"), align: align || "center" });
+function sideL(x, s, y0, y1, col) { if ((y1 - y0) * V.sc >= 16) lbl(x, s, V.X(0) - 8, V.Y((y0 + y1) / 2), col, "right"); }
+function sideR(x, s, xr, y0, y1, col) { if ((y1 - y0) * V.sc >= 16) lbl(x, s, V.X(xr) + 8, V.Y((y0 + y1) / 2), col, "left"); }
+function pillar(x, alpha) {   // the cut-out corner: dashed outline + hatching
+  if (b < 1e-6 || alpha < 0.02) return;
+  const M = rgba(color("--muted"), 0.7 * alpha), d = a - b;
+  x.save(); rectPath(x, d, d, a, a); x.clip();
+  x.strokeStyle = rgba(color("--muted"), 0.28 * alpha); x.lineWidth = 1; x.beginPath();
+  for (let k = -b * V.sc; k < b * V.sc; k += 9) { x.moveTo(V.X(d) + k, V.Y(d)); x.lineTo(V.X(d) + k + b * V.sc, V.Y(a)); }
+  x.stroke(); x.restore();
+  rectPath(x, d, d, a, a); x.strokeStyle = M; x.lineWidth = 1.4; x.setLineDash([5, 4]); x.stroke(); x.setLineDash([]);
+}
+function knob(x, X, Y) {
+  x.fillStyle = color("--hl"); x.beginPath(); x.arc(X, Y, 11, 0, 2 * Math.PI); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2; x.beginPath();
+  x.moveTo(X - 5, Y + 5); x.lineTo(X + 5, Y - 5); x.moveTo(X + 1, Y - 5); x.lineTo(X + 5, Y - 5); x.lineTo(X + 5, Y - 1);
+  x.moveTo(X - 5, Y + 1); x.lineTo(X - 5, Y + 5); x.lineTo(X - 1, Y + 5); x.stroke();
+}
+
+// ---------- step 1: the L-shape and the guess (a − b)² ----------
+function draw1(x) {
+  const d = a - b, NO = color("--no"), HL = color("--hl");
+  blockW(x, 0, 0, a, d, "--a", 0.22);
+  blockW(x, 0, d, d, a, "--a", 0.22);
+  pillar(x, 1);
+  if (ov && d > 0) {
+    // the two strips the guess leaves out
+    [[0, d, d, a], [d, 0, a, d]].forEach(([x0, y0, x1, y1]) => {
+      if (b < 1e-6) return;
+      x.fillStyle = rgba(HL, 0.28); rectPath(x, x0, y0, x1, y1); x.fill();
+      x.strokeStyle = HL; x.lineWidth = 3; x.stroke();
+    });
+    x.fillStyle = rgba(NO, 0.14); rectPath(x, 0, 0, d, d); x.fill();
+    x.strokeStyle = NO; x.lineWidth = 2.4; x.setLineDash([7, 5]); x.stroke(); x.setLineDash([]);
+    inLabel(x, `(a − b)² = ${d * d}`, 0, 0, d, d, NO);
+    if (b > 0) {
+      inLabel(x, `${d} × ${b}`, 0, d, d, a, color("--fg"));
+      inLabel(x, `${b} × ${d}`, d, 0, a, d, color("--fg"));
+    }
+  } else {
+    inLabel(x, `a² − b² = ${a * a - b * b}`, 0, 0, a, d, color("--a"));
+  }
+  lbl(x, `a = ${a}`, V.X(a / 2), V.Y(0) + 20);
+  sideL(x, `a = ${a}`, 0, a);
+  if (b > 0) {
+    lbl(x, `b = ${b}`, V.X(a - b / 2), V.Y(a) - 16, color("--b"));
+    sideR(x, "b", a, d, a, color("--b"));
+  }
+  if (ov && d > 0 && b > 0) sideR(x, "a − b", a, 0, d, NO);
+  knob(x, V.X(d), V.Y(d));
+}
+
+// ---------- steps 2 and 3: cut, turn, fit ----------
+function drawCut(x, uu, showGuide) {
+  const d = a - b, S = strip(uu), done = uu > 1 - 1e-3, HL = color("--hl");
+  blockW(x, 0, 0, a, d, "--a", 0.22);
+  pillar(x, 1 - uu);
+  if (uu < 1e-3 && showGuide && b > 0 && d > 0) {
+    x.strokeStyle = HL; x.lineWidth = 3; x.setLineDash([8, 5]); x.beginPath();
+    x.moveTo(V.X(0) - 10, V.Y(d)); x.lineTo(V.X(d) + 10, V.Y(d)); x.stroke(); x.setLineDash([]);
+  }
+  block(x, V.X(S.c[0]), V.Y(S.c[1]), S.w, S.h, S.th, "--b", 0.3);
+  if (uu < 1e-3) {
+    lbl(x, `a = ${a}`, V.X(a / 2), V.Y(0) + 20);
+    sideL(x, "a − b", 0, d, color("--a"));
+    sideL(x, "b", d, a, color("--b"));
+    if (d > 0) lbl(x, "a − b", V.X(d / 2), V.Y(a) - 16, color("--b"));
+    inLabel(x, "A", 0, 0, a, d, color("--a"));
+    inLabel(x, "B", 0, d, d, a, color("--b"));
+  } else if (done) {
+    x.strokeStyle = HL; x.lineWidth = 3.5; rectPath(x, 0, 0, a + b, d); x.stroke();
+    if (b * V.sc > 14) { lbl(x, "a", V.X(a / 2), V.Y(0) + 18, color("--a")); lbl(x, "b", V.X(a + b / 2), V.Y(0) + 18, color("--b")); }
+    // bracket under the whole length
+    const yb = V.Y(0) + 32; x.strokeStyle = color("--fg"); x.lineWidth = 1.4; x.beginPath();
+    x.moveTo(V.X(0), yb - 4); x.lineTo(V.X(0), yb); x.lineTo(V.X(a + b), yb); x.lineTo(V.X(a + b), yb - 4); x.stroke();
+    lbl(x, `a + b = ${a + b}`, V.X((a + b) / 2), yb + 14);
+    sideR(x, `a − b = ${d}`, a + b, 0, d, color("--fg"));
+    const s1 = `${a + b} × ${d} = ${(a + b) * d}`;
+    if (fits(x, s1, (a + b) * V.sc, d * V.sc, 15)) inLabel(x, s1, 0, 0, a + b, d, color("--fg"));
+    else inLabel(x, `${(a + b) * d}`, 0, 0, a + b, d, color("--fg"));
+  }
+}
+
+// ---------- non-example: a² + b², two squares apart ----------
+function drawPlus(x) {
+  const g = gapW(), NO = color("--no");
+  blockW(x, 0, 0, a, a, "--a", 0.22);
+  blockW(x, a + g, 0, a + g + b, b, "--b", 0.3);
+  inLabel(x, `a² = ${a * a}`, 0, 0, a, a, color("--a"));
+  if (b > 0) inLabel(x, `b² = ${b * b}`, a + g, 0, a + g + b, b, color("--b"));
+  x.fillStyle = rgba(NO, 0.12); rectPath(x, a, 0, a + g, Math.max(b, 1)); x.fill();
+  x.strokeStyle = NO; x.lineWidth = 2; x.setLineDash([6, 4]); x.stroke(); x.setLineDash([]);
+  lbl(x, `a = ${a}`, V.X(a / 2), V.Y(0) + 20);
+  if (b > 0) lbl(x, `b = ${b}`, V.X(a + g + b / 2), V.Y(0) + 20, color("--b"));
+  lbl(x, t({ en: "apart", zh: "分开放着" }), V.X(a + g / 2), V.Y(Math.max(b, 1)) - 16, NO);
+}
+
+function draw(x, w, hg) {
+  setView(w, hg);
+  if (step === 1) draw1(x);
+  else if (step === 2) drawCut(x, u, true);
+  else if (plus) drawPlus(x);
+  else drawCut(x, u, true);
+}
+
+// ---------- text ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+function render() {
+  const d = a - b, A2 = a * a, B2 = b * b, diff = A2 - B2;
+  let html = "";
+  if (step === 1) {
+    const opts = [["(a − b) × (a − b)", 0], ["(a + b) × (a − b)", 1], [t({ en: "Not sure", zh: "说不准" }), 2]];
+    html += `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试那个说法" })}</div>` +
+      `<h2>${t({ en: "The floor to cover is a² − b². Go with your gut: what times what is it?", zh: "要铺的地板是 a² − b²，凭直觉猜，能写成谁乘谁？" })}</h2><div class="choices">` +
+      opts.map(([s, g]) => `<button data-g="${g}" class="${guess === g ? "on" : ""}">${s}</button>`).join("") + `</div>`;
+    if (guess >= 0) {
+      html += `<p>${t({ en: "The builder says offhand: subtraction works the same, so it's a minus b, squared.", zh: "装修师傅随口说：减法也照搬，就是 a 减 b 的平方。" })}</p>` +
+        `<div class="mathline">${sp("cN", "a² − b² = (a − b)² ?")}</div>`;
+      if (!ov) html += `<p>${t({ en: "Press “Show (a − b)²” to see what that square covers.", zh: "按「画出 (a − b)²」看看它占了多大。" })}</p>`;
+    }
+    if (ov) {
+      html += `<p>${t({ en: "If it equalled a minus b squared, the L-shape would be just this square. But above it and to its right there are two strips left over.", zh: "要是它等于 a 减 b 的平方，L 形就该是这个正方形。可它上面、右边还剩两条长条。" })}</p>` +
+        `<div class="mathline">a² − b² = ${a}×${a} − ${b}×${b} = <b>${diff}</b><br>` +
+        `${sp(b > 0 ? "cN" : "", `(a − b)² = ${d}×${d} = ${d * d}`)}<br>` +
+        `${sp("cH", `${t({ en: "strips", zh: "长条" })}: ${d}×${b} + ${b}×${d} = ${2 * b * d}`)}<br>${d * d} + ${2 * b * d} = ${diff}</div>`;
+      html += b > 0
+        ? `<p><span class="tag-no">${t({ en: "The guess is wrong.", zh: "这个猜法不对。" })}</span> ${t({ en: "The guess doesn't count either of those two strips.", zh: "这两条长条，刚才的猜想里一条也没有算。" })}</p>`
+        : `<p>${t({ en: "With b = 0 there is no pillar, so the two strips are empty and the guess happens to agree. Make the pillar bigger.", zh: "b = 0 时没有方柱，两条长条是空的，猜想碰巧对上。把方柱拉大试试。" })}</p>`;
+      html += `<p class="note">${t({ en: "Drag the gold corner to change the pillar: the strips never go away while b is bigger than 0.", zh: "拖动金色的角改方柱大小：只要 b 大于 0，两条长条就一直在。" })}</p>`;
+    }
+  } else if (step === 2) {
+    const done = u > 1 - 1e-3;
+    const opts = [["a, b", 0], ["a + b, a − b", 1], ["a − b, a − b", 2]];
+    html += `<div class="kicker">${t({ en: "Step 02 · cut and turn", zh: "第 2 步 · 剪开，转过来" })}</div>` +
+      `<h2>${t({ en: "Cut the L-shape once and make a rectangle. How long and how wide is it?", zh: "把 L 形剪一刀拼成长方形，长和宽各是多少？" })}</h2>` +
+      `<p>${t({ en: "Cut along this line, then turn the top strip round and fit it on the right. Drag strip B, or press “Cut and turn”.", zh: "沿着这条线剪开，上面这一条，转过来补到右边。拖动长条 B，或者按「剪开，转过来」。" })}</p>`;
+    if (!done) {
+      html += `<div class="choices">` + opts.map(([s, g]) => `<button data-q="${g}" class="${predict === g ? "on" : ""}">${s}</button>`).join("") + `</div>`;
+    } else {
+      html += `<p>${t({ en: "It's a rectangle now, and the area hasn't changed at all.", zh: "拼成了一个长方形，面积一点也没变。" })}` +
+        (predict === 1 ? ` <strong>${t({ en: "Your prediction was right.", zh: "你猜对了。" })}</strong>` : predict >= 0 ? ` <span class="tag-no">${t({ en: "Not what you guessed!", zh: "跟你猜的不一样！" })}</span>` : "") + `</p>` +
+        `<div class="mathline">${t({ en: "length", zh: "长" })} = ${sp("cA", "a")} + ${sp("cB", "b")} = ${a} + ${b} = ${a + b}<br>` +
+        `${t({ en: "width", zh: "宽" })} = a − b = ${a} − ${b} = ${d}<br>${a + b} × ${d} = <b>${(a + b) * d}</b> = ${A2} − ${B2}</div>` +
+        `<p>${t({ en: "Its length is a plus the b that moved over: a plus b. Its width is a with b taken away: a minus b.", zh: "长是 a 接上补过来的 b，就是 a 加 b；宽是 a 去掉挖掉的 b，就是 a 减 b。" })}</p>`;
+    }
+    if (b === 0) html += `<p class="note">${t({ en: "b = 0: there is no pillar and nothing to cut. Go back to step 01 and make b bigger.", zh: "b = 0：没有方柱，没什么可剪。回第 1 步把 b 调大。" })}</p>`;
+  } else {
+    html += `<div class="kicker">${t({ en: "Step 03 · picture and formula", zh: "第 3 步 · 图和算式" })}</div>`;
+    if (plus) {
+      html += `<h2>${t({ en: "So can a squared plus b squared be cut and fitted like this too?", zh: "那 a 方加 b 方，也能这样剪了再补吗？" })}</h2>` +
+        `<p>${t({ en: "The two squares are apart, with no gap to fill, so this trick doesn't work.", zh: "这两个正方形分开放着，中间没有缺口可以补上。" })}</p>` +
+        `<div class="mathline">a² + b² = ${A2} + ${B2} = ${A2 + B2}</div>` +
+        `<p class="note">${t({ en: "That only says this cut-and-turn trick has nothing to work with. It doesn't say no rectangle has this area.", zh: "这只说明这一招用不上，不是说没有哪个长方形的面积是它。" })}</p>`;
+    } else {
+      const strike = b > 0 ? "cN strike" : "";
+      html += `<h2>${t({ en: "So a squared minus b squared equals a plus b times a minus b", zh: "所以 a 方减 b 方，等于 a 加 b 乘 a 减 b" })}</h2>` +
+        `<p>${t({ en: "Change a and b. The rectangle's length is a plus b, and its width is a minus b; the numbers follow the picture.", zh: "改一改 a 和 b。长方形的长就是 a 加 b，宽就是 a 减 b，数跟着图一起变。" })}</p>` +
+        `<div class="mathline">a² − b² = ${A2} − ${B2} = <b>${diff}</b><br>(${sp("cA", "a")} + ${sp("cB", "b")})(a − b) = ${a + b} × ${d} = <b>${(a + b) * d}</b><br>` +
+        `<span class="${strike}">(a − b)² = ${d * d}</span></div>` +
+        `<p>${t({ en: "Read backwards, it turns a product into two squares:", zh: "倒过来读，乘法变成两个平方相减：" })} <span class="math">${a + b} × ${d} = ${a}² − ${b}² = ${A2} − ${B2} = ${diff}</span></p>`;
+    }
+  }
+  $("explain").innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  $("ovBtn").textContent = t(ov ? D.ovOff : D.ovOn); $("ovBtn").classList.toggle("on", ov);
+  const tl = t(uTo != null ? D.pause : u > 1 - 1e-3 ? D.back : D.turn);
+  $("turnBtn").textContent = tl; $("turn3").textContent = tl;
+  $("turnBtn").disabled = $("turn3").disabled = b === 0 || plus;
+  $("plusBtn").textContent = t(plus ? D.plusOff : D.plusOn); $("plusBtn").classList.toggle("on", plus);
+  $("aVal").textContent = a;
+  document.querySelectorAll(".bVal").forEach((e) => (e.textContent = b));
+  document.querySelectorAll("[data-d]").forEach((bt) => {
+    const k = bt.dataset.d;
+    bt.disabled = (k === "a-" && a <= 2) || (k === "a+" && a >= AMAX) || (k === "b-" && b <= 0) || (k === "b+" && b >= a - 1);
+  });
+  sizeCanvas();
+  dirty = true;
+}
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), q = e.target.closest("[data-q]");
+  if (g) guess = +g.dataset.g;
+  if (q) predict = +q.dataset.q;
+  if (g || q) render();
+});
+
+// ---------- actions ----------
+function setAB(na, nb) {
+  a = clamp(Math.round(na), 2, AMAX); b = clamp(Math.round(nb), 0, a - 1);
+  render();
+}
+function turnClick() {
+  if (b === 0) return;
+  if (uTo != null) uTo = null; else uTo = u > 1 - 1e-3 ? 0 : 1;
+  if (Play.reduced && uTo != null) { u = uTo; uTo = null; }
+  render();
+}
+function setU(v) { u = clamp(v, 0, 1); uTo = null; dirty = true; }
+function snap() {
+  const to = u > 0.5 ? 1 : 0;
+  if (Play.reduced || Math.abs(u - to) < 0.02) { u = to; uTo = null; } else uTo = to;
+  render();
+}
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n;
+  if (n === 3 && u < 1 && uTo == null && b > 0) { if (Play.reduced) u = 1; else uTo = 1; }
+  render();
+});
+$("ovBtn").onclick = () => { ov = !ov; render(); };
+$("turnBtn").onclick = turnClick;
+$("turn3").onclick = turnClick;
+$("plusBtn").onclick = () => { plus = !plus; render(); };
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, s = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") setAB(a + s, b); else setAB(a, b + s);
+}));
+document.querySelectorAll("[data-p]").forEach((bt) => (bt.onclick = () => {
+  const [na, nb] = bt.dataset.p.split(",").map(Number);
+  plus = false; setAB(na, nb);
+}));
+
+Play.drag(cv, {
+  down(px, py) {
+    if (!V) return false;
+    if (step === 1) {
+      const d = a - b, kx = V.X(d), ky = V.Y(d);
+      const inPillar = px > kx - 8 && px < V.X(a) + 4 && py > V.Y(a) - 4 && py < ky + 8;
+      if (Math.hypot(px - kx, py - ky) > 24 && !inPillar) return false;
+      grab = "corner"; return true;
+    }
+    if (step === 3 && plus) return false;
+    if (b === 0) return false;
+    const S = strip(u), cx = V.X(S.c[0]), cy = V.Y(S.c[1]);
+    const dx = px - cx, dy = py - cy, c = Math.cos(S.th), s = Math.sin(S.th);
+    const lx = c * dx + s * dy, ly = -s * dx + c * dy;   // into the strip's own frame
+    if (Math.abs(lx) > (S.w * V.sc) / 2 + 12 || Math.abs(ly) > (S.h * V.sc) / 2 + 12) return false;
+    uTo = null; grab = "strip"; return true;
+  },
+  move(px, py, dx, dy) {
+    if (grab === "corner") {
+      const m = (V.x(px) + V.y(py)) / 2;   // the corner moves along the diagonal
+      const nb = clamp(Math.round(a - m), 0, a - 1);
+      if (nb !== b) { b = nb; u = 0; uTo = null; render(); }
+    } else if (grab === "strip") {
+      const S = strip(0), vx = (S.c1[0] - S.c0[0]) * V.sc, vy = -(S.c1[1] - S.c0[1]) * V.sc;
+      setU(u + (dx * vx + dy * vy) / (vx * vx + vy * vy || 1));
+    }
+  },
+  up() { if (grab === "strip") snap(); grab = null; },
+});
+const enter = () => (step === 1 ? ((ov = !ov), render()) : turnClick());
+Play.keys(cv, {
+  ArrowLeft: () => (step === 1 ? setAB(a, b + 1) : step === 2 ? b && (setU(u - 0.125), render()) : setAB(a, b - 1)),
+  ArrowRight: () => (step === 1 ? setAB(a, b - 1) : step === 2 ? b && (setU(u + 0.125), render()) : setAB(a, b + 1)),
+  ArrowUp: () => (step === 1 ? setAB(a, b - 1) : step === 3 ? setAB(a + 1, b) : null),
+  ArrowDown: () => (step === 1 ? setAB(a, b + 1) : step === 3 ? setAB(a - 1, b) : null),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  a = A0; b = B0; guess = -1; ov = false; predict = -1; plus = false; u = 0; uTo = null;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+Play.loop((dt) => {
+  if (uTo != null) {
+    const st = dt / 1.6, dd = uTo - u;
+    u = Math.abs(dd) <= st ? uTo : u + Math.sign(dd) * st;
+    if (u === uTo) { uTo = null; render(); }
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

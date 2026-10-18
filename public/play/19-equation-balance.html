@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solving an Equation Is Balancing a Scale · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .kid button { font-size: 15px; min-height: 42px; min-width: 44px; padding: 8px 12px; }
+  .kid .val { font-family: var(--math); color: var(--fg); font-size: 17px; min-width: 1.8em; text-align: center; }
+  .kid .grp { display: inline-flex; align-items: center; gap: 4px; }
+  .kid button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { font-size: 14px; min-height: 40px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 22px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 9px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main"></canvas>
+      <div class="controls kid" id="c1">
+        <span data-t="boxIs"></span>
+        <span class="grp"><button id="gM" aria-label="box minus one">−</button><span class="val" id="gV"></span><button id="gP" aria-label="box plus one">+</button></span>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <button id="pair2" data-t="pairB"></button><button id="auto2"></button><button id="back2" data-t="backB"></button>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <button id="takeL" data-t="takeLB"></button><button id="takeR" data-t="takeRB"></button><button id="back3" data-t="backB"></button>
+      </div>
+      <div class="controls kid" id="c4" hidden>
+        <span class="grp"><i>x</i>&nbsp;+<button id="bM" aria-label="blocks with x minus one">−</button><span class="val" id="bV"></span><button id="bP" aria-label="blocks with x plus one">+</button></span>
+        <span class="grp">=<button id="cM" aria-label="right side minus one">−</button><span class="val" id="cV"></span><button id="cP" aria-label="right side plus one">+</button></span>
+        <button id="pair4" data-t="pairB"></button><button id="auto4"></button><button id="back4" data-t="backB"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p id="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba } = Play;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const D = {
+  title: { en: "Solving an Equation Is Balancing a Scale", zh: "解方程就是天平" },
+  eyebrow: { en: "Boxi Math · Try it · #19", zh: "Boxi Math · 动手试试 · #19" },
+  intro: { en: "Checking your little cousin's homework, you hit this one: 3 + 4 = □ + 5. He wrote 7. Put both sides on a balance, take blocks off, and watch whether it stays level.",
+           zh: "帮表弟检查作业，碰到这一题：3 + 4 = □ + 5。表弟填的是 7。把两边放上天平，拿走砝码，看天平还平不平。" },
+  s1: { en: "Fill the blank?", zh: "空格填几？" }, s2: { en: "Same off both sides", zh: "两边一起拿" },
+  s3: { en: "One side only", zh: "只动一边" }, s4: { en: "With a letter", zh: "换成字母" },
+  reset: { en: "Reset", zh: "重置" },
+  boxIs: { en: "The box is", zh: "盒子是" },
+  pairB: { en: "Take 1 off both sides", zh: "两边各拿 1 块" },
+  takeLB: { en: "Take 1 off the left", zh: "只从左边拿 1 块" }, takeRB: { en: "Take 1 off the right", zh: "只从右边拿 1 块" },
+  backB: { en: "Put back", zh: "放回去" },
+  pauseB: { en: "Pause", zh: "暂停" }, goOnB: { en: "Go on", zh: "继续" },
+  v1: { en: "Balance · try an answer", zh: "天平 · 试一个答案" }, v2: { en: "Balance · both sides together", zh: "天平 · 两边一起" },
+  v3: { en: "Balance · one side only", zh: "天平 · 只动一边" }, v4: { en: "Balance · x + b = c", zh: "天平 · x + b = c" },
+  tag1: { en: "change the box", zh: "改盒子里的数" }, tag2: { en: "drag a block off a pan", zh: "把一块拖出盘子" },
+  tag3: { en: "drag a block off a pan", zh: "把一块拖出盘子" }, tag4: { en: "pick the numbers", zh: "选两个数" },
+  resT: { en: "Do the same to both sides, and it stays level", zh: "两边做一样的事，天平还是平的" },
+  moreS: { en: "Isn't it just 'move the 5 across and change its sign'?", zh: "不就是「把 5 移到另一边，变号」吗？" },
+  moreQ: { en: "Next: why does a plus b, squared, have two extra a-times-b's?", zh: "下一集：为什么 a 加 b 的平方，会多出两个 a 乘 b？" },
+  foot: { en: "Green squares are blocks of weight 1; the brown box hides the blank. On a focused picture, keys work too (step 1: ← → change the box; steps 2 and 4: Enter takes one off both sides, Space runs or pauses, Backspace puts back; step 3: ← left only, → right only; step 4: ← → and ↑ ↓ change the numbers).",
+          zh: "绿色小方块每块重 1，棕色盒子里藏着空格里的数。选中图后也能用键盘（第 1 步：← → 改盒子；第 2、4 步：回车两边各拿一块，空格键连续拿 / 暂停，退格放回去；第 3 步：← 只拿左边，→ 只拿右边；第 4 步：← → 和 ↑ ↓ 改数）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+cvEl.setAttribute("aria-label", t({ en: "a balance with blocks and a box on its two pans", zh: "一架天平，两个盘里放着小方块和盒子" }));
+
+// the video's numbers: 3 + 4 = □ + 5, the box weighs 2
+const P3 = 3, P4 = 4, R5 = 5, LEFT = P3 + P4, BOX = LEFT - R5;
+const GMAX = 12, BMAX = 8, CMAX = 12;
+const PER = 0.07, MAXA = 0.24;          // tilt per unit of difference, max tilt (radians)
+
+let step = 1, dirty = true, G = null;
+let pans = { L: null, R: null };
+let guess = 7;                          // step 1: the cousin's answer
+let k2 = 0, pick2 = -1;                 // step 2: pairs taken, prediction
+let iL = 0, jR = 0;                     // step 3: taken from left / right only
+let b4 = R5, c4 = LEFT, k4 = 0;         // step 4: x + b = c
+let ang = 0, auto = null, grab = null, note = "";
+
+// ---------- model ----------
+const blk = (st = "in") => ({ st, p: st === "in" ? 1 : 0 });
+const pan = (n, box, gone = 0) => ({ box, cap: n, blocks: Array.from({ length: n }, (_, i) => blk(i >= n - gone ? "enter" : "in")) });
+const live = (s) => pans[s].blocks.filter((b) => b.st !== "leave").length;
+const boxW = () => (step === 1 ? guess : step === 4 ? c4 - b4 : BOX);
+const weight = (s) => (pans[s].box ? boxW() : 0) + live(s);
+const diff = () => weight("R") - weight("L");       // > 0: right is heavier
+const pairsDone = () => (step === 2 ? k2 : k4);
+const pairsMax = () => (step === 2 ? R5 : b4);
+
+function build(gone = 0) {
+  if (step === 1) { pans.L = pan(LEFT, false); pans.R = pan(R5, true); }
+  else if (step === 2 || step === 3) { pans.L = pan(LEFT, false, gone); pans.R = pan(R5, true, gone); }
+  else { pans.L = pan(b4, true, gone); pans.R = pan(c4, false, gone); }
+}
+function enterStep() {
+  auto = null; grab = null; note = "";
+  k2 = 0; k4 = 0; iL = 0; jR = 0;
+  build();
+  ang = targetAng();
+}
+function pop(s) {
+  const bl = pans[s].blocks;
+  for (let i = bl.length - 1; i >= 0; i--) if (bl[i].st !== "leave") { bl[i].st = "leave"; bl[i].p = 0; return true; }
+  return false;
+}
+function takePair() {
+  if (!live("L") || !live("R")) { note = "empty"; render(); return false; }
+  pop("L"); pop("R"); note = "";
+  if (step === 2) k2++; else k4++;
+  render(); return true;
+}
+function takeOne(s) {
+  if (!pop(s)) return;
+  if (s === "L") iL++; else jR++;
+  render();
+}
+function putBack() {
+  auto = null; note = "";
+  const gone = step === 3 ? 0 : pairsDone();
+  if (step === 3) {               // put back each side's own blocks
+    pans.L = pan(LEFT, false, iL); pans.R = pan(R5, true, jR); iL = 0; jR = 0;
+  } else { build(gone); if (step === 2) k2 = 0; else k4 = 0; }
+  render();
+}
+function autoBtn() {
+  if (pairsDone() >= pairsMax() && !auto) { putBack(); }
+  if (!auto) {
+    if (Play.reduced) { while (pairsDone() < pairsMax() && takePair()); return; }
+    auto = { paused: false, tm: 0.4 };
+  } else auto.paused = !auto.paused;
+  render();
+}
+function setGuess(g) { guess = clamp(g, 0, GMAX); render(); }
+function setBC(b, c) {
+  b = clamp(b, 1, BMAX); c = clamp(c, 0, CMAX);
+  if (c < b) { if (b !== b4) c = Math.min(CMAX, b); else return; }
+  if (c < b) return;
+  if (b === b4 && c === c4) return;
+  b4 = b; c4 = c; enterStep(); render();
+}
+
+// ---------- geometry ----------
+// steps 1-3: the left pan shows 3 + 4 as two rows
+function cols(pw, s, g, box, bs) { return Math.max(1, Math.min(step < 4 && !box ? P4 : 99, Math.floor((pw - 8 - (box ? bs + g : 0) + g) / (s + g)))); }
+function geo(W) {
+  const pw = clamp(W * 0.36, 118, 220), hb = Math.min(W / 2 - pw / 2 - 6, 270);
+  const s = clamp(Math.floor((pw - 8) / 5) - 3, 16, 26), g = 3, bs = Math.round(s * 1.7);
+  const ch = (n, box) => Math.max(box ? bs : 0, Math.ceil(n / cols(pw, s, g, box, bs)) * (s + g) - g);
+  const hc = step === 4 ? Math.max(ch(BMAX, true), ch(CMAX, false)) : Math.max(ch(LEFT, false), ch(R5, true));
+  const T = hb * Math.sin(MAXA) + 4;
+  const tray = 40 + T + hc + 4, py = tray + 14, base = py + 46;
+  const lab = py + T + 26, stat = Math.max(base, lab) + 26;
+  return { W, pw, hb, s, g, bs, T, py, base, stat, H: stat + 20, cx: W / 2 };
+}
+function panPos(side) {      // side: -1 left, +1 right
+  const ex = G.cx + side * G.hb * Math.cos(ang), ey = G.py + side * G.hb * Math.sin(ang);
+  return { ex, ey, tray: ey - 14 };
+}
+function slots(s) {
+  const P = pans[s], pp = panPos(s === "L" ? -1 : 1), { pw, bs, g } = G, sz = G.s;
+  const c = cols(pw, sz, g, P.box, bs), n = Math.min(P.cap, c) || 1;
+  const used = (P.box ? bs + g : 0) + n * (sz + g) - g, x0 = pp.ex - used / 2, bx = x0 + (P.box ? bs + g : 0);
+  const box = P.box ? { x: x0, y: pp.tray - 2 - bs } : null;
+  const at = (i) => ({ x: bx + (i % c) * (sz + g), y: pp.tray - 2 - (Math.floor(i / c) + 1) * sz - Math.floor(i / c) * g });
+  return { pp, box, at };
+}
+const targetAng = () => clamp(PER * diff(), -MAXA, MAXA);
+
+// ---------- drawing ----------
+function rr(x, X, Y, w, h, r) {
+  x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r);
+  x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath();
+}
+function block(x, X, Y, col, a = 1) {
+  x.save(); x.globalAlpha = a;
+  rr(x, X, Y, G.s, G.s, 4); x.fillStyle = color("--surface"); x.fill();
+  x.fillStyle = rgba(col, 0.32); x.fill(); x.lineWidth = 2; x.strokeStyle = col; x.stroke();
+  x.restore();
+}
+function boxLabel() {
+  if (step === 1) return { s: `${guess}`, hl: false };
+  if (step === 2) return k2 >= R5 ? { s: `${BOX}`, hl: true } : { s: "?", hl: false };
+  if (step === 4) return k4 >= b4 ? { s: `${c4 - b4}`, hl: true } : { s: "x", hl: false, it: true };
+  return { s: "?", hl: false };
+}
+function drawPan(x, s) {
+  const P = pans[s], { pp, box, at } = slots(s), mu = color("--muted");
+  x.strokeStyle = mu; x.lineWidth = 2; x.beginPath(); x.moveTo(pp.ex, pp.ey); x.lineTo(pp.ex, pp.tray); x.stroke();
+  x.lineWidth = 4; x.lineCap = "round"; x.beginPath();
+  x.moveTo(pp.ex - G.pw / 2, pp.tray - 5); x.lineTo(pp.ex - G.pw / 2 + 5, pp.tray); x.lineTo(pp.ex + G.pw / 2 - 5, pp.tray); x.lineTo(pp.ex + G.pw / 2, pp.tray - 5);
+  x.stroke(); x.lineCap = "butt";
+  if (box) {
+    const b = color("--b"), lb = boxLabel();
+    rr(x, box.x, box.y, G.bs, G.bs, 5); x.fillStyle = color("--surface"); x.fill();
+    x.fillStyle = rgba(b, 0.2); x.fill(); x.lineWidth = lb.hl ? 3 : 2; x.strokeStyle = lb.hl ? color("--hl") : b; x.stroke();
+    Play.text(x, lb.s, box.x + G.bs / 2, box.y + G.bs / 2 + 1, { size: Math.max(16, Math.round(G.bs * 0.48)), weight: 800, italic: !!lb.it, color: color("--fg"), halo: false });
+  }
+  const a = color("--a"), hl = color("--hl");
+  P.blocks.forEach((b, i) => {
+    if (grab && grab.b === b) return;
+    const q = at(i);
+    if (b.st === "in") block(x, q.x, q.y, a);
+    else if (b.st === "enter") block(x, q.x, q.y - (1 - b.p) * 40, a, Math.min(1, 0.3 + b.p));
+    else block(x, q.x, q.y - b.p * 46, step === 3 ? color("--no") : hl, 1 - b.p);
+  });
+}
+function sideLabel(s) {
+  if (step === 1) return s === "L" ? { s: `${P3} + ${P4} = ${LEFT}` } : { s: `${guess} + ${R5} = ${guess + R5}`, no: guess + R5 !== LEFT };
+  if (step === 2) return s === "L" ? { s: k2 ? `${LEFT} − ${k2} = ${LEFT - k2}` : `${P3} + ${P4}` } : { s: k2 >= R5 ? "□" : `□ + ${R5 - k2}` };
+  if (step === 3) return s === "L" ? { s: `${P3} + ${P4}${iL ? ` − ${iL}` : ""}` } : { s: `□ + ${R5}${jR ? ` − ${jR}` : ""}` };
+  const nb = b4 - k4, nc = c4 - k4;
+  return s === "L" ? { s: nb ? `x + ${nb}` : "x" } : { s: `${nc}` };
+}
+function draw(x, w) {
+  G = geo(w);
+  const fg = color("--fg"), mu = color("--muted"), d = diff();
+  // stand
+  x.fillStyle = rgba(mu, 0.22); x.strokeStyle = mu; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(G.cx, G.py); x.lineTo(G.cx - 22, G.base); x.lineTo(G.cx + 22, G.base); x.closePath(); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(G.cx - 36, G.base); x.lineTo(G.cx + 36, G.base); x.stroke();
+  // beam
+  const l = panPos(-1), r = panPos(1);
+  x.strokeStyle = Math.abs(d) > 0 ? color("--no") : fg; x.lineWidth = 5; x.lineCap = "round";
+  x.beginPath(); x.moveTo(l.ex, l.ey); x.lineTo(r.ex, r.ey); x.stroke(); x.lineCap = "butt";
+  x.fillStyle = fg; x.beginPath(); x.arc(G.cx, G.py, 5, 0, 7); x.fill();
+  drawPan(x, "L"); drawPan(x, "R");
+  for (const [s, p] of [["L", l], ["R", r]]) {
+    const lb = sideLabel(s);
+    Play.text(x, lb.s, p.ex, p.ey + 24, { size: 15, weight: 700, color: lb.no ? color("--no") : fg });
+  }
+  const st = d === 0 ? t({ en: "level", zh: "平的" }) : d > 0 ? t({ en: "tips right", zh: "歪向右边" }) : t({ en: "tips left", zh: "歪向左边" });
+  Play.text(x, st, G.cx, G.stat, { size: 15, weight: 800, color: d === 0 ? color("--a") : color("--no") });
+  if (grab) block(x, grab.x - G.s / 2, grab.y - G.s / 2, color("--hl"));
+}
+
+// ---------- animation ----------
+function tick(dt) {
+  if (!G) return false;
+  let any = false;
+  if (auto && !auto.paused) {
+    auto.tm += dt;
+    if (auto.tm >= 0.55) { auto.tm = 0; if (!takePair() || pairsDone() >= pairsMax()) { auto = null; render(); } }
+  }
+  for (const s of ["L", "R"]) {
+    const bl = pans[s].blocks;
+    for (const b of bl) if (b.st !== "in") { b.p = Play.reduced ? 1 : Math.min(1, b.p + dt / 0.6); any = true; if (b.st === "enter" && b.p >= 1) b.st = "in"; }
+    const n0 = bl.length;
+    pans[s].blocks = bl.filter((b) => !(b.st === "leave" && b.p >= 1));
+    if (pans[s].blocks.length !== n0) any = true;
+  }
+  const ta = targetAng();
+  if (Math.abs(ang - ta) > 0.0005) { ang += (ta - ang) * (Play.reduced ? 1 : Math.min(1, dt * 6)); if (Math.abs(ang - ta) < 0.001) ang = ta; any = true; }
+  return any;
+}
+
+// ---------- pointer and keys ----------
+function hit(px, py) {
+  for (const s of ["L", "R"]) {
+    const { at } = slots(s), bl = pans[s].blocks;
+    for (let i = 0; i < bl.length; i++) {
+      if (bl[i].st === "leave") continue;
+      const q = at(i);
+      if (px >= q.x - 3 && px <= q.x + G.s + 3 && py >= q.y - 3 && py <= q.y + G.s + 3) return s;
+    }
+  }
+  return null;
+}
+function topLive(s) { const bl = pans[s].blocks; for (let i = bl.length - 1; i >= 0; i--) if (bl[i].st === "in") return bl[i]; return null; }
+function act(s) { if (step === 3) takeOne(s); else takePair(); }
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!G || step === 1 || auto) return false;
+    const s = hit(px, py); if (!s) return false;
+    const b = topLive(s); if (!b) return false;
+    grab = { s, b, x: px, y: py, x0: px, y0: py, moved: 0 }; dirty = true; return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    grab.x = px; grab.y = py; grab.moved = Math.max(grab.moved, Math.hypot(px - grab.x0, py - grab.y0)); dirty = true;
+  },
+  up() {
+    if (!grab) return;
+    const g = grab, pp = panPos(g.s === "L" ? -1 : 1);
+    const inPan = Math.abs(g.x - pp.ex) < G.pw / 2 + 6 && g.y > pp.tray - G.bs * 2.2 && g.y < pp.tray + 10;
+    grab = null;
+    if (g.moved < 6 || !inPan) act(g.s); else render();
+  },
+});
+Play.keys(cvEl, {
+  ArrowLeft: () => (step === 1 ? setGuess(guess - 1) : step === 3 ? takeOne("L") : step === 4 ? setBC(b4 - 1, c4) : 0),
+  ArrowRight: () => (step === 1 ? setGuess(guess + 1) : step === 3 ? takeOne("R") : step === 4 ? setBC(b4 + 1, c4) : 0),
+  ArrowUp: () => step === 4 && setBC(b4, c4 + 1),
+  ArrowDown: () => step === 4 && setBC(b4, c4 - 1),
+  Enter: () => (step === 2 || step === 4) && !auto && takePair(),
+  " ": () => (step === 2 || step === 4) && autoBtn(),
+  Backspace: () => step > 1 && putBack(),
+});
+
+// ---------- explanations ----------
+const hot = (s) => `<span class="hot">${s}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const LEG = () => legend([dotI("--a", { en: "block = 1", zh: "方块 = 1" }),
+  dotI("--b", step === 4 ? { en: "box = x", zh: "盒子 = x" } : { en: "box (the blank)", zh: "盒子（空格）" }),
+  step === 1 ? "" : step === 3 ? dotI("--no", { en: "taken from one side", zh: "只从一边拿走" }) : dotI("--hl", { en: "taken from both sides", zh: "两边一起拿走" })]);
+const rel = (a, b) => (a === b ? "=" : `<span class="tag-no">≠</span>`);
+const heavier = (d) => (d > 0 ? t({ en: "right", zh: "右边" }) : t({ en: "left", zh: "左边" }));
+
+function explain1() {
+  const R = guess + R5, d = R - LEFT;
+  let out = `<div class="kicker">${t({ en: "Step 01 · fill the blank?", zh: "第 1 步 · 空格填几？" })}</div>
+    <h2>${t({ en: "Is the blank 7?", zh: "空格里是 7 吗？" })}</h2>
+    <p>${t({ en: "Your cousin wrote seven. He thinks the equals sign is where the answer goes. Think of the equals sign as a balance instead: both sides must weigh the same.",
+              zh: "表弟填的是七，他觉得等号后面就是写答案的地方。换个想法：把等号想成一架天平，两边必须一样重。" })}</p>
+    <div class="mathline">${P3} + ${P4} = ${hot(guess)} + ${R5}<br>${LEFT} ${rel(LEFT, R)} ${R}</div>`;
+  if (d > 0) out += `<p class="big">${t({ en: `If the box were ${guess}, the right pan would be ${guess} plus five: ${R} blocks' worth. ${R} is heavier than ${LEFT}, so the balance tips right. ${guess} is wrong.`,
+                                         zh: `要是盒子里是 ${guess}，右盘就是 ${guess} 加五，${R} 块那么重。${R} 比 ${LEFT} 重，天平歪向右边，所以 ${guess} 不对。` })}</p>`;
+  else if (d < 0) out += `<p class="big">${t({ en: `If the box were ${guess}, the right pan would be ${guess} plus five: only ${R} blocks' worth, lighter than ${LEFT}. The balance tips left, so ${guess} is wrong too.`,
+                                              zh: `要是盒子里是 ${guess}，右盘只有 ${guess} 加五，${R} 块重，比 ${LEFT} 轻，天平歪向左边，${guess} 也不对。` })}</p>`;
+  else out += `<p class="big"><span class="ok-t">${t({ en: "Level.", zh: "平了。" })}</span> ${t({ en: `Seven blocks weigh the same as the box plus five, so the blank is ${guess}.`, zh: `七块和盒子加五块一样重，空格里是 ${guess}。` })}</p>
+    <p>${t({ en: "But that was guessing. Step 2 finds it without guessing.", zh: "不过这是试出来的。第 2 步不用猜也能找到它。" })}</p>`;
+  if (d !== 0) out += `<p>${t({ en: "Change the box with − and + until the balance is level.", zh: "用 − 和 + 改盒子里的数，直到天平变平。" })}</p>`;
+  return out + LEG();
+}
+function explain2() {
+  const k = k2, done = k >= R5;
+  let out = `<div class="kicker">${t({ en: "Step 02 · same off both sides", zh: "第 2 步 · 两边一起拿" })}</div>
+    <h2>${t({ en: "Take the same off both sides", zh: "两边拿走一样多" })}</h2>
+    <p>${t({ en: "On the left pan, three blocks and then four, seven in all. On the right, a box and five blocks. The equation being true means the balance is level.",
+              zh: "左盘放三块再放四块，一共七块；右盘放一个盒子和五块。等式成立，就是说天平是平的。" })}</p>`;
+  if (k === 0) out += `<p>${t({ en: "If we take five blocks off both sides at the same time, will it still be level?", zh: "两边同时拿走五块，天平还会是平的吗？" })}</p>
+    <div class="choices">${[{ en: "Still level", zh: "还是平的" }, { en: "It tips", zh: "会歪" }].map((o, i) => `<button data-c2="${i}" class="${pick2 === i ? "on" : ""}">${t(o)}</button>`).join("")}</div>`;
+  out += `<div class="mathline">${k ? `${P3} + ${P4} − ${k} = □ + ${R5} − ${k}<br>` : ""}${done ? `${hot(LEFT - k)} = □` : `${LEFT - k} = □ + ${R5 - k}`}</div>`;
+  if (k === 0) out += `<p class="big">${t({ en: "Drag a block off either pan, or tap it: one block goes from each side together.", zh: "把任意一个盘里的方块拖出去，或者点它：左右两边各拿走一块。" })}</p>`;
+  else if (!done) out += `<p class="big">${pick2 === 1 ? `<span class="tag-no">${t({ en: "It didn't tip.", zh: "没有歪。" })}</span> ` : ""}${t({ en: `${k} off each side, left and right together. The balance is still level: ${LEFT - k} blocks on the left, the box and ${R5 - k} on the right.`,
+                                                                                                                                       zh: `两边各拿走了 ${k} 块，左边右边一起拿。天平还是平的：左边 ${LEFT - k} 块，右边盒子加 ${R5 - k} 块。` })}</p>`;
+  else out += `<p class="big">${t({ en: `The balance is still level. ${LEFT - k} blocks are left on the left; only the box on the right. The box weighs the same as ${LEFT - k} blocks, so the blank is ${LEFT - k}.`,
+                                    zh: `天平还是平的，左边剩下 ${LEFT - k} 块，右边只剩下盒子。盒子和 ${LEFT - k} 块一样重，所以空格里是 ${LEFT - k}。` })}</p>
+    <p>${t({ en: `Check: ${P3} + ${P4} = ${LEFT - k} + ${R5}, both sides are ${LEFT}.`, zh: `验算：${P3} + ${P4} = ${LEFT - k} + ${R5}，两边都是 ${LEFT}。` })}</p>`;
+  if (note === "empty") out += `<p><span class="tag-no">${t({ en: "The right pan has no blocks left to take with it.", zh: "右盘已经没有方块可以一起拿了。" })}</span></p>`;
+  return out + LEG();
+}
+function explain3() {
+  const l = LEFT - iL, r = BOX + R5 - jR, d = r - l;
+  let out = `<div class="kicker">${t({ en: "Step 03 · one side only", zh: "第 3 步 · 只动一边" })}</div>
+    <h2>${t({ en: "What if we take from one side only?", zh: "要是只从一边拿呢？" })}</h2>
+    <p>${t({ en: `Back to 3 + 4 = □ + 5, and now we know the box is ${BOX}. Take blocks off the left only, or off the right only.`, zh: `回到 3 + 4 = □ + 5，现在知道盒子是 ${BOX}。只从左边拿，或者只从右边拿。` })}</p>
+    <div class="mathline">${P3} + ${P4}${iL ? ` − ${iL}` : ""} ${rel(l, r)} □ + ${R5}${jR ? ` − ${jR}` : ""}<br>${l} ${rel(l, r)} ${r}</div>`;
+  if (!iL && !jR) out += `<p class="big">${t({ en: "Level for now. Take two blocks off the left.", zh: "现在是平的。从左边拿走两块试试。" })}</p>`;
+  else if (d !== 0) out += `<p class="big">${t({ en: `The balance tips to the ${heavier(d)} straight away: the sides aren't equal, so the equation no longer holds.`, zh: `天平马上歪向${heavier(d)}，两边不一样重，等式就不成立了。` })}</p>
+    <p>${t({ en: "Put the blocks back, and it's level again.", zh: "把方块放回去，天平又平了。" })}</p>`;
+  else out += `<p class="big"><span class="ok-t">${t({ en: "Level again.", zh: "又平了。" })}</span> ${t({ en: `You took ${iL} from each side, the same from both. Only that keeps the equation true.`, zh: `两边各拿走了 ${iL} 块，拿的一样多。只有这样，等式才还成立。` })}</p>`;
+  return out + LEG();
+}
+function explain4() {
+  const x = c4 - b4, k = k4, done = k >= b4;
+  let out = `<div class="kicker">${t({ en: "Step 04 · with a letter", zh: "第 4 步 · 换成字母" })}</div>
+    <h2>${t({ en: "Same with a letter", zh: "换成字母也一样" })}</h2>
+    <p>${t({ en: `Call the box x. The box and ${b4} blocks on the left, ${c4} blocks on the right: x + ${b4} = ${c4}. Subtract ${b4} from both sides.`,
+              zh: `把盒子叫做 x。左盘是盒子加 ${b4} 块，右盘是 ${c4} 块：x + ${b4} = ${c4}。两边都减去 ${b4}。` })}</p>
+    <div class="mathline"><i>x</i> + ${b4} = ${c4}${k ? `<br><i>x</i> + ${b4} − ${k} = ${c4} − ${k}` : ""}${done ? `<br><i>x</i> = ${c4} − ${b4} = ${hot(x)}` : ""}</div>`;
+  if (!k) out += `<p class="big">${t({ en: `Take ${b4} off both sides to leave the box alone.`, zh: `两边各拿走 ${b4} 块，让盒子单独留在一边。` })}</p>`;
+  else if (!done) out += `<p class="big">${t({ en: `${k} off each side so far, and it's still level. ${b4 - k} more to go.`, zh: `两边各拿走了 ${k} 块，还是平的。还差 ${b4 - k} 块。` })}</p>`;
+  else out += `<p class="big">${t({ en: `Subtract ${b4} from both sides, and x is ${x}.`, zh: `两边都减去 ${b4}，x 就等于 ${x}。` })}</p>
+    <p>${t({ en: `Check: ${x} + ${b4} = ${x + b4}, the same as the right side.`, zh: `验算：${x} + ${b4} = ${x + b4}，和右边一样。` })}</p>`;
+  return out + LEG();
+}
+
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3, 4: explain4 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3, 4].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("gV").textContent = guess; el("gM").disabled = guess <= 0; el("gP").disabled = guess >= GMAX;
+  el("bV").textContent = b4; el("cV").textContent = c4;
+  el("bM").disabled = b4 <= 1; el("bP").disabled = b4 >= BMAX; el("cM").disabled = c4 <= b4; el("cP").disabled = c4 >= CMAX;
+  const can = pairsDone() < pairsMax();
+  for (const i of [2, 4]) {
+    el("pair" + i).disabled = !!auto || !can;
+    el("auto" + i).textContent = auto ? t(auto.paused ? D.goOnB : D.pauseB)
+      : can ? t({ en: `Take ${pairsMax() - pairsDone()} off both sides`, zh: `两边各拿 ${pairsMax() - pairsDone()} 块` }) : t({ en: "Again", zh: "再来一遍" });
+  }
+  el("takeL").disabled = live("L") === 0; el("takeR").disabled = live("R") === 0;
+  const wid = cvEl.getBoundingClientRect().width || 600;
+  cvEl.style.height = Math.round(geo(wid).H) + "px";
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const c2 = e.target.closest("[data-c2]");
+  if (c2) { pick2 = +c2.dataset.c2; render(); }
+});
+el("gM").onclick = () => setGuess(guess - 1); el("gP").onclick = () => setGuess(guess + 1);
+el("pair2").onclick = el("pair4").onclick = () => takePair();
+el("auto2").onclick = el("auto4").onclick = autoBtn;
+el("back2").onclick = el("back3").onclick = el("back4").onclick = putBack;
+el("takeL").onclick = () => takeOne("L"); el("takeR").onclick = () => takeOne("R");
+el("bM").onclick = () => setBC(b4 - 1, c4); el("bP").onclick = () => setBC(b4 + 1, c4);
+el("cM").onclick = () => setBC(b4, c4 - 1); el("cP").onclick = () => setBC(b4, c4 + 1);
+addEventListener("resize", () => render());
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; enterStep(); render(); });
+el("reset").onclick = () => { guess = 7; pick2 = -1; b4 = R5; c4 = LEFT; nav.set(1); };
+
+(() => {
+  el("resM").textContent = `x + ${R5} = ${LEFT}  →  x = ${LEFT} − ${R5} = ${LEFT - R5}`;
+  el("resN").textContent = t({ en: "The equals sign isn't where the answer goes. It says: both sides weigh the same. Take the same amount off both sides and it stays level, until the box is left alone.",
+                               zh: "等号的意思不是写答案，而是两边一样重。两边同时拿走一样多，天平还是平的，一直拿到盒子单独留在一边。" });
+  el("moreP").textContent = t({ en: `That shortcut is this very move. Subtract ${R5} from both sides of x + ${R5} = ${LEFT}: on the left, + ${R5} − ${R5} cancels; on the right, − ${R5} is new. It looks as if the ${R5} jumped across and changed sign, but really both pans lost ${R5}. Adding the same to both sides, or doubling both pans, keeps it level too.`,
+                                zh: `这个口诀说的就是这一步。x + ${R5} = ${LEFT} 两边都减去 ${R5}：左边 + ${R5} − ${R5} 抵掉了，右边多出一个 − ${R5}。看上去像 ${R5} 跳到另一边还变了号，其实是两个盘都少了 ${R5}。两边加上一样多、或者两个盘都翻倍，天平也一样平。` });
+})();
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (tick(dt)) dirty = true;
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
