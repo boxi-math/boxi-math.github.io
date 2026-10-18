@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parallelogram Area: One Cut, One Slide · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.4em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); background: var(--surface); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); background: var(--surface); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cH { color: var(--h); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .strike { text-decoration: line-through; text-decoration-thickness: 2px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="parallelogram"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="cmpBtn"></button>
+        <button class="big" id="squashBtn"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="big" id="slideBtn"></button>
+        <span class="stepper"><span data-t="cutW"></span><button id="cutL" aria-label="move the cut left">←</button><button id="cutR" aria-label="move the cut right">→</button></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><span class="cA">a</span><button data-d="a-" aria-label="base minus">−</button><b id="aVal"></b><button data-d="a+" aria-label="base plus">+</button></span>
+        <span class="stepper"><span class="cH">h</span><button data-d="h-" aria-label="height minus">−</button><b id="hVal"></b><button data-d="h+" aria-label="height plus">+</button></span>
+        <span class="stepper"><span class="cB">b</span><button data-d="b-" aria-label="slanted side minus">−</button><b id="bVal"></b><button data-d="b+" aria-label="slanted side plus">+</button></span>
+        <button class="big" id="slide3"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">S = a × h</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Parallelogram Area: One Cut, One Slide", zh: "平行四边形面积：剪一刀，挪过去" },
+  eyebrow: { en: "Boxi Math · Try it · #11", zh: "Boxi Math · 动手试试 · #11" },
+  intro: { en: "A carpenter is painting a parallelogram tabletop: base 8 cm, slanted side 6 cm. Test the apprentice's guess, then cut along the height and slide the triangle over. Each grid square is 1 cm².",
+           zh: "木工师傅给一块平行四边形的桌板刷漆：底 8 厘米，斜边 6 厘米。先试试徒弟的说法，再沿高剪一刀，把三角形挪过去。每个小方格是 1 平方厘米。" },
+  s1: { en: "Base × slanted side?", zh: "底乘斜边？" }, s2: { en: "One cut, one slide", zh: "剪一刀，挪过去" }, s3: { en: "Base × height", zh: "底乘高" },
+  reset: { en: "Reset", zh: "重置" }, pause: { en: "Pause", zh: "暂停" },
+  cmpOn: { en: "Show the a × b rectangle", zh: "叠上 a × b 的长方形" }, cmpOff: { en: "Hide the rectangle", zh: "拿掉长方形" },
+  squash: { en: "Squash it", zh: "往下压" }, stand: { en: "Stand it back up", zh: "扶起来" },
+  slide: { en: "Slide it over", zh: "挪过去" }, slideBack: { en: "Slide it back", zh: "挪回来" },
+  cutW: { en: "Cut", zh: "剪的位置" },
+  v1: { en: "The apprentice's guess", zh: "徒弟的说法" }, v2: { en: "Cut along the height", zh: "沿高剪开" }, v3: { en: "Picture and formula", zh: "图和算式" },
+  tag1: { en: "drag the top edge", zh: "拖动上边" }, tag2: { en: "drag the triangle", zh: "拖动三角形" }, tag3: { en: "change the numbers", zh: "改一改数" },
+  resT: { en: "Cut off a triangle along the height and slide it over: the parallelogram becomes a rectangle.", zh: "沿高剪下三角形挪过去，平行四边形就成了长方形。" },
+  resN: { en: "The rectangle's length is the base, its width is the height, and the slanted side doesn't come into it.", zh: "长方形的长对着底，宽对着高，斜边根本不参与。" },
+  moreS: { en: "What if it leans so far that one cut can't reach?", zh: "斜得太厉害，一刀剪不下来怎么办？" },
+  moreP: { en: "If the top edge sticks out past the end of the base, no straight-up cut goes from the base to the top edge. Slice the parallelogram into thinner layers parallel to the base first. Each layer leans less, so one cut along its height works for it, and each layer becomes a rectangle a long. Stack the rectangles: a long and h high. Nothing is added or lost, so the area is still a × h. Next: so why does a triangle's area have a divide-by-two in it?",
+           zh: "如果上边伸出去超过了底的另一头，竖着剪一刀就连不上底和上边。那就先把平行四边形横着切成几层薄片：每一层斜得少，沿它的高剪一刀就行，每层都拼成一个长 a 的长方形。几层叠起来，长 a、高 h。一块没多一块没少，面积还是 a × h。下一集：三角形的面积为什么要除以二？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ↑ ↓ press the top edge down (step 01), ← → slide the triangle, Shift + ← → move the cut, Enter plays.",
+          zh: "鼠标、触屏、键盘都能用：选中图后，↑ ↓ 压低或抬高上边（第 1 步），← → 挪三角形，Shift + ← → 挪剪的位置，回车播放。" },
+};
+Play.i18n(D);
+
+// script numbers (practice ep11-before-1): base 8, height 5, slanted side 6
+const A0 = 8, B0 = 6, H0 = 5;
+const lean = (b, h) => Math.sqrt(Math.max(0, b * b - h * h));   // horizontal offset of the top edge
+let step = 1, guess = -1, cmp = false, h1 = H0, h1To = null;
+let u = 0, uTo = null, c2 = lean(B0, H0), predict = -1;
+let a3 = A0, h3 = H0, b3 = B0, u3 = 0, u3To = null;
+let dirty = true, V = null, grab = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+// ---------- view: world units (y up) to canvas px ----------
+const PAD = { l: 40, r: 60, t: 62, b: 50 };
+function box() {
+  if (step === 1) return [0, A0 + B0, 0, B0];
+  if (step === 2) return [0, 2 * A0, 0, H0];
+  return [0, a3 + lean(b3, h3), 0, h3];
+}
+function scaleFor(w, hg, bx) {
+  const s = Math.min(46, (w - PAD.l - PAD.r) / Math.max(1, bx[1] - bx[0]));
+  return hg ? Math.min(s, (hg - PAD.t - PAD.b) / Math.max(1, bx[3] - bx[2])) : s;
+}
+function sizeCanvas() {
+  const w = cv.clientWidth; if (!w) return;
+  const bx = box(), sc = scaleFor(w, 0, bx);
+  cv.style.height = Math.round(clamp((bx[3] - bx[2]) * sc + PAD.t + PAD.b, 200, 400)) + "px";
+}
+function setView(w, hg) {
+  const bx = box(), sc = scaleFor(w, hg, bx);
+  const bw = (bx[1] - bx[0]) * sc, bh = (bx[3] - bx[2]) * sc;
+  const left = PAD.l + (w - PAD.l - PAD.r - bw) / 2, top = PAD.t + (hg - PAD.t - PAD.b - bh) / 2;
+  V = { sc, X: (x) => left + (x - bx[0]) * sc, Y: (y) => top + (bx[3] - y) * sc, x: (px) => (px - left) / sc + bx[0] };
+}
+
+// ---------- drawing helpers ----------
+function path(x, pts, dx = 0) {
+  x.beginPath();
+  pts.forEach((p, i) => (i ? x.lineTo(V.X(p[0] + dx), V.Y(p[1])) : x.moveTo(V.X(p[0] + dx), V.Y(p[1]))));
+  x.closePath();
+}
+function shape(x, pts, dx, col, alpha, gx) {  // filled piece with a unit grid (columns at gx + k) clipped inside
+  path(x, pts, dx); x.fillStyle = color("--surface"); x.fill();
+  x.fillStyle = rgba(color(col), alpha); x.fill();
+  x.save(); path(x, pts, dx); x.clip();
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  x.strokeStyle = rgba(color(col), 0.38); x.lineWidth = 1; x.beginPath();
+  for (let k = Math.floor(Math.min(...xs) - gx); gx + k <= Math.max(...xs); k++) { const X = V.X(gx + k + dx); x.moveTo(X, V.Y(Math.max(...ys))); x.lineTo(X, V.Y(0)); }
+  for (let k = 1; k < Math.max(...ys); k++) { x.moveTo(V.X(Math.min(...xs) + dx), V.Y(k)); x.lineTo(V.X(Math.max(...xs) + dx), V.Y(k)); }
+  x.stroke(); x.restore();
+  path(x, pts, dx); x.strokeStyle = color(col); x.lineWidth = 2.2; x.stroke();
+}
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(V.X(p[0]), V.Y(p[1])); x.lineTo(V.X(q[0]), V.Y(q[1])); x.stroke(); x.setLineDash([]);
+}
+function edgeLabel(x, p, q, s, col, side) {  // label beside an edge, pushed out along its normal (side = +1 left of p→q)
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
+  const nx = -dy / L * side, ny = dx / L * side;
+  Play.text(x, s, V.X((p[0] + q[0]) / 2) + nx * 20, V.Y((p[1] + q[1]) / 2) - ny * 20, { size: 15, weight: 700, color: col });
+}
+function knob(x, X, Y, vertical) {
+  const HL = color("--hl");
+  x.fillStyle = HL; x.beginPath(); x.arc(X, Y, 11, 0, 2 * Math.PI); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2; x.beginPath();
+  if (vertical) { x.moveTo(X, Y - 6); x.lineTo(X, Y + 6); x.moveTo(X - 3, Y - 3); x.lineTo(X, Y - 6); x.lineTo(X + 3, Y - 3); x.moveTo(X - 3, Y + 3); x.lineTo(X, Y + 6); x.lineTo(X + 3, Y + 3); }
+  else { x.moveTo(X - 6, Y); x.lineTo(X + 6, Y); x.moveTo(X - 3, Y - 3); x.lineTo(X - 6, Y); x.lineTo(X - 3, Y + 3); x.moveTo(X + 3, Y - 3); x.lineTo(X + 6, Y); x.lineTo(X + 3, Y + 3); }
+  x.stroke();
+}
+function inPoly(px, py, pts, dx) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = V.X(pts[i][0] + dx), yi = V.Y(pts[i][1]), xj = V.X(pts[j][0] + dx), yj = V.Y(pts[j][1]);
+    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// ---------- step 1: the guess a × b, and the squash ----------
+function draw1(x, w) {
+  const s = lean(B0, h1), P = [[0, 0], [A0, 0], [A0 + s, h1], [s, h1]], NO = color("--no");
+  if (cmp) {
+    x.fillStyle = rgba(NO, 0.12); x.fillRect(V.X(0), V.Y(B0), A0 * V.sc, B0 * V.sc);
+  }
+  if (Math.abs(h1 - H0) > 0.05) {
+    const s0 = lean(B0, H0);
+    path(x, [[0, 0], [A0, 0], [A0 + s0, H0], [s0, H0]]); x.strokeStyle = rgba(color("--muted"), 0.6); x.lineWidth = 1.2; x.setLineDash([4, 5]); x.stroke(); x.setLineDash([]);
+  }
+  if (h1 > 1e-3) shape(x, P, 0, "--a", 0.22, 0);
+  else seg(x, [0, 0], [A0 + s, 0], color("--a"), 3.5);
+  if (cmp) {
+    x.strokeStyle = NO; x.lineWidth = 2; x.setLineDash([7, 5]); x.strokeRect(V.X(0), V.Y(B0), A0 * V.sc, B0 * V.sc); x.setLineDash([]);
+    Play.text(x, `a × b = ${A0} × ${B0} = ${A0 * B0}`, V.X(0), V.Y(B0) - 16, { size: 14, weight: 700, color: NO, align: "left" });
+  }
+  if (h1 * V.sc > 26) {
+    seg(x, [s, h1], [s, 0], color("--h"), 2, [6, 4]);
+    Play.text(x, `h = ${fmt(h1, 1)}`, V.X(s) + 8, V.Y(h1 / 2), { size: 14, weight: 700, color: color("--h"), align: "left" });
+  }
+  Play.text(x, `a = ${A0}`, V.X(A0 / 2), V.Y(0) + 20, { size: 15, weight: 700 });
+  edgeLabel(x, [0, 0], [s, h1], `b = ${B0}`, color("--b"), 1);
+  if (h1 < 0.05) Play.text(x, t({ en: "area 0", zh: "面积 0" }), V.X((A0 + s) * 0.78), V.Y(0) + 20, { size: 15, weight: 700, color: NO });
+  knob(x, V.X(s + A0 * 0.78), V.Y(h1), true);
+  return P;
+}
+
+// ---------- steps 2 and 3: cut at x = c, slide the left piece by du ----------
+function drawCut(x, a, h, b, c, du, opt) {
+  const s = lean(b, h), NO = color("--no"), HC = color("--h");
+  const R = [[c, 0], [a, 0], [a + s, h], [c, h]], Lp = [[0, 0], [c, 0], [c, h], [s, h]];
+  const done = du > a - 1e-3;
+  shape(x, R, 0, "--a", 0.22, c);
+  if (c > 1e-3) shape(x, Lp, du, "--b", 0.3, c);
+  // the height: any straight-up segment; drawn where the cut is
+  seg(x, [c, h], [c, 0], HC, 2, [6, 4]);
+  if (du < 1e-3 && opt.cut) {
+    seg(x, [c, h + 0.15], [c, -0.15], color("--hl"), 3, [7, 5]);
+    knob(x, V.X(c), V.Y(h) - 24, false);
+  }
+  if (!done) Play.text(x, "h", V.X(c) + 9, V.Y(h / 2), { size: 15, weight: 700, color: HC, italic: true, align: "left" });
+  if (done) {
+    if (s > 1e-3) seg(x, [a, 0], [a + s, h], NO, 1.6);
+    if (s > 1e-3) edgeLabel(x, [a + s, h], [a, 0], "b", NO, -1);
+    x.strokeStyle = color("--hl"); x.lineWidth = 3.5; x.strokeRect(V.X(c), V.Y(h), a * V.sc, h * V.sc);
+    Play.text(x, `a = ${fmt(a)}`, V.X(c + a / 2), V.Y(0) + 20, { size: 15, weight: 700 });
+    Play.text(x, `h = ${fmt(h)}`, V.X(c + a) + 8, V.Y(h / 2), { size: 15, weight: 700, color: HC, align: "left" });
+  } else {
+    Play.text(x, `a = ${fmt(a)}`, V.X(a / 2), V.Y(0) + 20, { size: 15, weight: 700 });
+    if (s > 1e-3) edgeLabel(x, [0, 0], [s, h], `b = ${fmt(b)}`, color("--b"), 1);
+  }
+  return { R, Lp };
+}
+
+let geo = null;
+function draw(x, w, hg) {
+  setView(w, hg);
+  if (step === 1) geo = { P: draw1(x, w) };
+  else if (step === 2) geo = drawCut(x, A0, H0, B0, c2, u, { cut: true });
+  else geo = drawCut(x, a3, h3, b3, lean(b3, h3), u3, {});
+}
+
+// ---------- text ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+function render() {
+  const ex = $("explain");
+  let html = "";
+  if (step === 1) {
+    html += `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试徒弟的说法" })}</div>` +
+      `<h2>${t({ en: "Base 8 cm, slanted side 6 cm. What is the area?", zh: "底 8 厘米，斜边 6 厘米，面积是多少？" })}</h2>` +
+      `<p>${t({ en: "If it were you, make up your mind first.", zh: "换作是你，先拿个主意。" })}</p><div class="choices">` +
+      [[A0 * B0, `${A0 * B0} cm²`], [A0 * H0, `${A0 * H0} cm²`], [0, t({ en: "Something else", zh: "别的数" })]]
+        .map(([g, s]) => `<button data-g="${g}" class="${guess === g ? "on" : ""}">${s}</button>`).join("") + `</div>`;
+    if (guess >= 0) {
+      html += `<p>${t({ en: "The apprentice jumps in: base times slanted side, just like length times width for a rectangle.", zh: "徒弟抢着说：底乘斜边嘛，就像长方形长乘宽一样。" })}</p>` +
+        `<div class="mathline">${sp("cN", `S = a × b = ${A0} × ${B0} = ${A0 * B0} ?`)}</div>`;
+      if (!cmp) html += `<p>${t({ en: "Press “Show the a × b rectangle” to test it.", zh: "按「叠上 a × b 的长方形」试一试。" })}</p>`;
+    }
+    if (cmp) html += `<p>${t({ en: "If it were base times slanted side, it would have to be as big as this rectangle. But this rectangle is clearly taller: the parallelogram can't fill it.", zh: "如果是底乘斜边，它就该和这个长方形一样大才对。可这个长方形明显更高，平行四边形根本装不满它。" })}</p>`;
+    if (guess >= 0 || cmp) {
+      html += `<p>${t({ en: "One more test: drag the top edge down. The base stays the same, and so does the slanted side.", zh: "再试一下：把上边往下拖。底不变，斜边也不变。" })}</p>` +
+        `<div class="mathline">a = ${A0}, b = ${B0}, ${sp("cH", `h = ${fmt(h1, 1)}`)}<br>${sp("cN", `a × b = ${A0 * B0}`)}</div>`;
+      if (h1 < 0.05) html += `<p><span class="tag-no">${t({ en: "Flat out, the area is zero.", zh: "压平了，面积就是零。" })}</span> ${t({ en: `Yet base times slanted side is still ${A0 * B0}: it hasn't changed at all, so it can't be the area.`, zh: `可底乘斜边还是 ${A0 * B0}，一点都没变，所以它算的不是面积。` })}</p>`;
+      else if (h1 < H0 - 0.3) html += `<p>${t({ en: "It gets flatter and its area gets smaller. Keep going.", zh: "它越来越扁，面积越来越小。接着往下压。" })}</p>`;
+    }
+  } else if (step === 2) {
+    const s = lean(B0, H0), done = u > A0 - 1e-3, corner = Math.abs(c2 - s) < 0.02;
+    html += `<div class="kicker">${t({ en: "Step 02 · one cut, one slide", zh: "第 2 步 · 剪一刀，挪过去" })}</div>` +
+      `<h2>${t({ en: "Cut along the height and slide the triangle over", zh: "沿高剪开，把三角形挪过去" })}</h2>` +
+      `<p>${t({ en: "Cut along the height and slide the triangle on the left over to the right. Drag it, or press “Slide it over”.", zh: "沿着这条高剪开，把左边剪下的三角形平移到右边。拖动它，或者按「挪过去」。" })}</p>`;
+    if (!done) {
+      html += `<p><strong>${t({ en: "What shape do you get?", zh: "能拼成什么？" })}</strong></p><div class="choices">` +
+        [{ en: "A rectangle", zh: "长方形" }, { en: "A triangle", zh: "三角形" }, { en: "A trapezium", zh: "梯形" }]
+          .map((g, i) => `<button data-p="${i}" class="${predict === i ? "on" : ""}">${t(g)}</button>`).join("") + `</div>`;
+    } else {
+      html += `<p>${t({ en: "The slanted edge meets the other slanted edge exactly. No gaps. It's a rectangle now, with nothing added and nothing lost.", zh: "斜边正好对着另一条斜边，严丝合缝，不留缝隙。拼成了一个长方形，一块没多，一块没少。" })}` +
+        (predict > 0 ? ` <span class="tag-no">${t({ en: "Not what you guessed!", zh: "跟你猜的不一样！" })}</span>` : "") + `</p>` +
+        `<div class="mathline">${t({ en: "length", zh: "长" })} = a = ${A0}, ${t({ en: "width", zh: "宽" })} = ${sp("cH", `h = ${H0}`)}<br>${A0} × ${H0} = <b>${A0 * H0}</b> cm²</div>` +
+        `<p>${t({ en: `And the slanted side b = ${B0}? It's tucked inside the rectangle and isn't used at all.`, zh: `那斜边 b = ${B0} 呢？它被拼进了长方形里面，根本没用上。` })}` +
+        (guess === A0 * H0 ? ` <strong>${t({ en: `Your ${A0 * H0} was right.`, zh: `你猜的 ${A0 * H0} 对了。` })}</strong>` : guess === A0 * B0 ? ` <span class="tag-no">${t({ en: `Not ${A0 * B0}.`, zh: `不是 ${A0 * B0}。` })}</span>` : "") + `</p>`;
+    }
+    if (!corner) html += `<p class="note">${t({ en: "This cut doesn't go through the corner, so the piece is a trapezium, not a triangle. It still works: any straight-up cut from the base to the top edge is a height.", zh: "这一刀没过顶点，剪下的是梯形，不是三角形。照样行：从底到上边竖着剪的任何一刀，都是一条高。" })}</p>`;
+  } else {
+    const s = lean(b3, h3), S = a3 * h3, wrong = a3 * b3;
+    html += `<div class="kicker">${t({ en: "Step 03 · base times height", zh: "第 3 步 · 底乘高" })}</div>` +
+      `<h2>${t({ en: "The rectangle's length is the base, its width is the height", zh: "长方形的长对着底，宽对着高" })}</h2>` +
+      `<p>${t({ en: "Change the base, the height or the slanted side, then slide the triangle over. The formula changes with the picture.", zh: "改一改底、高或斜边，再把三角形挪过去。算式跟着图一起变。" })}</p>` +
+      `<div class="mathline">S = ${sp("cA", "a")} × ${sp("cH", "h")} = ${sp("cA", a3)} × ${sp("cH", h3)} = <b>${S}</b><br>` +
+      (s > 1e-3 ? `<span class="cN strike">a × b = ${a3} × ${b3} = ${wrong}</span>` : `a × b = ${a3} × ${b3} = ${wrong}`) + `</div>` +
+      (s > 1e-3 ? `<p>${t({ en: "Only a and h are in the formula. Change b alone: the picture leans more or less, S stays the same, but a × b changes.", zh: "算式里只有 a 和 h。只改 b：图斜得多一点或少一点，S 不变，a × b 却变了。" })}</p>`
+        : `<p>${t({ en: "Here b = h: the slanted side stands straight up, so it's already a rectangle and a × b happens to agree.", zh: "这时 b = h：斜边立直了，它本来就是长方形，a × b 碰巧也对。" })}</p>`) +
+      `<p class="note">${t({ en: `Count the squares once it's a rectangle: ${h3} rows of ${a3}.`, zh: `拼成长方形后数一数：${h3} 行，每行 ${a3} 格。` })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  $("cmpBtn").textContent = t(cmp ? D.cmpOff : D.cmpOn);
+  $("cmpBtn").classList.toggle("on", cmp);
+  $("squashBtn").textContent = t(h1To != null ? D.pause : h1 > 0.01 ? D.squash : D.stand);
+  $("slideBtn").textContent = t(uTo != null ? D.pause : u > A0 / 2 ? D.slideBack : D.slide);
+  $("slide3").textContent = t(u3To != null ? D.pause : u3 > a3 / 2 ? D.slideBack : D.slide);
+  $("cutL").disabled = $("cutR").disabled = u > 1e-3;
+  $("aVal").textContent = a3; $("hVal").textContent = h3; $("bVal").textContent = b3;
+  sizeCanvas();
+  dirty = true;
+}
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), q = e.target.closest("[data-p]");
+  if (g) guess = +g.dataset.g;
+  if (q) predict = +q.dataset.p;
+  if (g || q) render();
+});
+
+// ---------- actions ----------
+function squashClick() {
+  if (h1To != null) h1To = null;
+  else h1To = h1 > 0.01 ? 0 : H0;
+  if (Play.reduced && h1To != null) { h1 = h1To; h1To = null; }
+  render();
+}
+function slideClick() {
+  if (step === 2) {
+    if (uTo != null) uTo = null; else uTo = u > A0 / 2 ? 0 : A0;
+    if (Play.reduced && uTo != null) { u = uTo; uTo = null; }
+  } else {
+    if (u3To != null) u3To = null; else u3To = u3 > a3 / 2 ? 0 : a3;
+    if (Play.reduced && u3To != null) { u3 = u3To; u3To = null; }
+  }
+  render();
+}
+function setH1(v) { h1 = clamp(v, 0, B0); if (h1 < 0.04) h1 = 0; h1To = null; render(); }
+function setU(v) {
+  if (step === 2) { u = clamp(v, 0, A0); uTo = null; } else { u3 = clamp(v, 0, a3); u3To = null; }
+  render();
+}
+function setCut(v) { if (u > 1e-3) return; c2 = clamp(v, lean(B0, H0), A0); render(); }
+function snap() {
+  if (step === 2) { if (u > A0 - 0.5) u = A0; if (u < 0.3) u = 0; }
+  else if (step === 3) { if (u3 > a3 - 0.5) u3 = a3; if (u3 < 0.3) u3 = 0; }
+  render();
+}
+
+const nav = Play.steps(document.querySelector(".steps"), (n) => { step = n; render(); });
+$("cmpBtn").onclick = () => { cmp = !cmp; render(); };
+$("squashBtn").onclick = squashClick;
+$("slideBtn").onclick = slideClick;
+$("slide3").onclick = slideClick;
+$("cutL").onclick = () => setCut(c2 - 0.5);
+$("cutR").onclick = () => setCut(c2 + 0.5);
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, d = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") a3 = clamp(a3 + d, 1, 10);
+  if (k[0] === "h") h3 = clamp(h3 + d, 1, 8);
+  if (k[0] === "b") b3 += d;
+  b3 = clamp(b3, h3, Math.floor(Math.sqrt(a3 * a3 + h3 * h3)));   // the top edge must still sit over the base, so one cut reaches
+  u3 = 0; u3To = null;
+  render();
+}));
+
+Play.drag(cv, {
+  down(px, py) {
+    if (!V || !geo) return false;
+    if (step === 1) {
+      const s = lean(B0, h1), ty = V.Y(h1);
+      const kx = V.X(s + A0 * 0.78), onKnob = Math.hypot(px - kx, py - ty) < 22;
+      if (!onKnob && !(Math.abs(py - ty) < 22 && px > V.X(s) - 10 && px < V.X(A0 + s) + 10)) return false;
+      grab = "top"; h1To = null; return true;
+    }
+    const du = step === 2 ? u : u3;
+    if (step === 2 && u < 1e-3 && (Math.hypot(px - V.X(c2), py - (V.Y(H0) - 24)) < 22 || (Math.abs(px - V.X(c2)) < 10 && py > V.Y(H0) && py < V.Y(0)))) { grab = "cut"; return true; }
+    const L = geo.Lp, xs = L.map((p) => p[0] + du);
+    const nearBox = px > V.X(Math.min(...xs)) - 12 && px < V.X(Math.max(...xs)) + 12 && py > V.Y(step === 2 ? H0 : h3) - 8 && py < V.Y(0) + 8;
+    if (!inPoly(px, py, L, du) && !nearBox) return false;
+    if (step === 2) uTo = null; else u3To = null;
+    grab = "piece"; return true;
+  },
+  move(px, py, dx, dy) {
+    if (grab === "top") setH1(h1 - dy / V.sc);
+    else if (grab === "cut") setCut(c2 + dx / V.sc);
+    else if (grab === "piece") setU((step === 2 ? u : u3) + dx / V.sc);
+  },
+  up() { if (grab === "piece") snap(); grab = null; },
+});
+const nudge = (d, e) => {
+  if (step === 1) return;
+  if (step === 2 && e && e.shiftKey) return setCut(c2 + d * 0.5);
+  const a = step === 2 ? A0 : a3;
+  setU((step === 2 ? u : u3) + d * a / 8);
+};
+const enter = () => (step === 1 ? squashClick() : slideClick());
+Play.keys(cv, {
+  ArrowLeft: (e) => nudge(-1, e), ArrowRight: (e) => nudge(1, e),
+  ArrowUp: () => step === 1 && setH1(h1 + 0.25), ArrowDown: () => step === 1 && setH1(h1 - 0.25),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  guess = -1; cmp = false; h1 = H0; h1To = null;
+  u = 0; uTo = null; c2 = lean(B0, H0); predict = -1;
+  a3 = A0; h3 = H0; b3 = B0; u3 = 0; u3To = null;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+function approach(v, to, rate, dt) { const d = to - v, st = rate * dt; return Math.abs(d) <= st ? to : v + Math.sign(d) * st; }
+Play.loop((dt) => {
+  if (h1To != null) { h1 = approach(h1, h1To, B0 / 3, dt); if (h1 === h1To) { h1To = null; render(); } else if (Math.abs(h1 - Math.round(h1 * 2) / 2) < 0.03) render(); dirty = true; }
+  if (uTo != null) { u = approach(u, uTo, A0 / 1.4, dt); if (u === uTo) { uTo = null; render(); } dirty = true; }
+  if (u3To != null) { u3 = approach(u3, u3To, a3 / 1.4, dt); if (u3 === u3To) { u3To = null; render(); } dirty = true; }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

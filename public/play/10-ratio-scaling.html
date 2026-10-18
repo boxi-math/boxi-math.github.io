@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ratios: Shapes That Survive the Magnifying Glass · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .kid button { font-size: 15px; min-height: 42px; min-width: 44px; padding: 8px 12px; }
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .controls.kid input[type=range] { flex: 1 1 110px; }
+  .kid button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { font-size: 14px; min-height: 40px; }
+  .choices button.ok { border-color: var(--a); box-shadow: inset 0 0 0 2px var(--a); }
+  .choices button.bad { border-color: var(--no); box-shadow: inset 0 0 0 2px var(--no); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 22px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--a); margin-right: 5px; vertical-align: 3px; }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 9px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="photo on a square grid"></canvas>
+      <div class="controls kid" id="c1">
+        <span data-t="addT"></span><span id="dBtns"></span>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <span data-t="mulT"></span><span id="kBtns"></span>
+        <button id="cmp" data-t="cmpB"></button>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <span id="k3Btns"></span>
+        <button id="go"></button>
+        <input type="range" id="sepR" min="0" max="100" step="1" aria-label="pull apart">
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba } = Play;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const D = {
+  title: { en: "Ratios: Shapes That Survive the Magnifying Glass", zh: "比例：放大镜下形状不变" },
+  eyebrow: { en: "Boxi Math · Try it · #10", zh: "Boxi Math · 动手试试 · #10" },
+  intro: { en: "Xiaomei wants to blow her small photo up to twice the size for the wall. Will its shape change? Add squares, multiply, then cut the big photo and count.",
+           zh: "小美想把这张小照片放大两倍，贴到墙上，形状会变吗？先加格子，再乘，最后把大照片切开数一数。" },
+  s1: { en: "Add the same?", zh: "都加一样多？" }, s2: { en: "Multiply both", zh: "都乘同一个数" }, s3: { en: "And the area?", zh: "那面积呢？" },
+  reset: { en: "Reset", zh: "重置" },
+  addT: { en: "Add to both:", zh: "宽和高都加：" }, mulT: { en: "Multiply both by:", zh: "宽和高都乘：" },
+  cmpB: { en: "Compare: add instead", zh: "对比：改成加" },
+  cutB: { en: "Cut apart", zh: "切开" }, backB: { en: "Put back", zh: "拼回去" }, pauseB: { en: "Pause", zh: "暂停" },
+  v1: { en: "Photo grid · add", zh: "照片格子 · 加" }, v2: { en: "Photo grid · multiply", zh: "照片格子 · 乘" }, v3: { en: "Big photo · cut", zh: "大照片 · 切开" },
+  tag1: { en: "drag the gold corner", zh: "拖动金色的角" }, tag2: { en: "drag the gold corner", zh: "拖动金色的角" }, tag3: { en: "drag sideways to pull apart", zh: "左右拖，把照片拉开" },
+  resT: { en: "Same shape, four times the area", zh: "形状不变，面积四倍" },
+  moreS: { en: "Why does the area go up by more than the sides?", zh: "为什么面积变得比边长多？" },
+  moreP: { en: "Area is width times height. Scaling by a number multiplies the width by it once and the height by it once more, so the area is multiplied by that number twice: by two gives two times two, four; by three gives three times three, nine. The ratio only compares width with height, and both got the same factor, so it cancels and the ratio stays the same.",
+           zh: "面积是宽乘高。放大几倍，宽乘一次这个数，高也乘一次，面积就乘了两次：放大两倍是二乘二等于四倍，放大三倍是三乘三等于九倍。比只是拿宽和高相比，两边乘的是同一个数，比值就不变。" },
+  moreQ: { en: "Next: why does subtracting a negative number add?", zh: "下一个问题：为什么减去一个负数，反而是加上它？" },
+  foot: { en: "Green is the small photo and the shapes like it, red has the wrong shape, gold is what you move. The dashed line runs through every corner with the same 3 : 2 shape. On a focused picture, arrow keys work too (steps 1–2: ← → change the number; step 3: ← → pull apart, ↑ ↓ change the scale, space plays or pauses).",
+          zh: "绿色是小照片和形状跟它一样的照片，红色是形状变了的，金色是你能动的。虚线穿过所有形状同为 3 : 2 的照片的角。选中图后也能用方向键（第 1、2 步：← → 换数；第 3 步：← → 拉开，↑ ↓ 换倍数，空格播放或暂停）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a) || 1);
+const S = { w: 3, h: 2 };              // the small photo, in squares
+const DMAX = 4, KMAX = 4, GAP = 16;
+const R0 = S.w / S.h;                  // 1.5
+
+let step = 1, dirty = true;
+let d = 0;                             // step 1: squares added to both sides
+let k = 1, cmp = false;                // step 2: scale factor
+let k3 = 2, sep = 0, anim = 0, pick = -1;   // step 3: scale, pull-apart 0..1, animation direction
+
+// ---------- numbers ----------
+// "w ÷ h = 1.25" or "w ÷ h ≈ 1.33"
+function ratioTxt(a, b) {
+  const q = a / b, exact = Math.abs(q * 100 - Math.round(q * 100)) < 1e-9;
+  return `${a} ÷ ${b} ${exact ? "=" : "≈"} ${Play.fmt(q, 2)}`;
+}
+function simp(a, b) { const g = gcd(a, b); return g > 1 ? ` = ${a / g} : ${b / g}` : ""; }
+
+// ---------- layout ----------
+const PAD = { l: 40, r: 22, t: 40, b: 34 };
+function spec() {
+  if (step === 1) return { cols: S.w + DMAX, rows: S.h + DMAX, maxCell: 40, maxH: 250, gaps: 0 };
+  if (step === 2) return { cols: S.w * KMAX, rows: S.h * KMAX, maxCell: 34, maxH: 272, gaps: 0 };
+  return { cols: S.w * k3, rows: S.h * k3, maxCell: 46, maxH: 280, gaps: k3 - 1 };
+}
+function layout(W) {
+  const sp = spec(), g = sp.gaps * GAP;
+  const c = Math.max(6, Math.min(sp.maxCell, (W - PAD.l - PAD.r - g) / sp.cols, (sp.maxH - g) / sp.rows));
+  const pw = sp.cols * c + g, ph = sp.rows * c + g;
+  const Ox = Math.max(PAD.l, (W - pw) / 2 + (PAD.l - PAD.r) / 2);
+  return { c, Ox, Oy: PAD.t + ph, pw, ph, cols: sp.cols, rows: sp.rows, W, H: PAD.t + ph + PAD.b };
+}
+let L = null;
+
+// ---------- drawing helpers ----------
+function circle(x, cx, cy, r, fill, stroke, lw) {
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.stroke(); }
+}
+// a simple person (and a sun) stretched to fill the photo: a wrong shape shows up as a squashed person
+function figure(x, X, Y, Wp, Hp, col, a) {
+  x.save(); x.beginPath(); x.rect(X, Y, Wp, Hp); x.clip();
+  x.fillStyle = rgba(col, a);
+  x.beginPath(); x.ellipse(X + 0.5 * Wp, Y + Hp, 0.28 * Wp, 0.4 * Hp, 0, Math.PI, 2 * Math.PI); x.fill();
+  x.beginPath(); x.ellipse(X + 0.5 * Wp, Y + 0.36 * Hp, 0.12 * Wp, 0.18 * Hp, 0, 0, 2 * Math.PI); x.fill();
+  x.fillStyle = rgba(color("--hl"), Math.min(1, a + 0.2));
+  x.beginPath(); x.ellipse(X + 0.84 * Wp, Y + 0.2 * Hp, 0.06 * Wp, 0.09 * Hp, 0, 0, 2 * Math.PI); x.fill();
+  x.restore();
+}
+// photo of w × h squares whose bottom-left corner is at (X, Yb)
+function photo(x, X, Yb, w, h, col, o = {}) {
+  const c = L.c, Wp = w * c, Hp = h * c, Y = Yb - Hp;
+  if (o.fill !== false) { x.fillStyle = rgba(col, o.fa ?? 0.16); x.fillRect(X, Y, Wp, Hp); }
+  if (o.fig) figure(x, X, Y, Wp, Hp, col, o.figA ?? 0.5);
+  if (o.grid !== false) {
+    x.strokeStyle = rgba(color("--muted"), 0.3); x.lineWidth = 1; x.beginPath();
+    for (let i = 1; i < w; i++) { x.moveTo(X + i * c, Y); x.lineTo(X + i * c, Yb); }
+    for (let j = 1; j < h; j++) { x.moveTo(X, Y + j * c); x.lineTo(X + Wp, Y + j * c); }
+    x.stroke();
+  }
+  x.strokeStyle = col; x.lineWidth = o.lw || 2.5; x.setLineDash(o.dash || []);
+  x.strokeRect(X, Y, Wp, Hp); x.setLineDash([]);
+  return { X, Y, Wp, Hp };
+}
+function backGrid(x) {
+  const { Ox, Oy, c, cols, rows } = L;
+  x.strokeStyle = color("--line"); x.lineWidth = 1; x.beginPath();
+  for (let i = 0; i <= cols; i++) { x.moveTo(Ox + i * c, Oy); x.lineTo(Ox + i * c, Oy - rows * c); }
+  for (let j = 0; j <= rows; j++) { x.moveTo(Ox, Oy - j * c); x.lineTo(Ox + cols * c, Oy - j * c); }
+  x.stroke();
+}
+// the dashed line from the corner through every 3 : 2 photo's top-right corner
+function ray(x) {
+  const { Ox, Oy, c, cols, rows } = L, s = Math.min(cols / S.w, rows / S.h) + 0.15;
+  x.strokeStyle = rgba(color("--a"), 0.9); x.lineWidth = 2; x.setLineDash([7, 6]);
+  x.beginPath(); x.moveTo(Ox, Oy); x.lineTo(Ox + s * S.w * c, Oy - s * S.h * c); x.stroke(); x.setLineDash([]);
+}
+function sideLabels(x, r, w, h, col) {
+  Play.text(x, String(w), r.X + r.Wp / 2, L.Oy + 18, { size: 15, weight: 750, color: col });
+  Play.text(x, String(h), L.Ox - 17, r.Y + r.Hp / 2, { size: 15, weight: 750, color: col });
+}
+function handle(x, px, py) { circle(x, px, py, 10, color("--hl"), color("--fg"), 1.5); }
+
+function draw(x, w, h) {
+  L = layout(w);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x);
+}
+
+function draw1(x) {
+  const A = color("--a"), NO = color("--no"), W = S.w + d, H = S.h + d, same = d === 0;
+  backGrid(x); ray(x);
+  const r = photo(x, L.Ox, L.Oy, W, H, same ? A : NO, { fig: true, fa: same ? 0.16 : 0.1 });
+  if (!same) photo(x, L.Ox, L.Oy, S.w, S.h, A, { fa: 0.22, grid: false, lw: 2 });
+  sideLabels(x, r, W, H, same ? A : NO);
+  handle(x, r.X + r.Wp, r.Y);
+}
+
+function draw2(x) {
+  const A = color("--a"), NO = color("--no"), W = S.w * k, H = S.h * k;
+  backGrid(x);
+  if (cmp) {
+    const r2 = photo(x, L.Ox, L.Oy, S.w + k, S.h + k, NO, { fill: false, grid: false, dash: [5, 4], lw: 2 });
+    circle(x, r2.X + r2.Wp, r2.Y, 6, NO, color("--surface"), 2);
+  }
+  ray(x);
+  const r = photo(x, L.Ox, L.Oy, W, H, A, { fig: true, fa: 0.14 });
+  if (k > 1) photo(x, L.Ox, L.Oy, S.w, S.h, A, { fa: 0.28, grid: false, lw: 2 });
+  sideLabels(x, r, W, H, A);
+  handle(x, r.X + r.Wp, r.Y);
+}
+
+function draw3(x) {
+  const { Ox, Oy, c } = L, gap = GAP * sep, pal = ["--a", "--c", "--b", "--h"].map(color), fg = color("--fg");
+  const split = sep > 0.02, apart = sep >= 0.5;
+  for (let j = 0; j < k3; j++) for (let i = 0; i < k3; i++) {
+    const col = split ? pal[(i + 2 * j) % 4] : pal[0];
+    const X = Ox + i * (S.w * c + gap), Yb = Oy - j * (S.h * c + gap);
+    const r = photo(x, X, Yb, S.w, S.h, col, { fig: true, fa: 0.2, figA: 0.42, lw: split ? 2.5 : 0.01 });
+    if (apart) Play.text(x, String((k3 - 1 - j) * k3 + i + 1), r.X + 12, r.Y + 12, { size: 13, weight: 800, color: fg });
+  }
+  if (!split) { x.strokeStyle = pal[0]; x.lineWidth = 2.5; x.strokeRect(Ox, Oy - S.h * k3 * c, S.w * k3 * c, S.h * k3 * c); }
+  const mu = color("--muted");
+  if (apart) {
+    for (let i = 0; i < k3; i++) Play.text(x, String(S.w), Ox + i * (S.w * c + gap) + S.w * c / 2, Oy + 18, { size: 14, weight: 700, color: mu });
+    for (let j = 0; j < k3; j++) Play.text(x, String(S.h), Ox - 17, Oy - j * (S.h * c + gap) - S.h * c / 2, { size: 14, weight: 700, color: mu });
+  } else {
+    const tw = S.w * k3 * c + (k3 - 1) * gap, th = S.h * k3 * c + (k3 - 1) * gap;
+    Play.text(x, String(S.w * k3), Ox + tw / 2, Oy + 18, { size: 15, weight: 750, color: fg });
+    Play.text(x, String(S.h * k3), Ox - 17, Oy - th / 2, { size: 15, weight: 750, color: fg });
+  }
+}
+
+// ---------- state changes ----------
+function setD(v) { const n = clamp(v, 0, DMAX); if (n !== d) { d = n; render(); } }
+function setK(v) { const n = clamp(v, 1, KMAX); if (n !== k) { k = n; render(); } }
+function setK3(v) { const n = clamp(v, 2, KMAX); if (n !== k3) { k3 = n; pick = -1; render(); } }
+function setSep(v) { const n = clamp(v, 0, 1); if (n !== sep) { const was = sep >= 0.999; sep = n; dirty = true; if ((sep >= 0.999) !== was || n === 0) render(); else syncRange(); } }
+function toggleAnim() {
+  if (anim) { anim = 0; render(); return; }
+  const dir = sep >= 0.999 ? -1 : 1;
+  if (Play.reduced) { setSep(dir > 0 ? 1 : 0); render(); return; }
+  anim = dir; render();
+}
+
+let grab = false;
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!L) return false;
+    if (step === 3) { anim = 0; grab = true; render(); return true; }
+    if (px < L.Ox - 30 || py > L.Oy + 30) return false;
+    grab = true; this.move(px, py); return true;
+  },
+  move(px, py, dx) {
+    if (!grab) return;
+    const u = (px - L.Ox) / L.c, v = (L.Oy - py) / L.c;
+    if (step === 1) setD(Math.round((u - S.w + v - S.h) / 2));
+    else if (step === 2) setK(Math.round((u * S.w + v * S.h) / (S.w * S.w + S.h * S.h)));
+    else setSep(sep + (dx || 0) / 140);
+  },
+  up() { if (grab) { grab = false; render(); } },
+});
+Play.keys(cvEl, {
+  ArrowRight: () => (step === 1 ? setD(d + 1) : step === 2 ? setK(k + 1) : (anim = 0, setSep(sep + 0.1), render())),
+  ArrowLeft: () => (step === 1 ? setD(d - 1) : step === 2 ? setK(k - 1) : (anim = 0, setSep(sep - 0.1), render())),
+  ArrowUp: () => step === 3 && setK3(k3 + 1),
+  ArrowDown: () => step === 3 && setK3(k3 - 1),
+  " ": () => step === 3 && toggleAnim(),
+  Enter: () => step === 3 && toggleAnim(),
+});
+
+// ---------- explanations ----------
+const hot = (s) => `<span class="hot">${s}</span>`;
+function legend(items) { return `<div class="legend">${items.join("")}</div>`; }
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const lineI = () => `<span><span class="ln"></span>${t({ en: "same shape as 3 : 2", zh: "形状同 3 : 2" })}</span>`;
+
+function explain1() {
+  const W = S.w + d, H = S.h + d;
+  let out = `<div class="kicker">${t({ en: "Step 01 · add the same?", zh: "第 1 步 · 都加一样多？" })}</div>
+    <h2>${t({ en: "Add the same number of squares to the width and the height?", zh: "宽和高都加上同样多的格子？" })}</h2>
+    <p>${t({ en: `This small photo is three squares wide and two squares tall, ${S.w * S.h} squares in all. The ratio of width to height is three to two: the width is one and a half times the height.`,
+              zh: `这张小照片宽三格，高两格，一共 ${S.w * S.h} 格。宽和高的比是三比二，宽是高的一倍半。` })}</p>`;
+  if (d === 0) {
+    out += `<div class="mathline">3 : 2 &nbsp;·&nbsp; ${ratioTxt(S.w, S.h)}</div>
+      <p class="big">${t({ en: "Drag the gold corner: each step adds one square to the width and one to the height. Does the corner stay on the dashed line?",
+                          zh: "拖金色的角：每拖一格，宽和高各加一格。角还在虚线上吗？" })}</p>`;
+  } else {
+    out += `<div class="mathline">(3${hot("+" + d)}) : (2${hot("+" + d)}) = ${W} : ${H}${simp(W, H)}</div>
+      <p><strong>${t({ en: "width ÷ height", zh: "宽 ÷ 高" })}: ${ratioTxt(W, H)}</strong> <span class="tag-no">≠ ${Play.fmt(R0, 2)}</span></p>
+      <p class="big"><span class="tag-no">${t({ en: "Off the line.", zh: "角离开了虚线。" })}</span> ${t({
+        en: `${W} to ${H}: the width is only a little more than the height. The photo has gone squarer, as if squashed.`,
+        zh: `${W} 比 ${H}，宽只比高多一点点，照片变方了，人也被压扁了。` })}</p>
+      <p>${t({ en: "Adding the same amount does not keep the shape. Go to step 2 and multiply instead.", zh: "加上同样多，形状保不住。到第 2 步，改成乘。" })}</p>`;
+  }
+  return out + legend([dotI("--a", { en: "small photo 3 : 2", zh: "小照片 3 : 2" }), dotI("--no", { en: "after adding", zh: "加过之后" }), lineI()]);
+}
+
+function explain2() {
+  const W = S.w * k, H = S.h * k;
+  let out = `<div class="kicker">${t({ en: "Step 02 · multiply both", zh: "第 2 步 · 都乘同一个数" })}</div>
+    <h2>${t({ en: "Multiply the width and the height by the same number", zh: "宽和高都乘同一个数" })}</h2>
+    <div class="mathline">3 : 2 = (3${hot("×" + k)}) : (2${hot("×" + k)}) = ${W} : ${H}</div>
+    <p><strong>${t({ en: "width ÷ height", zh: "宽 ÷ 高" })}: ${ratioTxt(W, H)}</strong> <span class="ok-t">${t({ en: "still on the line", zh: "还在虚线上" })}</span></p>`;
+  if (k === 1) {
+    out += `<p class="big">${t({ en: "Drag the gold corner along the dashed line, or pick a number below.", zh: "沿着虚线拖金色的角，或者点下面的数。" })}</p>`;
+  } else {
+    out += `<p class="big">${t({ en: `Width three times ${k} is ${W}, height two times ${k} is ${H}: a big ${W} by ${H} photo. The width is still one and a half times the height. Same shape as the small photo.`,
+                                zh: `宽三乘 ${k} 是 ${W}，高二乘 ${k} 是 ${H}，变成一张 ${W} 乘 ${H} 的大照片。宽还是高的一倍半，形状和小照片一模一样。` })}</p>
+      <p>${t({ en: "Multiply both terms by the same number, and the width stays the same multiple of the height.", zh: "前项和后项同时乘同一个数，宽是高的几倍就不会变。" })}</p>`;
+  }
+  if (cmp) {
+    const a = S.w + k, b = S.h + k;
+    out += `<p><span class="tag-no">${t({ en: "Compare:", zh: "对比：" })}</span> ${t({ en: `adding ${k} instead gives (3+${k}) : (2+${k}) = ${a} : ${b}, and ${ratioTxt(a, b)}, so its corner (red) is off the line.`,
+                                                                                    zh: `改成都加 ${k}，得到 (3+${k}) : (2+${k}) = ${a} : ${b}，${ratioTxt(a, b)}，红色的角不在虚线上。` })}</p>`;
+  }
+  return out + legend([dotI("--a", { en: "same shape", zh: "形状不变" }), ...(cmp ? [dotI("--no", { en: "added instead", zh: "改成加" })] : []), lineI()]);
+}
+
+function explain3() {
+  const W = S.w * k3, H = S.h * k3, A = W * H, a0 = S.w * S.h, kk = k3 * k3, cut = sep >= 0.999;
+  const opts = [{ en: `${k3} times`, zh: `${k3} 倍` }, { en: `${kk} times`, zh: `${kk} 倍` }];
+  const cuts = t(k3 === 2 ? { en: "once across and once down", zh: "横着切一刀，竖着切一刀" }
+                          : { en: `${k3 - 1} times across and ${k3 - 1} times down`, zh: `横着切 ${k3 - 1} 刀，竖着切 ${k3 - 1} 刀` });
+  let out = `<div class="kicker">${t({ en: "Step 03 · area", zh: "第 3 步 · 面积" })}</div>
+    <h2>${t({ en: `And the area? Scale by ${k3}: does it just go up ${k3} times too?`, zh: `那面积呢？放大 ${k3} 倍，面积也只变 ${k3} 倍吗？` })}</h2>
+    <p>${t({ en: `Let's count: the small photo has ${a0} squares. The big photo is ${W} by ${H}. Guess first:`, zh: `我们来数一数，小照片是 ${a0} 格，大照片是 ${W} 乘 ${H}。先猜：` })}</p>
+    <div class="choices">${opts.map((o, i) => `<button data-c="${i}" class="${pick === i ? "on" : ""}${cut && pick === i ? (i === 1 ? " ok" : " bad") : ""}">${t(o)}</button>`).join("")}</div>`;
+  if (!cut) {
+    out += `<div class="mathline">${W} × ${H} = ${A} = ? × ${a0}</div>
+      <p class="big">${t({ en: `Cut the big photo ${cuts}, then pull the pieces apart: press the button or drag the picture.`, zh: `把大照片${cuts}，再把几块拉开：点按钮，或者拖动图。` })}</p>`;
+  } else {
+    out += `<div class="mathline">${W} × ${H} = ${A} = ${hot(kk)} × ${a0}</div>
+      <p class="big">${pick === 0 ? `<span class="tag-no">${t({ en: `Not ${k3} times.`, zh: `不是 ${k3} 倍。` })}</span> ` : ""}${t({
+        en: `It splits into exactly ${k3} × ${k3} = ${kk} small photos. The sides scaled by ${k3}, but the area became ${kk} times as big, not ${k3}.`,
+        zh: `正好分成 ${k3} × ${k3} = ${kk} 张小照片。边长放大 ${k3} 倍，面积却变成了 ${kk} 倍，不是 ${k3} 倍。` })}</p>
+      <p>${t({ en: `Area is width times height: the width is multiplied by ${k3} once, the height once more, ${kk} in all.`,
+               zh: `面积是宽乘高，宽乘一次 ${k3}，高也乘一次 ${k3}，一共乘了 ${kk}。` })}</p>`;
+  }
+  return out;
+}
+
+function syncRange() { el("sepR").value = Math.round(sep * 100); }
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("dBtns").innerHTML = [0, 1, 2, 3, 4].map((j) => `<button data-d="${j}" class="${j === d ? "on" : ""}">+${j}</button>`).join(" ");
+  el("kBtns").innerHTML = [1, 2, 3, 4].map((j) => `<button data-k="${j}" class="${j === k ? "on" : ""}">×${j}</button>`).join(" ");
+  el("k3Btns").innerHTML = [2, 3, 4].map((j) => `<button data-k3="${j}" class="${j === k3 ? "on" : ""}">×${j}</button>`).join(" ");
+  el("cmp").classList.toggle("on", cmp); el("cmp").setAttribute("aria-pressed", cmp);
+  el("go").textContent = t(anim ? D.pauseB : sep >= 0.999 ? D.backB : D.cutB);
+  syncRange();
+  const wid = cvEl.getBoundingClientRect().width || 600;
+  cvEl.style.height = Math.round(layout(wid).H) + "px";
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => { const c = e.target.closest("[data-c]"); if (c) { pick = +c.dataset.c; render(); } });
+el("dBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (b) setD(+b.dataset.d); });
+el("kBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) setK(+b.dataset.k); });
+el("k3Btns").addEventListener("click", (e) => { const b = e.target.closest("[data-k3]"); if (b) setK3(+b.dataset.k3); });
+el("cmp").onclick = () => { cmp = !cmp; render(); };
+el("go").onclick = toggleAnim;
+el("sepR").addEventListener("input", (e) => { anim = 0; setSep(+e.target.value / 100); el("go").textContent = t(sep >= 0.999 ? D.backB : D.cutB); });
+addEventListener("resize", () => render());
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; anim = 0; render(); });
+el("reset").onclick = () => { d = 0; k = 1; cmp = false; k3 = 2; sep = 0; anim = 0; pick = -1; nav.set(1); };
+
+// result bar, computed for the video's example (scale by two)
+(() => {
+  const f = 2, W = S.w * f, H = S.h * f;
+  el("resM").textContent = `${S.w} : ${S.h} = (${S.w}×${f}) : (${S.h}×${f}) = ${W} : ${H}`;
+  el("resN").textContent = t({ en: `Both sides times ${f}, so the shape stays. But area is width times height: ${W} × ${H} = ${W * H} = ${f * f} × ${S.w * S.h}, ${f * f} times as big, not ${f}.`,
+                               zh: `宽和高都乘 ${f}，形状不变。可面积是宽乘高：${W} × ${H} = ${W * H} = ${f * f} × ${S.w * S.h}，是 ${f * f} 倍，不是 ${f} 倍。` });
+})();
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (anim) {
+    sep = clamp(sep + anim * dt * 0.9, 0, 1); dirty = true; syncRange();
+    if (sep === 0 || sep === 1) { anim = 0; render(); }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

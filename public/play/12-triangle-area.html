@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Where Does the ½ in Triangle Area Come From? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.2em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cP { color: var(--h); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="triangle on squared paper"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="rectBtn" data-t="rectB"></button>
+      </div>
+      <div class="controls" id="cS" hidden>
+        <button class="big" id="slantBtn" data-t="slantB"></button>
+      </div>
+      <div class="controls" id="cT" hidden>
+        <button class="big" id="turnBtn"></button>
+        <span data-t="apart"></span><input id="turn" type="range" min="0" max="100" value="0" aria-label="turn and fit"><span data-t="fitted"></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="stepper"><span class="cA">a</span><button data-d="a-" aria-label="base minus one">−</button><b id="aVal"></b><button data-d="a+" aria-label="base plus one">+</button></span>
+        <span class="stepper"><span class="cP">h</span><button data-d="h-" aria-label="height minus one">−</button><b id="hVal"></b><button data-d="h+" aria-label="height plus one">+</button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">S = a × h <span class="cH">÷ 2</span></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Where Does the ½ in Triangle Area Come From?", zh: "三角形为什么要\"除以 2\"" },
+  eyebrow: { en: "Boxi Math · Try it · #12", zh: "Boxi Math · 动手试试 · #12" },
+  intro: { en: "Our class is making little triangle flags. Drag the gold corners to change the triangle, then turn a second copy half a turn and fit it on.",
+           zh: "班里做三角形小彩旗。拖动金色的角改变三角形，再拿一个一样的转半圈拼上去。" },
+  s1: { en: "Just a rule?", zh: "规定的？" }, s2: { en: "Turn and fit", zh: "转半圈拼上" }, s3: { en: "Obtuse", zh: "钝角三角形" }, s4: { en: "The formula", zh: "面积公式" },
+  reset: { en: "Reset", zh: "重置" },
+  rectB: { en: "Base × height?", zh: "底乘高？" },
+  slantB: { en: "Slanted side as height?", zh: "斜边当高？" },
+  turnB: { en: "Turn and fit", zh: "转半圈拼上" }, offB: { en: "Take it off", zh: "拿下来" }, pause: { en: "Pause", zh: "暂停" },
+  apart: { en: "beside", zh: "旁边" }, fitted: { en: "fitted", zh: "拼好" },
+  v1: { en: "A triangle flag", zh: "一面三角形彩旗" }, v2: { en: "Two identical triangles", zh: "两个一样的三角形" },
+  v3: { en: "Height outside the triangle", zh: "高在三角形外面" }, v4: { en: "Picture and formula", zh: "图和公式" },
+  tag1: { en: "drag the gold corners", zh: "拖动金色的角" }, tag2: { en: "drag the brown copy", zh: "拖动棕色的那块" },
+  tag3: { en: "drag the top corner", zh: "拖动顶上的角" }, tag4: { en: "drag the gold corners", zh: "拖动金色的角" },
+  resT: { en: "Two identical triangles make exactly one parallelogram of base a and height h, so one triangle is half of it.",
+          zh: "两个一样的三角形正好拼成一个底 a、高 h 的平行四边形，一个三角形是它的一半。" },
+  resN: { en: "Dividing by two isn't a rule. It comes from fitting two triangles together. When the height lies outside, use that height, never the slanted side.",
+          zh: "除以二不是谁规定的，是两个一样的三角形拼出来的。高在外面时就用外面那条高，不用斜边。" },
+  moreS: { en: "Why does the turned copy always fit?", zh: "为什么转过来的那块总能拼上？" },
+  moreP: { en: "Turn the copy half a turn about the middle of the slanted edge. Its two ends swap places, so the copy's edge lands exactly on that edge. The copy's other edges are the original ones turned around, so each is parallel to its partner and just as long. A four-sided shape whose opposite sides are parallel and equal is a parallelogram; here its base is a and its height is h, so its area is a × h, and the triangle is half: a × h ÷ 2. Next: a circle has no base and no height. How do we find its area?",
+          zh: "绕斜边的中点把复制的那块转半圈，斜边的两头正好对调，复制块的这条边就落在原来那条边上。另外两条边是原来的边转了半圈，所以和对面的边平行、一样长。对边平行又相等的四边形就是平行四边形，它底是 a、高是 h，面积 a × h，三角形是一半：a × h ÷ 2。下一集：圆没有底也没有高，它的面积怎么算？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → move the top corner, ↑ ↓ change the height, + / − change the base, Enter turns and fits.",
+          zh: "鼠标、触屏、键盘都能用：选中图后，← → 挪顶点，↑ ↓ 改高，+ / − 改底，回车转半圈拼上。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · just a rule?", zh: "第 1 步 · 规定的？" },
+       h: { en: "How much cloth for a flag?", zh: "彩旗要多少布？" },
+       p: { en: "The teacher says the area is base times height, divided by two. Why divide by two, of all things? The kid next to you says: it's just the rule, memorise it.",
+            zh: "老师说面积是底乘高再除以二。为什么偏偏要除以二？旁边的同学说：规定的呗，背下来就行。" } },
+  2: { kicker: { en: "Step 02 · two of them", zh: "第 2 步 · 拿两个" },
+       h: { en: "Take another triangle just like it, turn it half a turn and fit it on", zh: "再拿一个一样的三角形，转半圈拼上去" },
+       p: { en: "What do you get?", zh: "能拼成什么？" } },
+  3: { kicker: { en: "Step 03 · when the height is outside", zh: "第 3 步 · 高在外面" },
+       h: { en: "What about an obtuse triangle?", zh: "那钝角三角形呢？" },
+       p: { en: "Its height has moved outside it, onto the dashed extension of the base.", zh: "它的高跑到三角形外面去了，在底边的延长线上。" } },
+  4: { kicker: { en: "Step 04 · the formula", zh: "第 4 步 · 公式" },
+       h: { en: "So a triangle's area is base times height, divided by two", zh: "所以三角形的面积，是底乘高，再除以二" },
+       p: { en: "Change a and h, or drag the top corner anywhere, even past the end of the base. The numbers follow the picture.",
+            zh: "改一改 a 和 h，或者把顶点拖到任何地方，拖到底边外面也行。数跟着图一起变。" } },
+};
+Play.i18n(D);
+
+// script numbers: base 8, height 5 (practice "before"); squares = cells of the paper
+const A0 = 8, H0 = 5, X0 = 3;          // X0 = how far the apex sits from the left end of the base
+const AMIN = 2, AMAX = 10, HMIN = 1, HMAX = 7;
+let a = A0, h = H0, cx = X0;
+let step = 1, rectShown = false, guess = -1, predict = -1, slant = false;
+let u = 0, uTo = 0, dragging = null, V = null, dirty = true;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+// ---------- geometry (world units = squares, y up) ----------
+const ease = (s) => s * s * (3 - 2 * s);
+const cxRange = () => (step <= 2 ? [0, a] : [-4, a + 5]);
+function tri() { return [[0, 0], [a, 0], [cx, h]]; }
+const cen = (P) => [(P[0][0] + P[1][0] + P[2][0]) / 3, (P[0][1] + P[1][1] + P[2][1]) / 3];
+// where the copy waits: beside the original on wide screens, below it on narrow ones
+const narrow = () => (cv.clientWidth || 600) < 520;
+function shiftD() { return narrow() ? [0, -(h + 2.4)] : [Math.max(a, cx) - Math.min(0, cx) + 1.5, 0]; }
+// copy of the triangle: u in [0, .5] turns it half a turn beside the original, u in [.5, 1] slides it into place
+function copyAt(s) {
+  const P = tri(), G = cen(P), [dx, dy] = shiftD(), B = P[1], C = P[2];
+  if (s <= 0.5) {
+    const ang = Math.PI * ease(s / 0.5), co = Math.cos(ang), si = Math.sin(ang);
+    return P.map(([x, y]) => [G[0] + dx + (x - G[0]) * co - (y - G[1]) * si, G[1] + dy + (x - G[0]) * si + (y - G[1]) * co]);
+  }
+  const w = ease((s - 0.5) / 0.5), tx = B[0] + C[0] - 2 * G[0] - dx, ty = B[1] + C[1] - 2 * G[1] - dy;
+  return P.map(([x, y]) => [2 * G[0] - x + dx + w * tx, 2 * G[1] - y + dy + w * ty]);
+}
+// the slanted side next to where the height comes down (the one people mistake for the height)
+function slantSide() {
+  const right = cx >= a / 2, px = right ? a : 0, dx = cx - px;
+  return { px, dx, s: Math.hypot(dx, h) };
+}
+
+// ---------- view: fit the bounding box, set the canvas height ----------
+function layout() {
+  const P = tri(), pts = P.slice();
+  if (step === 1) pts.push([0, h], [a, h]);
+  if ((step === 2 || step === 3) && u === 1 && uTo === 1) pts.push(...copyAt(1));   // fitted: no room needed for the waiting copy
+  else if (step === 2 || step === 3) {
+    pts.push(...copyAt(0), ...copyAt(1));
+    const G = cen(P), r = Math.max(...P.map((q) => Math.hypot(q[0] - G[0], q[1] - G[1]))), [dx, dy] = shiftD(), gx = G[0] + dx, gy = G[1] + dy;
+    pts.push([gx - r, gy - r], [gx + r, gy + r]);
+  }
+  if (step === 3) { const sl = slantSide(); pts.push([sl.px, sl.s]); }
+  if (step === 4) pts.push(...copyAt(1));
+  let x0 = Math.min(...pts.map((q) => q[0])), x1 = Math.max(...pts.map((q) => q[0]));
+  let y0 = Math.min(...pts.map((q) => q[1])), y1 = Math.max(...pts.map((q) => q[1]));
+  const m = step >= 3 ? 1 : 0.5;
+  x0 -= m; x1 += m; y1 += 0.3;
+  const W = cv.clientWidth || 600, side = 26, top = 50, bot = 52;
+  let p = Math.min(44, (W - 2 * side) / (x1 - x0));
+  if ((y1 - y0) * p + top + bot > 460) p = (460 - top - bot) / (y1 - y0);
+  const H = Math.max(230, Math.round((y1 - y0) * p + top + bot));
+  if (cv.style.height !== H + "px") cv.style.height = H + "px";
+  const ox = (W - (x1 - x0) * p) / 2 - x0 * p, oy = top + (H - top - bot - (y1 - y0) * p) / 2 + y1 * p;
+  V = { p, ox, oy, W, H };
+}
+const S = ([x, y]) => [V.ox + x * V.p, V.oy - y * V.p];
+const toWorld = (px, py) => [(px - V.ox) / V.p, (V.oy - py) / V.p];
+
+// ---------- drawing ----------
+function poly(x, P, fill, stroke, lw, dash) {
+  x.beginPath(); P.forEach((q, i) => { const [sx, sy] = S(q); i ? x.lineTo(sx, sy) : x.moveTo(sx, sy); }); x.closePath();
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.lineJoin = "round"; x.stroke(); x.setLineDash([]); }
+}
+function seg(x, p, q, col, lw, dash) {
+  const [a1, b1] = S(p), [a2, b2] = S(q);
+  x.strokeStyle = col; x.lineWidth = lw; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(a1, b1); x.lineTo(a2, b2); x.stroke(); x.setLineDash([]);
+}
+function grid(x, w, hh) {
+  const { p, ox, oy } = V;
+  x.strokeStyle = rgba(color("--muted"), 0.18); x.lineWidth = 1; x.beginPath();
+  for (let i = Math.ceil(-ox / p); ox + i * p <= w; i++) { x.moveTo(ox + i * p, 0); x.lineTo(ox + i * p, hh); }
+  for (let j = Math.ceil((oy - hh) / p); oy - j * p >= 0; j++) { x.moveTo(0, oy - j * p); x.lineTo(w, oy - j * p); }
+  x.stroke();
+}
+function handle(x, q) {
+  const [sx, sy] = S(q);
+  x.fillStyle = color("--hl"); x.beginPath(); x.arc(sx, sy, 9, 0, 7); x.fill();
+  x.strokeStyle = color("--surface"); x.lineWidth = 2.5; x.stroke();
+}
+function heightLine(x, avoid) {
+  const P = color("--h"), foot = [cx, 0], [fx, fy] = S(foot), q = V.p;
+  if (cx < 0 || cx > a) seg(x, [cx > a ? a : 0, 0], foot, rgba(color("--muted"), 0.9), 1.6, [5, 5]);
+  seg(x, [cx, h], foot, P, 2.4, [7, 5]);
+  const k = 9, sx = cx > a ? -1 : 1;           // right-angle mark on the side of the base
+  x.strokeStyle = P; x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(fx + sx * k, fy); x.lineTo(fx + sx * k, fy - k); x.lineTo(fx, fy - k); x.stroke();
+  // label beside the height: try both sides and three heights, keep the spot farthest from the other labels
+  const s = "h = " + fmt(h);
+  x.font = "700 15px Inter, system-ui, sans-serif";
+  const tw = x.measureText(s).width, pref = cx < 0 ? -1 : cx > a ? 1 : (a - cx >= cx ? 1 : -1);
+  let best = null;
+  const cand = [];
+  for (const f of [0.5, 0.72, 0.28]) for (const sd of [pref, -pref]) cand.push([fx + sd * (tw / 2 + 12), S([cx, h * f])[1]]);
+  if (cx < 0 || cx > a) cand.push([fx + pref * (tw / 2 + 4), fy + 20]);    // under the foot, past the end of the base
+  for (const [lx, ly] of cand) {
+    const d = Math.min(99, ...avoid.map(([ax, ay]) => Math.hypot((lx - ax) / (tw / 2 + 14), (ly - ay) / 18)));
+    if (!best || d > best.d + 0.05) best = { lx, ly, d };
+  }
+  Play.text(x, s, best.lx, best.ly, { color: P, size: 15, weight: 700 });
+  return q;
+}
+function baseLabel(x) {
+  const [bx, by] = S([a / 2, 0]);
+  Play.text(x, "a = " + fmt(a), bx, by + 22, { color: color("--a"), size: 15, weight: 700 });
+}
+function areaLabel(x, P, s, col, avoid) {
+  const [sx, sy] = S(cen(P));
+  avoid.push([sx, sy]);
+  Play.text(x, s, sx, sy, { color: col, size: 16, weight: 700 });
+}
+
+function draw(x, w, hh) {
+  if (!V) layout();
+  grid(x, w, hh);
+  const P = tri(), Ag = color("--a"), Bc = color("--b"), NO = color("--no"), HL = color("--hl");
+  const ar = a * h / 2, avoid = [];
+  if (step === 1) {
+    if (rectShown) {
+      if (cx > 0) poly(x, [[0, 0], [cx, h], [0, h]], rgba(NO, 0.16));
+      if (cx < a) poly(x, [[a, 0], [a, h], [cx, h]], rgba(NO, 0.16));
+      poly(x, [[0, 0], [a, 0], [a, h], [0, h]], null, NO, 2, [7, 5]);
+      const [tx, ty] = S([a / 2, h]);
+      Play.text(x, `${fmt(a)} × ${fmt(h)} = ${fmt(a * h)}`, tx, ty - 30, { color: NO, size: 15, weight: 700 });
+    }
+    poly(x, P, rgba(Ag, 0.32), Ag, 2.4);
+    areaLabel(x, P, "?", Ag, avoid);
+  } else {
+    const fit = step === 4 || u >= 1;
+    const Q = step === 4 ? copyAt(1) : copyAt(u);
+    if (fit) poly(x, [P[0], P[1], Q[0], P[2]], rgba(HL, 0.08));
+    poly(x, P, rgba(Ag, 0.32), Ag, 2.4);
+    poly(x, Q, rgba(Bc, 0.3), Bc, 2.4);
+    if (fit) {
+      poly(x, [P[0], P[1], Q[0], P[2]], null, HL, 3.2);
+      areaLabel(x, P, fmt(ar), Ag, avoid); areaLabel(x, Q, fmt(ar), Bc, avoid);
+    }
+    if (step === 3 && slant) {
+      const sl = slantSide(), piv = [sl.px, 0], [px, py] = S(piv), r = sl.s * V.p, [qx, qy] = S([cx, h]);
+      seg(x, piv, [cx, h], NO, 4);
+      const st = Math.atan2(qy - py, qx - px);
+      x.strokeStyle = rgba(NO, 0.8); x.lineWidth = 1.6; x.setLineDash([4, 4]);
+      x.beginPath(); x.arc(px, py, r, st, -Math.PI / 2, st > -Math.PI / 2); x.stroke(); x.setLineDash([]);
+      seg(x, piv, [sl.px, sl.s], NO, 3, [8, 5]);
+      for (let i = 1; i < 6; i++) avoid.push(S([sl.px, sl.s * i / 6]), S([sl.px + (cx - sl.px) * i / 6, h * i / 6]));
+      seg(x, [cx, h], [sl.px, h], rgba(color("--h"), 0.8), 1.4, [3, 4]);
+      const [ex, ey] = S([sl.px, sl.s]);
+      avoid.push([ex, ey - 16]);
+      Play.text(x, t({ en: "slanted s = ", zh: "斜边 s = " }) + fmt(sl.s), ex, ey - 16, { color: NO, size: 15, weight: 700 });
+    }
+  }
+  const [bx, by] = S([a / 2, 0]); avoid.push([bx, by + 22]);
+  heightLine(x, avoid);
+  baseLabel(x);
+  handle(x, [cx, h]);
+  handle(x, [a, 0]);
+}
+
+// ---------- explain panel ----------
+const ap = (v) => (Math.abs(v - Math.round(v * 100) / 100) > 1e-9 ? "≈" : "=");   // "≈" when the shown number is rounded
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+function render() {
+  const s = STEP[step], ex = $("explain"), ar = a * h / 2, pa = a * h;
+  let p1 = t(s.p);
+  if (step === 3 && cx >= 0 && cx <= a) p1 = t({ en: "Drag the top corner past the end of the base: the height moves outside the triangle.", zh: "把顶点拖到底边外面去：高就跑到三角形外面了。" });
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${p1}</p>`;
+  const lineAH = `${sp("cA", "a")} = ${sp("cA", fmt(a))}, ${sp("cP", "h")} = ${sp("cP", fmt(h))}`;
+  if (step === 1) {
+    html += `<div class="mathline">${lineAH}</div>`;
+    html += `<p><strong>${t({ en: "If a triangle were base times height too, it would have to fill the whole a × h rectangle. Does it?", zh: "要是三角形也是底乘高，它就得把底 a、高 h 的长方形占满。占满了吗？" })}</strong></p><div class="choices">` +
+      [{ en: "Yes, it fills it", zh: "占满了" }, { en: "No", zh: "没占满" }].map((g, i) => `<button data-g="${i}" class="${guess === i ? (i === 1 ? "right" : "wrong") : ""}">${t(g)}</button>`).join("") + `</div>`;
+    if (rectShown) {
+      const n = (cx > 0) + (cx < a);
+      html += `<p><span class="tag-no">${t({ en: "It doesn't fill it.", zh: "没占满。" })}</span> ` +
+        t(n === 2 ? { en: `There are two big empty pieces at the sides. It only takes up part of the ${fmt(a)} × ${fmt(h)} = ${fmt(pa)} rectangle.`, zh: `三角形的两边空出了两大块，它只占了 ${fmt(a)} × ${fmt(h)} = ${fmt(pa)} 的长方形的一部分。` }
+                    : { en: `There's a big empty piece at the side. It only takes up part of the ${fmt(a)} × ${fmt(h)} = ${fmt(pa)} rectangle.`, zh: `旁边空出了一大块，它只占了 ${fmt(a)} × ${fmt(h)} = ${fmt(pa)} 的长方形的一部分。` }) + `</p>`;
+      html += `<p class="note">${t({ en: "Drag the top corner: the empty pieces change shape, but they never go away. So how much is the flag? Go to step 02.", zh: "拖一拖顶点：空的部分形状会变，可总也去不掉。那彩旗到底多大？去第 2 步。" })}</p>`;
+    } else html += `<p class="note">${t({ en: "Press “Base × height?” to draw that rectangle.", zh: "按「底乘高？」画出这个长方形。" })}</p>`;
+  } else if (step === 2) {
+    const right = cx === 0 || cx === a;
+    html += `<div class="choices">` + [{ en: "A rectangle", zh: "长方形" }, { en: "A parallelogram", zh: "平行四边形" }, { en: "A bigger triangle", zh: "更大的三角形" }]
+      .map((g, i) => `<button data-p="${i}" class="${predict === i ? (i === 1 || (i === 0 && right) ? "right" : "wrong") : ""}">${t(g)}</button>`).join("") + `</div>`;
+    if (u >= 1) {
+      html += `<p>${t({ en: "Turn it half a turn, slanted edge to slanted edge, and it fits exactly. It's a parallelogram, still with base a and height h.", zh: "转半圈，斜边对着斜边，正好严丝合缝地拼在一起。拼成了平行四边形，底还是 a，高还是 h。" })}` +
+        (right ? ` ${t({ en: "With a right angle, the parallelogram is a rectangle.", zh: "有直角的时候，这个平行四边形就是长方形。" })}` : "") +
+        (predict >= 0 && predict !== 1 && !(predict === 0 && right) ? ` <span class="tag-no">${t({ en: "Not what you guessed!", zh: "跟你猜的不一样！" })}</span>` : "") + `</p>`;
+      html += `<div class="mathline">${t({ en: "parallelogram", zh: "平行四边形" })}${t({ en: ": ", zh: "：" })}${sp("cA", fmt(a))} × ${sp("cP", fmt(h))} = <b>${fmt(pa)}</b><br>${t({ en: "one triangle", zh: "一个三角形" })}${t({ en: ": ", zh: "：" })}${fmt(pa)} ${sp("cH", "÷ 2")} = <b>${fmt(ar)}</b></div>`;
+      html += `<p>${t({ en: "Its area is base times height, and one triangle is exactly half of it.", zh: "平行四边形的面积是底乘高，一个三角形正好是它的一半。" })}</p>`;
+    } else html += `<p class="note">${t({ en: "Press “Turn and fit”, or drag the brown copy toward the green one.", zh: "按「转半圈拼上」，或者把棕色的那块往绿色那块拖。" })}</p>`;
+  } else if (step === 3) {
+    const sl = slantSide(), dx = Math.abs(sl.dx);
+    html += `<div class="mathline">${t({ en: "slanted side", zh: "斜边" })} ${sp("cN", "s")} = √(${fmt(dx)}² + ${fmt(h)}²) ${ap(sl.s)} ${sp("cN", fmt(sl.s))}<br>` +
+      `${sp("cN", `a × s ${ap(a * sl.s)} ${fmt(a)} × ${fmt(sl.s)} ${ap(a * sl.s)} ${fmt(a * sl.s)}`)}<br>${sp("cA", "a")} × ${sp("cP", "h")} = ${fmt(a)} × ${fmt(h)} = <b>${fmt(pa)}</b></div>`;
+    html += `<p>${t({ en: "If you used the slanted side as the height, you'd get too much.", zh: "要是把斜着的那条边当成高去乘，算出来就太大了。" })} ` +
+      (slant ? t(sl.s > h + 1e-9 ? { en: `Stood up straight, the slanted side reaches ${fmt(sl.s)}, higher than the height ${fmt(h)}.`, zh: `把斜边立直，它有 ${fmt(sl.s)} 高，比高 ${fmt(h)} 还高。` }
+                                  : { en: "Here the side is straight up, so it really is the height: this triangle has a right angle.", zh: "这回这条边是竖直的，它就是高：这是个直角三角形。" })
+             : t({ en: "Press “Slanted side as height?” to stand it up.", zh: "按「斜边当高？」把斜边立起来看看。" })) + `</p>`;
+    if (u >= 1) html += `<p>${t({ en: `Fit a second one on with a half turn, and it's still a parallelogram, still half: ${fmt(a)} × ${fmt(h)} ÷ 2 = ${fmt(ar)}.`, zh: `再拿一个转半圈拼上，照样是平行四边形，照样是一半：${fmt(a)} × ${fmt(h)} ÷ 2 = ${fmt(ar)}。` })}</p>`;
+    else html += `<p class="note">${t({ en: "Then press “Turn and fit”.", zh: "再按「转半圈拼上」。" })}</p>`;
+  } else {
+    html += `<div class="mathline">${t({ en: "parallelogram", zh: "平行四边形" })}${t({ en: ": ", zh: "：" })}${sp("cA", "a")} × ${sp("cP", "h")} = ${sp("cA", fmt(a))} × ${sp("cP", fmt(h))} = <b>${fmt(pa)}</b><br>` +
+      `${t({ en: "triangle", zh: "三角形" })}${t({ en: ": ", zh: "：" })}S = ${sp("cA", "a")} × ${sp("cP", "h")} ${sp("cH", "÷ 2")} = ${fmt(a)} × ${fmt(h)} ${sp("cH", "÷ 2")} = <b>${fmt(ar)}</b></div>`;
+    html += `<p>${t({ en: "We divide by two because two identical triangles make exactly one parallelogram.", zh: "除以二，是因为两个一样的三角形，正好拼成一个平行四边形。" })}</p>`;
+    if (cx < 0 || cx > a) html += `<p class="note">${t({ en: "The height is outside the triangle here, and the formula still works.", zh: "这时高在三角形外面，公式照样能用。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  $("c1").hidden = step !== 1; $("cS").hidden = step !== 3; $("cT").hidden = step !== 2 && step !== 3; $("c4").hidden = step !== 4;
+  $("rectBtn").classList.toggle("on", rectShown);
+  $("slantBtn").classList.toggle("on", slant);
+  $("turnBtn").textContent = t(Math.abs(uTo - u) > 1e-3 ? D.pause : u > 0.5 ? D.offB : D.turnB);
+  $("turn").value = Math.round(u * 100);
+  $("aVal").textContent = a; $("hVal").textContent = h;
+  if (!dragging) V = null;
+  dirty = true;
+}
+
+// ---------- input ----------
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), q = e.target.closest("[data-p]");
+  if (g) { guess = +g.dataset.g; rectShown = true; }
+  if (q) predict = +q.dataset.p;
+  if (g || q) render();
+});
+function turnClick() {
+  if (Math.abs(uTo - u) > 1e-3) { uTo = u; return render(); }
+  uTo = u > 0.5 ? 0 : 1;
+  if (Play.reduced) u = uTo;
+  render();
+}
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s;
+  const [lo, hi] = cxRange();
+  if (s <= 2 && (cx < lo || cx > hi)) cx = Math.min(X0, a);
+  if (s === 3 && cx >= 0 && cx <= a) cx = Math.min(hi, a + 3);
+  u = uTo = s === 4 ? 1 : 0; slant = false;
+  render();
+});
+$("rectBtn").onclick = () => { rectShown = !rectShown; render(); };
+$("slantBtn").onclick = () => { slant = !slant; render(); };
+$("turnBtn").onclick = turnClick;
+$("turn").oninput = (e) => { u = uTo = e.target.value / 100; render(); };
+function setA(na) { a = clamp(Math.round(na), AMIN, AMAX); const [lo, hi] = cxRange(); cx = clamp(cx, lo, hi); render(); }
+function setH(nh) { h = clamp(Math.round(nh), HMIN, HMAX); render(); }
+function setX(nx) { const [lo, hi] = cxRange(); cx = clamp(Math.round(nx), lo, hi); render(); }
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const k = bt.dataset.d, d = k[1] === "+" ? 1 : -1;
+  if (k[0] === "a") setA(a + d); else setH(h + d);
+}));
+function inTri(px, py, Q) {
+  const [p0, p1, p2] = Q.map(S), sg = (p, q, r) => (px - r[0]) * (q[1] - r[1]) - (q[0] - r[0]) * (py - r[1]);
+  const d1 = sg(0, p0, p1), d2 = sg(0, p1, p2), d3 = sg(0, p2, p0);
+  return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+}
+// world bounds of the frozen view, so a drag never leaves the picture
+const viewX = () => [Math.ceil(toWorld(14, 0)[0]), Math.floor(toWorld(V.W - 14, 0)[0])];
+Play.drag(cv, {
+  down(px, py) {
+    if (!V) layout();
+    const near = (q) => { const [sx, sy] = S(q); return Math.hypot(px - sx, py - sy) < 24; };
+    if (near([cx, h])) dragging = "apex";
+    else if (near([a, 0])) dragging = "base";
+    else if ((step === 2 || step === 3) && u < 1 && inTri(px, py, copyAt(u))) dragging = "copy";
+    else return false;
+    return true;
+  },
+  move(px, py, dx, dy) {
+    const [wx, wy] = toWorld(px, py), [vx0, vx1] = viewX();
+    if (dragging === "apex") {
+      const [lo, hi] = cxRange(), nx = clamp(Math.round(wx), Math.max(lo, vx0), Math.min(hi, vx1));
+      const top = Math.floor(toWorld(0, 24)[1]), nh = clamp(Math.round(wy), HMIN, Math.min(HMAX, top));
+      if (nx !== cx || nh !== h) { cx = nx; h = nh; render(); }
+    } else if (dragging === "base") {
+      const na = clamp(Math.round(wx), AMIN, Math.min(AMAX, vx1));
+      if (na !== a) setA(na);
+    } else if (dragging === "copy") {
+      const [sx, sy] = shiftD();
+      u = clamp(u - (narrow() ? -dy : dx) / ((Math.abs(sx) + Math.abs(sy)) * V.p * 0.9), 0, 1); uTo = u;
+      if (Math.abs(u - 1) < 1e-3 || u === 0) render(); else { $("turn").value = Math.round(u * 100); dirty = true; }
+    }
+  },
+  up() {
+    if (dragging === "copy" && u > 0 && u < 1) { uTo = u > 0.5 ? 1 : 0; if (Play.reduced) u = uTo; }
+    dragging = null; render();
+  },
+});
+Play.keys(cv, {
+  ArrowLeft: () => setX(cx - 1), ArrowRight: () => setX(cx + 1),
+  ArrowUp: () => setH(h + 1), ArrowDown: () => setH(h - 1),
+  "+": () => setA(a + 1), "=": () => setA(a + 1), "-": () => setA(a - 1),
+  Enter: () => (step === 1 ? $("rectBtn").onclick() : step === 4 ? null : turnClick()),
+  " ": () => (step === 1 ? $("rectBtn").onclick() : step === 4 ? null : turnClick()),
+});
+$("reset").onclick = () => {
+  a = A0; h = H0; cx = X0; rectShown = false; guess = -1; predict = -1; slant = false; u = uTo = 0;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { if (!dragging) V = null; dirty = true; });
+
+Play.loop((dt) => {
+  if (u !== uTo) {
+    u = clamp(u + Math.sign(uTo - u) * dt / 2.4, 0, 1);
+    if (Math.abs(u - uTo) < 1e-3) { u = uTo; render(); }
+    else $("turn").value = Math.round(u * 100);
+    dirty = true;
+  }
+  if (dirty) { dirty = false; if (!V) layout(); main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
