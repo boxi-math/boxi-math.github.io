@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What Long Multiplication Is Really Doing · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 44px; min-width: 44px; font-size: 15px; color: var(--fg); }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 21px; min-width: 1.4em; text-align: center; color: var(--fg); }
+  .choices button { min-height: 44px; min-width: 52px; font-size: 16px; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .explain .mathline { font-size: 21px; }
+  .cA { color: var(--a); font-weight: 700; } .cB { color: var(--b); font-weight: 700; } .cC { color: var(--c); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .dim { opacity: .45; }
+  .wk { display: inline-flex; flex-direction: column; align-items: stretch; margin: 2px 0 10px; font-family: var(--math); font-size: 25px; line-height: 1.35; }
+  .wrow { display: flex; align-items: center; gap: 10px; background: transparent; border: 0; border-radius: 8px; padding: 1px 8px; min-height: 0; color: var(--fg); text-align: left; }
+  button.wrow:hover { background: var(--soft); }
+  .wrow.hi { background: var(--soft); outline: 2px solid var(--hl); color: var(--fg); }
+  .wrow .cells { display: inline-flex; }
+  .wrow .cells span { width: .78em; text-align: center; }
+  .wrow .z { color: var(--muted); opacity: .6; }
+  .wrow .wn { font-family: var(--font); font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .wrow.bad .cells { color: var(--no); }
+  .wline { border-top: 2px solid var(--fg); margin: 2px 8px; width: calc(5 * .78em); }
+  @media (max-width: 560px) { .wk { font-size: 22px; } .controls .stepper > span { font-size: 13px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="area model"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="reveal" data-t="reveal"></button>
+        <button class="small" id="hide1" data-t="again"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="big" id="cutV" data-t="cutV"></button>
+        <button class="big" id="cutH" data-t="cutH"></button>
+        <button id="tens" data-t="tens"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <button class="big shiftB" data-s="1" data-t="shiftOn"></button>
+        <button class="big shiftB" data-s="0" data-t="shiftOff"></button>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="stepper"><span data-t="eachW"></span><button data-d="w-" aria-label="−">−</button><b id="wVal"></b><button data-d="w+" aria-label="+">+</button></span>
+        <span class="stepper"><span data-t="rowsW"></span><button data-d="h-" aria-label="−">−</button><b id="hVal"></b><button data-d="h+" aria-label="+">+</button></span>
+        <button class="shiftB" data-s="1" data-t="shiftOn"></button>
+        <button class="shiftB" data-s="0" data-t="shiftOff"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resMath"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p id="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba } = Play;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const D = {
+  title: { en: "What Long Multiplication Is Really Doing", zh: "竖式乘法到底在干什么" },
+  eyebrow: { en: "Boxi Math · Try it · #5", zh: "Boxi Math · 动手试试 · #5" },
+  intro: { en: "Cut the twenty-three by fourteen rectangle into four blocks, then find each block in the working.", zh: "把二十三乘十四的长方形切成四块，再在竖式里找到每一块。" },
+  s1: { en: "Shortcut?", zh: "抄近路？" }, s2: { en: "Cut it", zh: "切一切" }, s3: { en: "The working", zh: "看竖式" }, s4: { en: "Number sentence", zh: "写成算式" },
+  reset: { en: "Reset", zh: "重置" },
+  reveal: { en: "Show a left-out block", zh: "亮出漏掉的一块" }, again: { en: "Start over", zh: "重来" },
+  cutV: { en: "Cut down", zh: "竖着切" }, cutH: { en: "Cut across", zh: "横着切" }, tens: { en: "Cut at the tens", zh: "切在整十" },
+  shiftOn: { en: "Shift over", zh: "错一位" }, shiftOff: { en: "Line up", zh: "对齐" },
+  eachW: { en: "In each row", zh: "每排" }, rowsW: { en: "Rows", zh: "排数" },
+  v1: { en: "23 seats in each row, 14 rows", zh: "每排 23 座，14 排" }, v2: { en: "Cut into blocks", zh: "切成几块" },
+  v3: { en: "Blocks and the working", zh: "四块和竖式" }, v4: { en: "Any two numbers", zh: "换别的数" },
+  tag1: { en: "tap a blank block", zh: "点空白的块" }, tag2: { en: "drag a cut line", zh: "拖动切线" },
+  tag3: { en: "tap a block or a row", zh: "点一块或一排" }, tag4: { en: "← → seats · ↑ ↓ rows", zh: "← → 每排 · ↑ ↓ 排数" },
+  resT: { en: "Four blocks, two rows of the working", zh: "四块，竖式两排" },
+  moreS: { en: "What about bigger numbers?", zh: "数再大一点呢？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then use the arrow keys (step 2 moves the cuts, step 3 picks a row, step 4 changes the numbers) and Enter.",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键（第 2 步挪切线，第 3 步选一排，第 4 步改数）和回车。" },
+  yes: { en: "Yes", zh: "算全了" }, no: { en: "No", zh: "没算全" },
+  q1: { en: "Does that count every seat?", zh: "这样每个座位都算到了吗？" },
+  q3: { en: "The twenty-three in the lower row of the working: how many twenty-threes is it really?", zh: "竖式下面那一排的二十三，其实是几个二十三？" },
+  right: { en: "Yes!", zh: "对！" }, notq: { en: "Not quite.", zh: "不对哦。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · try the shortcut", zh: "第 1 步 · 先试试近路" },
+       h: { en: "How many seats?", zh: "一共几座？" },
+       p: { en: "The hall has twenty-three seats in each row and fourteen rows. Our cousin takes a shortcut: twenty times ten plus three times four, two hundred and twelve.",
+            zh: "礼堂每排二十三座，有十四排。表哥图省事：二十乘十加三乘四，二百一十二。" } },
+  2: { kicker: { en: "Step 02 · cut it", zh: "第 2 步 · 切一切" },
+       h: { en: "Cut the rectangle into four blocks", zh: "把长方形切成四块" },
+       p: { en: "Across the width, between twenty and three, cut down once. Up the height, between ten and four, cut across once more. Then drag a cut line somewhere else.",
+            zh: "宽在二十和三中间，先竖着切一刀。高在十和四中间，再横着切一刀。然后把切线拖到别处试试。" } },
+  3: { kicker: { en: "Step 03 · the working", zh: "第 3 步 · 看竖式" },
+       h: { en: "Each row of the working is two blocks", zh: "竖式的每一排是两块" },
+       p: { en: "In long multiplication, the second row shifts over. Why?", zh: "列竖式时，第二排要错一位。为什么？" } },
+  4: { kicker: { en: "Step 04 · number sentence", zh: "第 4 步 · 写成算式" },
+       h: { en: "Four blocks, two rows, one answer", zh: "四块、两排、一个答案" },
+       p: { en: "Change the numbers. The blocks, the working and the sum all follow.", zh: "改一改数。四块、竖式和总数都跟着变。" } },
+};
+Play.i18n(D);
+
+const W0 = 23, H0 = 14, MYTH = [0, 3];        // the cousin counts the top-left and bottom-right blocks only
+let step = 1, W = W0, H = H0;
+let shown = [true, false, false, true], myth = -1;
+let vx = 0, hy = 0, grab = null;            // step 2: cut positions (0 = not cut yet)
+let pred = -1, shift = true, hi = 0;        // step 3: hi 1 = first row (bottom blocks), 2 = second row (top blocks)
+let dirty = true, geo = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+const tensOf = (n) => n - (n % 10);
+function cuts() { return step === 2 ? [vx, hy] : [tensOf(W), tensOf(H)]; }
+// the four blocks: 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right (in squares)
+function blocks() {
+  const [cx, cy] = cuts(), X = cx || W, Y = cy || H;
+  return [
+    { i: 0, x: 0, y: 0, w: X, h: Y, col: "--a" },
+    { i: 1, x: X, y: 0, w: W - X, h: Y, col: "--c" },
+    { i: 2, x: 0, y: Y, w: X, h: H - Y, col: "--c" },
+    { i: 3, x: X, y: Y, w: W - X, h: H - Y, col: "--b" },
+  ];
+}
+const area = (b) => b.w * b.h;
+const live = () => blocks().filter((b) => area(b) > 0);
+const total = () => W * H;
+const ones = () => H % 10, tenRows = () => tensOf(H);
+
+// ---------- layout ----------
+const M = { L: 44, T: 46, B: 36 };
+function rightM() {
+  if (step < 3) return 22;
+  const x = main.ctx, o = H % 10, ls = [`${W} × 10 = ${W * 10}`, `${W} × 1 = ${W}`, `${W} × ${o} = ${W * o}`];
+  x.font = "700 13px Inter, system-ui, sans-serif";
+  return Math.ceil(Math.max(...ls.map((q) => x.measureText(q).width))) + 26;
+}
+function scaleFor(w, h) { return Math.max(2, Math.min((w - M.L - rightM()) / W, (h - M.T - M.B) / H)); }
+function lay(w, h) {
+  const s = scaleFor(w, h), rw = W * s, rh = H * s, R = rightM();
+  return { s, rw, rh, x0: M.L + Math.max(0, (w - M.L - R - rw) / 2), y0: M.T + Math.max(0, (h - M.T - M.B - rh) / 2) };
+}
+function fitHeight() {
+  const w = cv.clientWidth; if (!w) return;
+  const maxH = w < 560 ? 340 : 400, s = scaleFor(w, maxH);
+  const want = Math.round(clamp(M.T + H * s + M.B, 200, maxH));
+  if (Math.abs(cv.clientHeight - want) > 1) cv.style.height = want + "px";
+}
+
+// ---------- drawing ----------
+function rectPath(x, a, b, c, d) { x.beginPath(); x.rect(a, b, c, d); }
+function fits(x, s, size, wpx, hpx) { x.font = `700 ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width + 6 <= wpx && size + 4 <= hpx; }
+function draw(x, w, h) {
+  const g = lay(w, h); geo = g;
+  const { s, x0, y0, rw, rh } = g, FG = color("--fg"), NO = color("--no"), MU = color("--muted");
+  const [cx, cy] = cuts(), bl = blocks();
+  const P = (b) => [x0 + b.x * s, y0 + b.y * s, b.w * s, b.h * s];
+  const lineUp = step >= 3 && !shift;
+  const topBand = (b) => b.y === 0 && cy > 0;
+  // fills
+  bl.forEach((b) => {
+    if (!area(b)) return;
+    const c = color(b.col), [a, bb, cw, ch] = P(b);
+    let fill = rgba(c, 0.24);
+    if (step === 1 && !shown[b.i]) fill = null;
+    if (step === 2 && !cx && !cy) fill = rgba(color("--c"), 0.14);
+    if (lineUp && topBand(b)) fill = null;
+    if (step >= 3 && hi && (topBand(b) ? 2 : 1) !== hi) x.globalAlpha = 0.35;
+    if (fill) { x.fillStyle = fill; x.fillRect(a, bb, cw, ch); }
+    x.globalAlpha = 1;
+  });
+  // line-up mode: the second row is only ONE row of 23, sitting where the ten rows should be
+  if (lineUp && cy > 0) { x.fillStyle = rgba(NO, 0.32); x.fillRect(x0, y0 + (cy - 1) * s, rw, s); }
+  // faint squares so the seats can be counted
+  if (s >= 6) {
+    x.strokeStyle = rgba(MU, 0.2); x.lineWidth = 1; x.beginPath();
+    for (let i = 1; i < W; i++) { x.moveTo(x0 + i * s, y0); x.lineTo(x0 + i * s, y0 + rh); }
+    for (let j = 1; j < H; j++) { x.moveTo(x0, y0 + j * s); x.lineTo(x0 + rw, y0 + j * s); }
+    x.stroke();
+  }
+  // block outlines
+  bl.forEach((b) => {
+    if (!area(b)) return;
+    const [a, bb, cw, ch] = P(b);
+    if (step === 1 && !shown[b.i]) { x.setLineDash([5, 4]); x.strokeStyle = MU; x.lineWidth = 1.6; }
+    else if (lineUp && topBand(b)) { x.setLineDash([6, 4]); x.strokeStyle = NO; x.lineWidth = 2; }
+    else { x.strokeStyle = color(b.col); x.lineWidth = 2; }
+    rectPath(x, a + 1, bb + 1, cw - 2, ch - 2); x.stroke(); x.setLineDash([]);
+    if (step === 1 && shown[b.i] && !MYTH.includes(b.i)) {   // left out by the cousin
+      x.strokeStyle = NO; x.lineWidth = 3; x.setLineDash([7, 4]); rectPath(x, a + 3, bb + 3, cw - 6, ch - 6); x.stroke(); x.setLineDash([]);
+    }
+  });
+  // outer frame and cut lines
+  x.strokeStyle = FG; x.lineWidth = 2; rectPath(x, x0, y0, rw, rh); x.stroke();
+  x.setLineDash([7, 5]); x.lineWidth = 2.2; x.beginPath();
+  if (cx) { x.moveTo(x0 + cx * s, y0 - 8); x.lineTo(x0 + cx * s, y0 + rh + 8); }
+  if (cy) { x.moveTo(x0 - 8, y0 + cy * s); x.lineTo(x0 + rw + 8, y0 + cy * s); }
+  x.stroke(); x.setLineDash([]);
+  if (step === 2) {                                         // drag handles
+    const HL = color("--hl"), dot = (px, py) => { x.beginPath(); x.arc(px, py, 7, 0, 7); x.fillStyle = HL; x.fill(); x.strokeStyle = FG; x.lineWidth = 1.5; x.stroke(); };
+    if (cx) { dot(x0 + cx * s, y0 - 10); dot(x0 + cx * s, y0 + rh + 10); }
+    if (cy) { dot(x0 - 10, y0 + cy * s); dot(x0 + rw + 10, y0 + cy * s); }
+  }
+  // block labels (skipped when the block is too small; the panel lists every block)
+  bl.forEach((b) => {
+    if (!area(b) || (step === 2 && !cx && !cy && b.i)) return;
+    const [a, bb, cw, ch] = P(b), mx = a + cw / 2, my = bb + ch / 2;
+    if (step === 2 && !cx && !cy) { Play.text(x, `${W} × ${H} = ?`, mx, my, { size: 20, weight: 700 }); return; }
+    if (step === 1 && !shown[b.i]) { if (fits(x, "?", 20, cw, ch)) Play.text(x, "?", mx, my, { size: 20, weight: 700, color: MU }); return; }
+    if (lineUp && topBand(b)) return;
+    const val = String(area(b)), sub = `${b.w} × ${b.h}`, col = color(b.col);
+    const big = fits(x, val, 19, cw, ch) ? 19 : fits(x, val, 14, cw, ch) ? 14 : 0;
+    if (!big) return;
+    const two = fits(x, sub, 13, cw, ch - big - 6) && ch >= big + 26;
+    if (two) Play.text(x, sub, mx, my - big / 2 - 4, { size: 13, weight: 600, color: col });
+    Play.text(x, val, mx, two ? my + 8 : my, { size: big, weight: 750, color: col });
+  });
+  if (lineUp && cy > 0 && s >= 13) Play.text(x, String(W), x0 + rw / 2, y0 + (cy - 0.5) * s, { size: 13, weight: 700, color: NO });
+  // side lengths
+  const lab = (str, px, py, al, col) => Play.text(x, str, px, py, { size: 15, weight: 700, align: al, color: col || FG });
+  const segs = (n, c) => (c ? [[0, c], [c, n]] : [[0, n]]);
+  segs(W, cx).forEach(([p, q]) => q > p && lab(String(q - p), x0 + (p + q) / 2 * s, y0 + rh + (step === 2 ? 26 : 20), "center"));
+  segs(H, cy).forEach(([p, q]) => q > p && lab(String(q - p), x0 - (step === 2 ? 18 : 10), y0 + (p + q) / 2 * s, "right"));
+  // step 3 / 4: each band is one row of the working
+  if (step >= 3 && cy > 0 && (step === 4 || pred >= 0)) {
+    const bx = x0 + rw + 8, band = (p, q, str, col, on) => {
+      x.globalAlpha = hi && !on ? 0.4 : 1;
+      x.strokeStyle = col; x.lineWidth = 2; x.beginPath();
+      x.moveTo(bx, y0 + p * s + 3); x.lineTo(bx + 5, y0 + p * s + 3); x.lineTo(bx + 5, y0 + q * s - 3); x.lineTo(bx, y0 + q * s - 3); x.stroke();
+      Play.text(x, str, bx + 10, y0 + (p + q) / 2 * s, { size: 13, weight: 700, align: "left", color: col });
+      x.globalAlpha = 1;
+    };
+    const t1 = cy, o = H - cy;
+    band(0, t1, lineUp ? `${W} × 1 = ${W}` : `${W} × ${t1} = ${W * t1}`, lineUp ? NO : FG, hi === 2);
+    if (o) band(t1, H, `${W} × ${o} = ${W * o}`, FG, hi === 1);
+  }
+}
+
+// ---------- the working ----------
+function cellsOf(str, off, n) {
+  const a = Array(n).fill(""), d = [...str];
+  d.forEach((c, i) => { a[n - 1 - off - (d.length - 1 - i)] = c; });
+  return a;
+}
+function working(revealed) {
+  const N = 5, o = ones(), r1 = W * o, r2 = W, tot = shift ? r1 + r2 * 10 : r1 + r2;
+  const row = (cells, cls, note, attr) => `<${attr ? "button" : "div"} class="wrow ${cls}" ${attr || ""}><span class="cells">${cells.map((c) => (c && c[0] === "<" ? c : `<span>${c}</span>`)).join("")}</span><span class="wn">${note}</span></${attr ? "button" : "div"}>`;
+  const top = cellsOf(String(W), 0, N), mul = cellsOf(String(H), 0, N); mul[N - 1 - String(H).length] = "×";
+  const c2 = shift ? cellsOf(String(r2), 1, N) : cellsOf(String(r2), 0, N);
+  if (shift && revealed) c2[N - 1] = `<span class="z">0</span>`;
+  const n1 = t({ en: `${W} × ${o}: bottom blocks`, zh: `${W} × ${o}：下面两块` });
+  const n2 = !revealed ? t({ en: `how many ${W}s?`, zh: `几个 ${W}？` })
+    : shift ? t({ en: `ten ${W}s: top blocks`, zh: `十个 ${W}：上面两块` }) : t({ en: `just one ${W}?`, zh: `只是一个 ${W}？` });
+  return `<div class="wk">` + row(top, "", "") + row(mul, "", "") + `<div class="wline"></div>` +
+    row(cellsOf(String(r1), 0, N), hi === 1 ? "hi" : "", n1, `data-row="1"`) +
+    row(c2, (hi === 2 ? "hi " : "") + (shift ? "" : "bad"), n2, `data-row="2"`) + `<div class="wline"></div>` +
+    row(cellsOf(String(tot), 0, N), shift ? "" : "bad", shift ? "" : t({ en: "too small", zh: "太少了" })) + `</div>`;
+}
+
+// ---------- explain panel ----------
+function blockList() {
+  const cls = { "--a": "cA", "--b": "cB", "--c": "cC" }, bs = live();
+  return `<div class="mathline">` + bs.map((b) => `<span class="${cls[b.col]}">${b.w} × ${b.h} = ${area(b)}</span>`).join("<br>") +
+    `<br>${bs.map((b) => area(b)).join(" + ")} = <b>${bs.reduce((a, b) => a + area(b), 0)}</b></div>`;
+}
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>`;
+  const bl = blocks(), [cx, cy] = cuts();
+  if (step === 1) {
+    const counted = bl.filter((b) => shown[b.i]), sum = counted.reduce((a, b) => a + area(b), 0);
+    const myVal = MYTH.reduce((a, i) => a + area(bl[i]), 0);
+    html += `<div class="mathline">${bl[0].w} × ${bl[0].h} + ${bl[3].w} × ${bl[3].h} = ${myVal} ?</div>`;
+    html += `<p><strong>${t(D.q1)}</strong></p><div class="choices">` +
+      [D.yes, D.no].map((g, i) => `<button data-g="${i}" class="${myth === i ? (i === 1 ? "right" : "wrong") : ""}">${t(g)}</button>`).join("") + `</div>`;
+    if (myth >= 0) {
+      const all = shown.every(Boolean);
+      html += `<div class="mathline">${counted.map((b) => (MYTH.includes(b.i) ? area(b) : `<span class="cN">${area(b)}</span>`)).join(" + ")} = <b>${sum}</b></div>`;
+      html += all
+        ? `<p><span class="tag-no">${t({ en: "Two blocks were left out.", zh: "漏了两块。" })}</span> ${t({ en: `Twenty times ten plus three times four only counts two corners. The two crossing blocks, ${area(bl[1])} and ${area(bl[2])}, got left out. All four blocks: <strong>${sum}</strong> seats.`, zh: `二十乘十加三乘四，只算了两个角。中间交叉的两块，${area(bl[1])} 和 ${area(bl[2])}，漏掉了。四块都算上：<strong>${sum}</strong> 座。` })}</p>`
+        : `<p>${t({ en: "Tap the blank blocks on the picture to see what got left out.", zh: "点图上空白的块，看看漏了什么。" })}</p>`;
+    }
+  } else if (step === 2) {
+    if (!cx && !cy) html += `<p><strong>${t({ en: "Too many squares to count one by one. Press Cut down.", zh: "格子太多，一个一个数太慢。按「竖着切」。" })}</strong></p>`;
+    else {
+      html += blockList();
+      const easy = cx === tensOf(W) && cy === tensOf(H);
+      html += `<p>${t(easy
+        ? { en: `Four blocks: ${area(bl[0])}, ${area(bl[1])}, ${area(bl[2])} and ${area(bl[3])}. Cutting at the tens makes every block easy.`, zh: `四块：${area(bl[0])}、${area(bl[1])}、${area(bl[2])}，还有 ${area(bl[3])}。切在整十上，每一块都好算。` }
+        : cx && cy ? { en: `Still ${total()} in all: cutting never adds or removes a seat. But these blocks are harder to work out. Press Cut at the tens.`, zh: `总数还是 ${total()}：切一刀不会多一个座位，也不会少一个。可是这几块不好算。按「切在整十」。` }
+        : { en: "Now cut the other way too.", zh: "再换个方向切一刀。" })}</p>`;
+    }
+  } else {
+    const o = ones(), r1 = W * o, ten = W * 10;
+    const revealed = step === 4 || pred >= 0;
+    if (step === 3) {
+      html += `<p><strong>${t(D.q3)}</strong></p><div class="choices">` +
+        [1, 10, H].map((v) => `<button data-p="${v}" class="${pred === v ? (v === 10 ? "right" : "wrong") : ""}">${v}</button>`).join("") + `</div>`;
+    } else {
+      html += `<div class="mathline">${W} × ${H} = <span class="cA">${area(bl[0])}</span> + <span class="cC">${area(bl[1])}</span> + <span class="cC">${area(bl[2])}</span> + <span class="cB">${area(bl[3])}</span> = <b>${total()}</b></div>`;
+    }
+    html += working(revealed);
+    if (revealed && shift) {
+      html += `<p>${step === 3 && pred >= 0 ? `<strong>${t(pred === 10 ? D.right : D.notq)}</strong> ` : ""}${t({ en: `It's ten ${W}s: the top two blocks, ${area(bl[0])} + ${area(bl[1])} = ${ten}. The first row, ${W} times ${o}, is the bottom two blocks, ${area(bl[2])} + ${area(bl[3])} = ${r1}. Tap a row or a block.`, zh: `是十个 ${W}，就是上面两块，${area(bl[0])} + ${area(bl[1])} = ${ten}。第一排 ${W} 乘 ${o}，是下面两块，${area(bl[2])} + ${area(bl[3])} = ${r1}。点一排或者点一块看看。` })}</p>`;
+      html += `<p class="note">${t({ en: "Press Line up to see what happens without the shift.", zh: "按「对齐」，看看不错位会怎样。" })}</p>`;
+    } else if (!shift) {
+      const bad = r1 + W, good = r1 + ten;
+      html += `<div class="mathline"><span class="cN">${r1} + ${W} = ${bad}</span> &lt; ${r1} + ${ten} = ${good}</div>`;
+      html += `<p><span class="tag-no">${t({ en: "That's wrong.", zh: "不对。" })}</span> ${t({ en: `Without the shift, it would be ${r1} plus ${W}: only ${bad}, not ${good}. The lower row became one ${W} instead of ten.`, zh: `不错位，就成了 ${r1} 加 ${W}，才 ${bad}，不是 ${good}。下面那一排从十个 ${W} 变成了一个 ${W}。` })}</p>`;
+    }
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  $("reveal").disabled = shown.every(Boolean);
+  $("cutV").disabled = !!vx; $("cutH").disabled = !!hy;
+  document.querySelectorAll(".shiftB").forEach((b) => b.classList.toggle("on", (b.dataset.s === "1") === shift));
+  $("wVal").textContent = W; $("hVal").textContent = H;
+  const tb = [tensOf(W), tensOf(H)];
+  const parts = [[tb[0], tb[1]], [W - tb[0], tb[1]], [tb[0], H - tb[1]], [W - tb[0], H - tb[1]]].map(([a, b]) => a * b).filter((v) => v > 0);
+  $("resMath").textContent = `${W} × ${H} = ${parts.join(" + ")} = ${total()}`;
+  $("resN").textContent = t({ en: `The second row of the working is ten ${W}s, not one, so it shifts over.`, zh: `竖式第二排是十个 ${W}，不是一个，所以要错一位。` });
+  const bw = 100 + W, big = bw * H;
+  $("moreP").textContent = t({ en: `Same idea. For ${bw} × ${H}, cut the width into 100, ${tensOf(W)} and ${W % 10}, and the height into 10 and ${ones()}: six blocks. Each row of the working is still one strip of blocks: ${bw} × ${ones()} = ${bw * ones()} is the bottom strip, ten ${bw}s = ${bw * 10} is the top strip, and ${bw * ones()} + ${bw * 10} = ${big}.`,
+                                 zh: `一样的道理。算 ${bw} × ${H}，宽切成 100、${tensOf(W)} 和 ${W % 10}，高切成 10 和 ${ones()}，一共六块。竖式每一排还是一条块：${bw} × ${ones()} = ${bw * ones()} 是下面一条，十个 ${bw} = ${bw * 10} 是上面一条，${bw * ones()} + ${bw * 10} = ${big}。` });
+  fitHeight();
+  dirty = true;
+}
+
+// ---------- input ----------
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), p = e.target.closest("[data-p]"), r = e.target.closest("[data-row]");
+  if (g) myth = +g.dataset.g;
+  if (p) { pred = +p.dataset.p; hi = 2; }
+  if (r) hi = hi === +r.dataset.row ? 0 : +r.dataset.row;
+  if (g || p || r) render();
+});
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n;
+  if (n !== 4) { W = W0; H = H0; }
+  render();
+});
+function revealNext() { const i = shown.findIndex((v) => !v); if (i >= 0) { shown[i] = true; if (myth < 0) myth = 1; } render(); }
+$("reveal").onclick = revealNext;
+$("hide1").onclick = () => { shown = [true, false, false, true]; myth = -1; render(); };
+$("cutV").onclick = () => { vx = tensOf(W); render(); };
+$("cutH").onclick = () => { hy = tensOf(H); render(); };
+$("tens").onclick = () => { vx = tensOf(W); hy = tensOf(H); render(); };
+document.querySelectorAll(".shiftB").forEach((b) => (b.onclick = () => { shift = b.dataset.s === "1"; render(); }));
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => change(bt.dataset.d[0], bt.dataset.d[1] === "+" ? 1 : -1)));
+function change(k, d) {
+  if (k === "w") W = clamp(W + d, 11, 39);
+  if (k === "h") H = clamp(H + d, 11, 19);
+  hi = 0; render();
+}
+function blockAt(px, py) {
+  if (!geo) return null;
+  const sx = (px - geo.x0) / geo.s, sy = (py - geo.y0) / geo.s;
+  if (sx < 0 || sy < 0 || sx > W || sy > H) return null;
+  return blocks().find((b) => area(b) && sx >= b.x && sx <= b.x + b.w && sy >= b.y && sy <= b.y + b.h) || null;
+}
+Play.drag(cv, {
+  down(px, py) {
+    if (step === 2 && geo) {
+      const { x0, y0, s, rw, rh } = geo;
+      const dv = vx ? Math.abs(px - (x0 + vx * s)) : 1e9, dh = hy ? Math.abs(py - (y0 + hy * s)) : 1e9;
+      const inX = px > x0 - 24 && px < x0 + rw + 24, inY = py > y0 - 24 && py < y0 + rh + 24;
+      if (dv < 18 && inY && dv <= dh) { grab = "v"; return true; }
+      if (dh < 18 && inX) { grab = "h"; return true; }
+      return false;
+    }
+    const b = blockAt(px, py);
+    if (!b) return false;
+    if (step === 1 && !shown[b.i]) { shown[b.i] = true; if (myth < 0) myth = 1; render(); }
+    if (step >= 3) { const r = b.y === 0 && cuts()[1] > 0 ? 2 : 1; hi = hi === r ? 0 : r; if (step === 3 && pred < 0) pred = 10; render(); }
+    return false;
+  },
+  move(px, py) {
+    if (!grab || !geo) return;
+    if (grab === "v") vx = clamp(Math.round((px - geo.x0) / geo.s), 1, W - 1);
+    else hy = clamp(Math.round((py - geo.y0) / geo.s), 1, H - 1);
+    render();
+  },
+  up() { grab = null; },
+});
+cv.addEventListener("pointermove", (e) => {
+  if (step !== 2 || !geo || grab) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const near = (vx && Math.abs(px - (geo.x0 + vx * geo.s)) < 18) ? "ew-resize" : (hy && Math.abs(py - (geo.y0 + hy * geo.s)) < 18) ? "ns-resize" : "";
+  cv.style.cursor = near;
+});
+function nudge(axis, d) {
+  if (step === 1) return revealNext();
+  if (step === 2) {
+    if (axis === "x") vx = clamp((vx || tensOf(W)) + d, 1, W - 1); else hy = clamp((hy || tensOf(H)) + d, 1, H - 1);
+    return render();
+  }
+  if (step === 3) { if (axis === "y") { hi = d < 0 ? 2 : 1; if (pred < 0) pred = 10; } else shift = !shift; return render(); }
+  change(axis === "x" ? "w" : "h", axis === "x" ? d : -d);
+}
+Play.keys(cv, {
+  ArrowLeft: () => nudge("x", -1), ArrowRight: () => nudge("x", 1), ArrowUp: () => nudge("y", -1), ArrowDown: () => nudge("y", 1),
+  Enter: () => (step === 1 ? revealNext() : step === 2 ? $("tens").click() : (shift = !shift, render())),
+  " ": () => (step === 1 ? revealNext() : step === 2 ? $("tens").click() : (shift = !shift, render())),
+});
+$("reset").onclick = () => {
+  W = W0; H = H0; shown = [true, false, false, true]; myth = -1; vx = hy = 0; pred = -1; shift = true; hi = 0;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { fitHeight(); dirty = true; });
+Play.loop(() => { if (dirty) { dirty = false; main.redraw(); } });
+nav.set(1);
+</script>
+</body>
+</html>

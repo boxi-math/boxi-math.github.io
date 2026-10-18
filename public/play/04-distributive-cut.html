@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Distributive Law Is Just One Cut · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.2em; text-align: center; }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cB { color: var(--b); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .dim { opacity: .45; }
+  .mathline b { color: var(--fg); }
+  .tried { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .tried span { font-family: var(--math); font-size: 15px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="squares"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="find17" data-t="find17"></button>
+        <button class="big" id="countBtn"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="stepper"><button id="cutL" aria-label="move the cut left">←</button><button id="cutR" aria-label="move the cut right">→</button></span>
+        <button class="big" id="pullBtn"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><span data-t="looseW"></span><button data-d="n-">−</button><b id="nVal" class="cN"></b><button data-d="n+">+</button></span>
+        <button class="big" id="fitBtn"></button>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="stepper"><span data-t="leftW"></span><button data-d="a-">−</button><b id="aVal" class="cA"></b><button data-d="a+">+</button></span>
+        <span class="stepper"><span data-t="rightW"></span><button data-d="b-">−</button><b id="bVal" class="cB"></b><button data-d="b+">+</button></span>
+        <span class="stepper"><span data-t="rowsW"></span><button data-d="c-">−</button><b id="cVal"></b><button data-d="c+">+</button></span>
+        <button id="backBtn" data-t="backB"></button>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resMath"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p id="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "The Distributive Law Is Just One Cut", zh: "分配律就是切一刀" },
+  eyebrow: { en: "Boxi Math · Try it · #4", zh: "Boxi Math · 动手试试 · #4" },
+  intro: { en: "Each row is one box: five pencils, then three crayons. Count the squares, cut the rectangle, and see why the pieces still make the whole.",
+           zh: "每一排是一盒：五支铅笔，再三支彩笔。数一数方格，切一刀，看看两块为什么加起来还是整块。" },
+  s1: { en: "Work it out", zh: "先算一算" }, s2: { en: "One cut", zh: "切一刀" }, s3: { en: "Loose squares", zh: "散的格子" }, s4: { en: "Number sentence", zh: "写成算式" },
+  reset: { en: "Reset", zh: "重置" },
+  find17: { en: "Find the 17", zh: "找出十七" },
+  countAll: { en: "Count them all", zh: "全部数一数" }, keepCount: { en: "Keep counting", zh: "接着数" }, again: { en: "Count again", zh: "再数一遍" },
+  pause: { en: "Pause", zh: "暂停" },
+  pull: { en: "Pull apart", zh: "分开" }, push: { en: "Put back together", zh: "拼回去" },
+  fit: { en: "Try to fit", zh: "试着拼上" }, unfit: { en: "Move them back", zh: "放回原地" },
+  looseW: { en: "Loose squares", zh: "散格子" },
+  leftW: { en: "Left", zh: "左" }, rightW: { en: "Right", zh: "右" }, rowsW: { en: "Rows", zh: "排" },
+  backB: { en: "Last time: 9 × 4", zh: "上一集：9 × 4" },
+  v1: { en: "Four boxes, one square each", zh: "四盒，一支一格" }, v2: { en: "One cut", zh: "切一刀" },
+  v3: { en: "A block and loose squares", zh: "一块和几个散格子" }, v4: { en: "Picture and number sentence", zh: "图和算式" },
+  tag1: { en: "tap to count", zh: "点图来数" }, tag2: { en: "drag the gold line", zh: "拖动金色的线" },
+  tag3: { en: "tap to fit", zh: "点图来拼" }, tag4: { en: "drag the gold line", zh: "拖动金色的线" },
+  resT: { en: "Cut a rectangle: the two pieces still make the whole.", zh: "长方形切一刀，两块加起来还是整块。" },
+  moreS: { en: "Does it work for any numbers?", zh: "换什么数都行吗？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then use the arrow keys (← → move the cut, Enter pulls apart or fits).",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键（← → 挪切线，回车分开或拼上）。" },
+  notCounted: { en: "not counted", zh: "没算进去" },
+  rowsLbl: { en: "rows", zh: "排" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · work it out first", zh: "第 1 步 · 先算一算" },
+       h: { en: "Each box has five pencils and three crayons. How many in four boxes?", zh: "每盒五支铅笔三支彩笔，四盒一共几支？" },
+       p: { en: "Work it out first and keep your answer in your head.", zh: "你先算一算，把得数记在心里。" } },
+  2: { kicker: { en: "Step 02 · one cut", zh: "第 2 步 · 切一刀" },
+       h: { en: "Cut it between the five and the three", zh: "沿五和三中间切一刀" },
+       p: { en: "Drag the gold line to choose where to cut, then press Pull apart.", zh: "拖动金色的线，选好在哪里切，再按「分开」。" } },
+  3: { kicker: { en: "Step 03 · when it doesn't work", zh: "第 3 步 · 不行的时候" },
+       h: { en: "What about five times three plus four?", zh: "五乘三加四呢？" },
+       p: { en: "Can it become five plus four, times three? Press Try to fit.", zh: "能拆成五加四再乘三吗？按「试着拼上」。" } },
+  4: { kicker: { en: "Step 04 · number sentence", zh: "第 4 步 · 写成算式" },
+       h: { en: "The left block plus the right block is the whole", zh: "左块加右块，就是整块" },
+       p: { en: "Change the numbers or drag the gold line. The number sentence changes with the picture.", zh: "改一改数，或者拖动金色的线。算式跟着图一起变。" } },
+};
+Play.i18n(D);
+
+// script numbers: five pencils + three crayons per box, four boxes; non-example 5 × 3 + 4
+const P5 = 5, C3 = 3, R4 = 4, W8 = P5 + C3, TOT = W8 * R4, MYTH = P5 + C3 * R4;
+const NW = 5, NH = 3;
+let step = 1, guess = -1, show17 = false, cnt = 0, counting = false;
+let k = P5, sep = 0, sepTo = 0, tried = new Map(), predict = -1;
+let n = 4, fit = 0, fitTo = 0;
+let A4 = P5, B4 = C3, R = R4, back = false;
+let dirty = true, hit = null, dragging = false;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+// ---------- drawing helpers ----------
+function cells(x, x0, y0, cols, rows, p, fill, stroke, dash) {  // p = cell size
+  if (cols <= 0 || rows <= 0) return;
+  if (fill) { x.fillStyle = fill; x.fillRect(x0, y0, cols * p, rows * p); }
+  x.strokeStyle = stroke; x.lineWidth = 1.2; x.setLineDash(dash || []);
+  x.beginPath();
+  for (let c = 0; c <= cols; c++) { x.moveTo(x0 + c * p, y0); x.lineTo(x0 + c * p, y0 + rows * p); }
+  for (let r = 0; r <= rows; r++) { x.moveTo(x0, y0 + r * p); x.lineTo(x0 + cols * p, y0 + r * p); }
+  x.stroke(); x.setLineDash([]);
+}
+function frame(x, x0, y0, w, h, col, lw, dash) {
+  x.strokeStyle = col; x.lineWidth = lw || 2.2; x.setLineDash(dash || []);
+  x.strokeRect(x0, y0, w, h); x.setLineDash([]);
+}
+function cutLine(x, cx, y0, y1, handle) {
+  const HL = color("--hl");
+  x.strokeStyle = HL; x.lineWidth = 3; x.setLineDash([7, 5]);
+  x.beginPath(); x.moveTo(cx, y0 - 6); x.lineTo(cx, y1 + 8); x.stroke(); x.setLineDash([]);
+  if (handle) {
+    x.fillStyle = HL; x.beginPath(); x.arc(cx, y1 + 22, 12, 0, 2 * Math.PI); x.fill();
+    x.strokeStyle = color("--surface"); x.lineWidth = 2;
+    x.beginPath(); x.moveTo(cx - 6, y1 + 22); x.lineTo(cx + 6, y1 + 22);
+    x.moveTo(cx - 3, y1 + 19); x.lineTo(cx - 6, y1 + 22); x.lineTo(cx - 3, y1 + 25);
+    x.moveTo(cx + 3, y1 + 19); x.lineTo(cx + 6, y1 + 22); x.lineTo(cx + 3, y1 + 25); x.stroke();
+  }
+}
+// cell size and top-left so that a cols × rows grid (plus an extra gap in px) fits with room for labels
+function fitGrid(w, h, cols, rows, gapCells, top, bottom, maxP) {
+  const p = Math.max(8, Math.min(maxP || 44, (w - 64) / (cols + gapCells), (h - top - bottom) / rows));
+  const gw = (cols + gapCells) * p;
+  return { p, x0: (w - gw) / 2 + 8, y0: top + (h - top - bottom - rows * p) / 2 };
+}
+const gridCol = () => rgba(color("--muted"), 0.55);
+const dimFill = () => rgba(color("--muted"), 0.07);
+
+// ---------- step 1: the 4 × 8 rectangle, the myth and counting ----------
+function draw1(x, w, h) {
+  const { p, x0, y0 } = fitGrid(w, h, W8, R4, 0, 64, 64), A = color("--a"), B = color("--b"), NO = color("--no");
+  hit = { x0, y0, p };
+  cells(x, x0, y0, W8, R4, p, dimFill(), gridCol());
+  if (show17) {
+    cells(x, x0 + P5 * p, y0, C3, R4, p, rgba(B, 0.3), rgba(B, 0.9));
+    cells(x, x0, y0, P5, 1, p, rgba(NO, 0.28), rgba(NO, 0.9));
+    frame(x, x0 + P5 * p, y0, C3 * p, R4 * p, B, 2.2);
+    frame(x, x0 + 3, y0 + p + 3, P5 * p - 6, (R4 - 1) * p - 6, NO, 2, [6, 4]);
+    if (!cnt) Play.text(x, `${C3 * R4}`, x0 + (P5 + C3 / 2) * p, y0 + R4 * p / 2, { size: 20, weight: 700, color: B });
+    if (!cnt) Play.text(x, `${(R4 - 1) * P5} ${t(D.notCounted)}`, x0 + P5 * p / 2, y0 + (1 + (R4 - 1) / 2) * p, { size: 14, weight: 700, color: NO });
+  }
+  const done = Math.floor(cnt);
+  for (let i = 0; i < done; i++) {
+    const r = Math.floor(i / W8), c = i % W8, cx = x0 + (c + 0.5) * p, cy = y0 + (r + 0.5) * p;
+    x.fillStyle = rgba(color("--hl"), 0.28); x.fillRect(x0 + c * p + 1, y0 + r * p + 1, p - 2, p - 2);
+    if (p >= 24) Play.text(x, String(i + 1), cx, cy, { size: 13, weight: 650 });
+  }
+  // width labels: 5 pencils, 3 crayons; height: 4 boxes
+  const ly = y0 - 22;
+  Play.text(x, String(P5), x0 + P5 * p / 2, ly, { size: 20, weight: 700, color: A });
+  Play.text(x, String(C3), x0 + (P5 + C3 / 2) * p, ly, { size: 20, weight: 700, color: B });
+  x.strokeStyle = A; x.lineWidth = 2; x.beginPath(); x.moveTo(x0 + 4, y0 - 8); x.lineTo(x0 + P5 * p - 4, y0 - 8); x.stroke();
+  x.strokeStyle = B; x.beginPath(); x.moveTo(x0 + P5 * p + 4, y0 - 8); x.lineTo(x0 + W8 * p - 4, y0 - 8); x.stroke();
+  Play.text(x, String(R4), x0 - 18, y0 + R4 * p / 2, { size: 20, weight: 700 });
+  const by = y0 + R4 * p + 22;
+  if (show17) Play.text(x, `${P5} + ${C3} × ${R4} = ${P5} + ${C3 * R4} = ${MYTH}`, w / 2, by, { size: 16, weight: 700, color: NO });
+  if (done > 0) Play.text(x, done >= TOT ? t({ en: `${TOT} squares`, zh: `${TOT} 格` }) : String(done), w / 2, show17 ? by + 26 : by, { size: 16, weight: 700, color: done >= TOT ? color("--fg") : color("--muted") });
+  if (!show17 && !done) Play.text(x, `(${P5} + ${C3}) × ${R4} = ?`, w / 2, by, { size: 17, weight: 700 });
+}
+function countClick() {
+  if (counting) { counting = false; return render(); }
+  if (cnt >= TOT) cnt = 0;
+  counting = true;
+  if (Play.reduced) { cnt = TOT; counting = false; }
+  render();
+}
+
+// ---------- step 2 and 4: a rectangle cut into two blocks ----------
+// a = left width, b = right width, rows, g = gap in cells, ghost = right block drawn as taken away
+function drawCut(x, w, h, a, b, rows, g, ghost, handle) {
+  const { p, x0, y0 } = fitGrid(w, h, a + b, rows, g, 64, 70, 44), A = color("--a"), B = color("--b");
+  const gx = g * p, bx = x0 + a * p + gx, cx = x0 + a * p + gx / 2;
+  hit = { x0, y0, p, a, b, rows, gx, cx };
+  cells(x, x0, y0, a, rows, p, rgba(A, 0.24), rgba(A, 0.8));
+  frame(x, x0, y0, a * p, rows * p, A);
+  if (ghost) {
+    cells(x, bx, y0, b, rows, p, null, gridCol(), [4, 4]);
+  } else {
+    cells(x, bx, y0, b, rows, p, rgba(B, 0.24), rgba(B, 0.8));
+    frame(x, bx, y0, b * p, rows * p, B);
+  }
+  cutLine(x, cx, y0, y0 + rows * p, handle);
+  // widths above, rows at the left
+  Play.text(x, String(a), x0 + a * p / 2, y0 - 20, { size: 19, weight: 700, color: A });
+  Play.text(x, String(b), bx + b * p / 2, y0 - 20, { size: 19, weight: 700, color: ghost ? color("--muted") : B });
+  Play.text(x, String(rows), x0 - 18, y0 + rows * p / 2, { size: 19, weight: 700 });
+  // squares in each block: inside when it fits, else under the block
+  const put = (s, bx0, bw, col) => {
+    x.font = "700 18px Inter, system-ui, sans-serif";
+    const tw = x.measureText(s).width;
+    if (bw >= tw + 8 && rows * p >= 26) Play.text(x, s, bx0 + bw / 2, y0 + rows * p / 2, { size: 18, weight: 700, color: col });
+    else Play.text(x, s, bx0 + bw / 2, y0 + rows * p + 50, { size: 15, weight: 700, color: col });
+  };
+  put(String(a * rows), x0, a * p, A);
+  put(ghost ? `−${b * rows}` : String(b * rows), bx, b * p, ghost ? color("--muted") : B);
+  return { p, x0, y0, bottom: y0 + rows * p };
+}
+function draw2(x, w, h) {
+  const r = drawCut(x, w, h, k, W8 - k, R4, sep * 0.9, false, true);
+  Play.text(x, `${k * R4} + ${(W8 - k) * R4} = ${(k + W8 - k) * R4}`, w / 2, Math.min(h - 14, r.bottom + 60), { size: 17, weight: 700 });
+}
+function setCut(nk) {
+  k = clamp(Math.round(nk), 1, W8 - 1);
+  if (sep > 0.5 || sepTo) tried.set(k, k * R4 + (W8 - k) * R4);
+  render();
+}
+function pullClick() {
+  const moving = Math.abs(sepTo - sep) > 1e-3;
+  if (moving) { sepTo = sep; return render(); }                 // pause
+  sepTo = sep > 0.5 ? 0 : 1;
+  if (sepTo) tried.set(k, k * R4 + (W8 - k) * R4);
+  if (Play.reduced) sep = sepTo;
+  render();
+}
+
+// ---------- step 3: 5 × 3 block and loose squares ----------
+function loosePos(i) {   // [col, row] in cell units, relative to the block's top-left
+  const scatter = [[NW + 1.3, 0], [NW + 2.8, 1.4], [NW + 1.6, 2.3], [NW + 3.1, 0.1], [NW + 4.3, 1.9], [NW + 4.5, 0.4]][i];
+  const target = [NW + Math.floor(i / NH), i % NH];
+  return [scatter, target];
+}
+function draw3(x, w, h) {
+  const span = Math.max(NW + n, NW + 4.5 + 1 + 0.3);
+  const { p, x0, y0 } = fitGrid(w, h, span, NH, 0, 64, 70, 42), A = color("--a"), NO = color("--no");
+  hit = { x0, y0, p };
+  if (fit > 0.98) {    // the rectangle (5 + n) × 3 would need: show its empty squares
+    x.globalAlpha = Math.min(1, (fit - 0.98) * 50);
+    cells(x, x0, y0, NW + n, NH, p, null, rgba(NO, 0.6), [4, 4]);
+    frame(x, x0, y0, (NW + n) * p, NH * p, NO, 2, [7, 5]);
+    Play.text(x, `${NW + n}`, x0 + (NW + n) * p / 2, y0 + NH * p + 18, { size: 15, weight: 700, color: NO });
+    x.globalAlpha = 1;
+  }
+  cells(x, x0, y0, NW, NH, p, rgba(A, 0.24), rgba(A, 0.8));
+  frame(x, x0, y0, NW * p, NH * p, A);
+  Play.text(x, String(NW * NH), x0 + NW * p / 2, y0 + NH * p / 2, { size: 18, weight: 700, color: A });
+  for (let i = 0; i < n; i++) {
+    const [s, tg] = loosePos(i), u = fit * fit * (3 - 2 * fit);
+    const c = s[0] + (tg[0] - s[0]) * u, r = s[1] + (tg[1] - s[1]) * u;
+    const px = x0 + c * p, py = y0 + r * p, rot = (1 - u) * (i % 2 ? 0.25 : -0.2);
+    x.save(); x.translate(px + p / 2, py + p / 2); x.rotate(rot);
+    x.fillStyle = rgba(NO, 0.3); x.fillRect(-p / 2 + 1, -p / 2 + 1, p - 2, p - 2);
+    x.strokeStyle = NO; x.lineWidth = 1.8; x.strokeRect(-p / 2 + 1, -p / 2 + 1, p - 2, p - 2);
+    x.restore();
+  }
+  Play.text(x, String(NW), x0 + NW * p / 2, y0 - 20, { size: 19, weight: 700, color: A });
+  Play.text(x, String(NH), x0 - 18, y0 + NH * p / 2, { size: 19, weight: 700 });
+  if (fit < 0.02) Play.text(x, String(n), x0 + (NW + 2.9) * p, y0 - 20, { size: 19, weight: 700, color: NO });
+  const by = y0 + NH * p + 48;
+  Play.text(x, `${NW} × ${NH} + ${n} = ${NW * NH} + ${n} = ${NW * NH + n}`, w / 2, Math.min(h - 40, by), { size: 16, weight: 700 });
+  if (fit > 0.98) Play.text(x, `(${NW} + ${n}) × ${NH} = ${(NW + n) * NH}  ✗`, w / 2, Math.min(h - 14, by + 26), { size: 16, weight: 700, color: NO });
+}
+function fitClick() {
+  const moving = Math.abs(fitTo - fit) > 1e-3;
+  if (moving) { fitTo = fit; return render(); }
+  fitTo = fit > 0.5 ? 0 : 1;
+  if (Play.reduced) fit = fitTo;
+  render();
+}
+
+// ---------- step 4 ----------
+function draw4(x, w, h) {
+  if (back) drawCut(x, w, h, A4, B4, R, 0, true, true);
+  else drawCut(x, w, h, A4, B4, R, 0.25, false, true);
+}
+
+function draw(x, w, h) {
+  if (step === 1) draw1(x, w, h); else if (step === 2) draw2(x, w, h); else if (step === 3) draw3(x, w, h); else draw4(x, w, h);
+}
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let h2 = t(s.h), p1 = t(s.p);
+  if (step === 3 && n !== 4) {
+    h2 = t({ en: `What about ${NW} × ${NH} + ${n}?`, zh: `${NW} × ${NH} + ${n} 呢？` });
+    p1 = t({ en: `Can it become (${NW} + ${n}) × ${NH}? Press Try to fit.`, zh: `能拆成 (${NW} + ${n}) × ${NH} 吗？按「试着拼上」。` });
+  }
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${h2}</h2><p>${p1}</p>`;
+  if (step === 1) {
+    html += `<div class="mathline">(${sp("cA", P5)} + ${sp("cB", C3)}) × ${R4} = ?</div><div class="choices">` +
+      [MYTH, TOT].map((g) => `<button data-g="${g}" class="${guess === g ? (g === TOT ? "right" : "wrong") : ""}">${g}</button>`).join("") +
+      `<button data-g="0" class="${guess === 0 ? "wrong" : ""}">${t({ en: "Something else", zh: "别的数" })}</button></div>`;
+    if (guess >= 0) {
+      html += `<p>${t({ en: "Big brother writes five plus three times four, and gets seventeen.", zh: "哥哥列成五加三乘四，算出十七。" })}</p>` +
+        `<div class="mathline"><span class="cN">${P5} + ${C3} × ${R4} = ${MYTH} ?</span></div>`;
+      if (show17) html += `<p>${t({ en: `Where's the seventeen? The right part, ${C3} × ${R4}, is ${C3 * R4} squares. Plus ${P5} loose squares. The big part on the left got left out.`, zh: `来找十七：右边 ${C3} × ${R4}，是 ${C3 * R4} 格。再加 ${P5} 个单独的格子，左边一大片没算。` })}</p>`;
+      else html += `<p>${t({ en: "Press “Find the 17” to see which squares that is.", zh: "按「找出十七」，看看是哪些格子。" })}</p>`;
+      if (cnt >= TOT) html += `<p><strong>${t({ en: `There are ${TOT} squares.`, zh: `一共 ${TOT} 格。` })}</strong> <span class="tag-no">${t({ en: `Seventeen is far too few.`, zh: `十七太少了。` })}</span></p>`;
+      else if (show17) html += `<p>${t({ en: "Seventeen is far too few. This rectangle clearly has lots of squares. Count them all.", zh: "十七太少了，这个长方形明明有好多格。全部数一数。" })}</p>`;
+    }
+  } else if (step === 2) {
+    const m = W8 - k;
+    if (!tried.size) {
+      html += `<p><strong>${t({ en: "Will the two pieces add up to something different?", zh: "两块加起来会变吗？" })}</strong></p><div class="choices">` +
+        [{ en: "More", zh: "变多" }, { en: "Fewer", zh: "变少" }, { en: "The same", zh: "不变" }].map((g, i) => `<button data-p="${i}" class="${predict === i ? "on" : ""}">${t(g)}</button>`).join("") + `</div>`;
+    }
+    html += `<div class="mathline">${t({ en: "left", zh: "左块" })}: ${sp("cA", k)} × ${R4} = ${sp("cA", k * R4)}<br>${t({ en: "right", zh: "右块" })}: ${sp("cB", m)} × ${R4} = ${sp("cB", m * R4)}<br>${sp("cA", k * R4)} + ${sp("cB", m * R4)} = <b>${k * R4 + m * R4}</b></div>`;
+    if (tried.size) {
+      html += `<div class="tried">` + [...tried.keys()].sort((u, v) => u - v).map((kk) => `<span>${kk} | ${W8 - kk} → ${tried.get(kk)}</span>`).join("") + `</div>`;
+      const same = [...tried.values()].every((v) => v === TOT);
+      html += `<p>${same ? t({ en: `Cut anywhere: always ${TOT}. Not one square was added or lost.`, zh: `切在哪里都是 ${TOT}。一格没多，一格没少。` }) : ""}` +
+        (predict >= 0 && predict !== 2 ? ` <span class="tag-no">${t({ en: "Not what you guessed!", zh: "跟你猜的不一样！" })}</span>` : "") + `</p>`;
+      if (tried.size < 3) html += `<p class="note">${t({ en: "Drag the gold line somewhere else and pull apart again.", zh: "把金色的线拖到别处，再分开一次。" })}</p>`;
+    }
+  } else if (step === 3) {
+    const w = NW * NH + n, wrong = (NW + n) * NH, full = Math.floor(n / NH), extra = n % NH;
+    html += `<p>${t({ en: `Five times three is one block, and the ${n === 1 ? "one square is" : n + " squares are"} loose.`, zh: `五乘三是一块，旁边 ${n} 个格子是散的。` })}</p>`;
+    if (fit > 0.98) {
+      html += `<div class="mathline">${NW} × ${NH} + ${n} = <b>${w}</b><br><span class="cN">(${NW} + ${n}) × ${NH} = ${wrong} ✗</span></div>`;
+      html += `<p>${!extra ? "" : full ? t({ en: `A column needs ${NH} squares. The ${n} loose squares make ${full} full column${full === 1 ? "" : "s"} and ${extra} left over.`, zh: `一列要 ${NH} 格。${n} 个散格子只能排成 ${full} 整列，多出 ${extra} 个。` }) + " "
+        : t({ en: `A column needs ${NH} squares, so ${n} can't even fill one.`, zh: `一列要 ${NH} 格，${n} 个连一列都排不满。` }) + " "}` +
+        t({ en: `To be (${NW} + ${n}) × ${NH}, the rectangle would need ${wrong} squares, but we only have ${w}. ${wrong - w} are missing.`, zh: `要是 (${NW} + ${n}) × ${NH}，长方形要 ${wrong} 格，可我们只有 ${w} 格，还差 ${wrong - w} 格。` }) + `</p>`;
+      html += `<p><span class="tag-no">${extra ? t({ en: "They don't make one rectangle, so cutting doesn't help.", zh: "拼不成一块长方形，切一刀就用不上。" })
+        : t({ en: `They do make a rectangle here, but it is ${NW + full} wide, not ${NW + n}: (${NW} + ${full}) × ${NH}, not (${NW} + ${n}) × ${NH}.`, zh: `这回拼成了长方形，可它宽 ${NW + full}，不是 ${NW + n}：是 (${NW} + ${full}) × ${NH}，不是 (${NW} + ${n}) × ${NH}。` })}</span></p>`;
+    }
+  } else {
+    const tot = (A4 + B4) * R;
+    if (back) {
+      html += `<div class="mathline">${sp("cA", A4)} × ${R} = ${A4 + B4} × ${R} − ${B4} × ${R}<br>${sp("cA", A4 * R)} = ${tot} − ${B4 * R}</div>`;
+      html += `<p>${t({ en: "Last time's nine times four was just ten times four with one strip cut off.", zh: "上一集的九乘四，就是从十乘四切掉一条。" })}</p>`;
+    } else {
+      html += `<div class="mathline">(${sp("cA", A4)} ${sp("cH", "+")} ${sp("cB", B4)}) × ${R} = ${sp("cA", `${A4} × ${R}`)} ${sp("cH", "+")} ${sp("cB", `${B4} × ${R}`)}<br>${tot} = ${sp("cA", A4 * R)} + ${sp("cB", B4 * R)}</div>`;
+      html += `<p>${t({ en: "As a number sentence, the left block is the first number times the rows, and the right block is the second. The cut is the plus sign.", zh: "写成算式，左块是第一个数乘排数，右块是第二个数乘排数。切线就是加号。" })}</p>`;
+      html += `<p class="note">${t({ en: "Add then multiply, or multiply each part then add: the same, whatever the numbers.", zh: "先加再乘，和分开乘再加，换什么数都一样。" })}</p>`;
+    }
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  cv.style.height = step === 3 ? "280px" : "";
+  $("find17").classList.toggle("on", show17);
+  $("countBtn").textContent = t(counting ? D.pause : cnt >= TOT ? D.again : cnt > 0 ? D.keepCount : D.countAll);
+  $("pullBtn").textContent = t(Math.abs(sepTo - sep) > 1e-3 ? D.pause : sep > 0.5 ? D.push : D.pull);
+  $("fitBtn").textContent = t(Math.abs(fitTo - fit) > 1e-3 ? D.pause : fit > 0.5 ? D.unfit : D.fit);
+  $("backBtn").classList.toggle("on", back);
+  $("nVal").textContent = n; $("aVal").textContent = A4; $("bVal").textContent = B4; $("cVal").textContent = R;
+  dirty = true;
+}
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), q = e.target.closest("[data-p]");
+  if (g) guess = +g.dataset.g;
+  if (q) predict = +q.dataset.p;
+  if (g || q) render();
+});
+$("resMath").textContent = `(${P5} + ${C3}) × ${R4} = ${P5} × ${R4} + ${C3} × ${R4} = ${P5 * R4 + C3 * R4}`;
+$("resN").textContent = t({ en: `${NW} × ${NH} + 4 can't become (${NW} + 4) × ${NH}: ${NW} × ${NH} is one block and the four squares are loose, so they don't make one rectangle.`,
+                            zh: `${NW} × ${NH} + 4 不能拆成 (${NW} + 4) × ${NH}：${NW} × ${NH} 是一块，四个格子是散的，拼不成一块长方形。` });
+$("moreP").textContent = t({ en: `Yes. Draw any rectangle on squared paper and cut it along one line of the squares. Cutting moves nothing in or out, so the two pieces always count the same squares as the whole. That is why ${P5 + C3} × ${R4} can be worked out as ${P5} × ${R4} + ${C3} × ${R4}, and why 9 × ${R4} is 10 × ${R4} take away one strip of ${R4}. Next time: two cuts explain why long multiplication shifts the second row over.`,
+                             zh: `行。在方格纸上画任意一个长方形，沿一条格线切一刀。切的时候一格也没加进去、一格也没拿走，所以两块加起来，数的还是整块那些格子。所以 ${P5 + C3} × ${R4} 可以算成 ${P5} × ${R4} + ${C3} × ${R4}，9 × ${R4} 也就是 10 × ${R4} 切掉一条 ${R4} 格。下一集：切两刀，看懂竖式为什么要错一位。` });
+
+// ---------- input ----------
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s;
+  if (Play.reduced) { sep = sepTo; fit = fitTo; }
+  render();
+});
+$("find17").onclick = () => { show17 = !show17; render(); };
+$("countBtn").onclick = countClick;
+$("cutL").onclick = () => setCut(k - 1);
+$("cutR").onclick = () => setCut(k + 1);
+$("pullBtn").onclick = pullClick;
+$("fitBtn").onclick = fitClick;
+$("backBtn").onclick = () => {
+  back = !back;
+  if (back) { A4 = 9; B4 = 1; R = R4; } else { A4 = P5; B4 = C3; R = R4; }
+  render();
+};
+function moveSplit4(d) {     // keep the whole width, move the cut
+  const T = A4 + B4;
+  A4 = clamp(A4 + d, Math.max(1, T - 9), Math.min(9, T - 1)); B4 = T - A4; render();
+}
+document.querySelectorAll("[data-d]").forEach((bt) => (bt.onclick = () => {
+  const key = bt.dataset.d, d = key[1] === "+" ? 1 : -1;
+  if (key[0] === "n") { n = clamp(n + d, 1, 6); fit = fitTo = 0; }
+  if (key[0] === "a") A4 = clamp(A4 + d, 1, 9);
+  if (key[0] === "b") B4 = clamp(B4 + d, 1, 9);
+  if (key[0] === "c") R = clamp(R + d, 1, 6);
+  render();
+}));
+
+Play.drag(cv, {
+  down(px, py) {
+    if (step === 1) { countClick(); return false; }
+    if (step === 3) { fitClick(); return false; }
+    if (!hit || hit.cx == null) return false;
+    const top = hit.y0 - 40, bot = hit.y0 + hit.rows * hit.p + 44;
+    if (py < top || py > bot) return false;
+    dragging = true; dragTo(px); return true;
+  },
+  move(px) { if (dragging) dragTo(px); },
+  up() { dragging = false; if (step === 2 && (sep > 0.5 || sepTo)) tried.set(k, k * R4 + (W8 - k) * R4); render(); },
+});
+function dragTo(px) {
+  const { x0, p, gx, a, b } = hit;
+  const u = (px - x0 - (px > hit.cx ? gx : 0)) / p;     // cut position in cells
+  const T = a + b;
+  if (step === 2) { const nk = clamp(Math.round(u), 1, T - 1); if (nk !== k) { k = nk; render(); } }
+  else { const lo = Math.max(1, T - 9), hi = Math.min(9, T - 1), na = clamp(Math.round(u), lo, hi); if (na !== A4) { A4 = na; B4 = T - na; render(); } }
+}
+const nudge = (d) => {
+  if (step === 1) { cnt = clamp(Math.floor(cnt) + d, 0, TOT); counting = false; return render(); }
+  if (step === 2) return setCut(k + d);
+  if (step === 3) { n = clamp(n + d, 1, 6); fit = fitTo = 0; return render(); }
+  moveSplit4(d);
+};
+const enter = () => (step === 1 ? countClick() : step === 2 ? pullClick() : step === 3 ? fitClick() : $("backBtn").onclick());
+Play.keys(cv, {
+  ArrowLeft: () => nudge(-1), ArrowRight: () => nudge(1),
+  ArrowUp: () => (step === 4 ? (R = clamp(R + 1, 1, 6), render()) : nudge(1)),
+  ArrowDown: () => (step === 4 ? (R = clamp(R - 1, 1, 6), render()) : nudge(-1)),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  guess = -1; show17 = false; cnt = 0; counting = false;
+  k = P5; sep = sepTo = 0; tried = new Map(); predict = -1;
+  n = 4; fit = fitTo = 0; A4 = P5; B4 = C3; R = R4; back = false;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => (dirty = true));
+
+Play.loop((dt) => {
+  if (counting) {
+    cnt = Math.min(TOT, cnt + dt * 8);
+    if (cnt >= TOT) { counting = false; render(); }
+    dirty = true;
+  }
+  if (sep !== sepTo) {
+    sep = clamp(sep + Math.sign(sepTo - sep) * dt / 0.6, 0, 1);
+    if (Math.abs(sep - sepTo) < 1e-3) { sep = sepTo; render(); }
+    dirty = true;
+  }
+  if (fit !== fitTo) {
+    fit = clamp(fit + Math.sign(fitTo - fit) * dt / 1.1, 0, 1);
+    if (Math.abs(fit - fitTo) < 1e-3) { fit = fitTo; render(); }
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

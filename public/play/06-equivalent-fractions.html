@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1/2 and 2/4 Are the Same Point · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .kid button { font-size: 15px; min-height: 44px; min-width: 44px; padding: 8px 12px; }
+  .controls.kid { gap: 8px; font-size: 14px; }
+  .kid button.on, .choices button.on, .ftab.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { font-size: 14px; min-height: 40px; text-align: left; }
+  .choices button.ok { border-color: var(--a); box-shadow: inset 0 0 0 2px var(--a); }
+  .choices button.bad { border-color: var(--no); box-shadow: inset 0 0 0 2px var(--no); }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .explain .mathline { font-size: 24px; }
+  .na { border-bottom: 3px solid var(--a); padding: 0 2px; }
+  .nn { border-bottom: 3px solid var(--no); padding: 0 2px; }
+  .eq { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-family: var(--math); font-size: 26px; margin: 4px 0 10px; }
+  .eq .frac { font-size: 1em; }
+  .eq .arw { display: inline-flex; flex-direction: column; align-items: center; font-size: 14px; line-height: 1.25; color: var(--muted); font-family: var(--font); margin: 0 4px; }
+  .eq .arw span { padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
+  .eq .arw span.hot, .eq .frac span.hot { background: var(--soft); outline: 2px solid var(--hl); color: var(--fg); }
+  .eq .ne { color: var(--no); }
+  .ftab { font-size: 13px; min-height: 40px; }
+  @media (max-width: 560px) { .kid button { min-width: 40px; padding: 8px 9px; } }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="number line from 0 to 1"></canvas>
+      <div class="controls kid" id="c1">
+        <button id="check" data-t="checkB"></button>
+      </div>
+      <div class="controls kid" id="c2" hidden>
+        <span data-t="cutT"></span><span id="kBtns"></span>
+      </div>
+      <div class="controls kid" id="c3" hidden>
+        <button id="mMul" data-t="mulB"></button><button id="mAdd" data-t="addB"></button>
+        <span id="nBtns"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resM"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp } = Play;
+const D = {
+  title: { en: "1/2 and 2/4 Are the Same Point", zh: "1/2 和 2/4 在数轴上是同一个点" },
+  eyebrow: { en: "Boxi Math · Try it · #6", zh: "Boxi Math · 动手试试 · #6" },
+  intro: { en: "Big brother has walked one half of the road to school, little sister two fourths. Guess first, then cut the number line finer and count.",
+           zh: "上学的路，哥哥走了二分之一，妹妹走了四分之二。先猜一猜，再把数轴切细，数一数。" },
+  s1: { en: "Which is bigger?", zh: "哪个大？" }, s2: { en: "Cut finer", zh: "切得更细" }, s3: { en: "Times, not plus", zh: "乘，不是加" },
+  reset: { en: "Reset", zh: "重置" },
+  checkB: { en: "Count two fourths", zh: "数出四分之二" }, againB: { en: "Count again", zh: "再数一次" },
+  cutT: { en: "Cut each piece into:", zh: "每一份切成：" },
+  mulB: { en: "× top and bottom", zh: "上下都 ×" }, addB: { en: "+ top and bottom", zh: "上下都 +" },
+  v1: { en: "Number line · 2 pieces", zh: "数轴 · 两等份" }, v1b: { en: "Number line · 4 pieces", zh: "数轴 · 四等份" }, v2: { en: "Number line · cut finer", zh: "数轴 · 切细" }, v3: { en: "Fraction bar and number line", zh: "分数条和数轴" },
+  tag1: { en: "drag the hollow dot", zh: "拖动空心点" }, tag2: { en: "drag the gold handle", zh: "拖动金色把手" }, tag3: { en: "pick a number below", zh: "点下面的数" },
+  resT: { en: "One dot, three names", zh: "同一个点，三个名字" },
+  resN: { en: "Multiplying the top and bottom by the same number just cuts every piece finer and makes us take more of them, so the point stays where it was.",
+          zh: "分子分母同乘一个数，只是把每一份切得更细、拿的份数跟着变多，点还停在原地。" },
+  moreS: { en: "Why do the top and bottom both get multiplied?", zh: "为什么分子分母要一起乘？" },
+  moreP: { en: "The bottom number counts all the pieces: cutting each piece in two turns two pieces into four, so the bottom is multiplied by two. The top number counts the pieces we take: our one piece becomes two, so the top is multiplied by two. Cutting into three works the same way, with both multiplied by three.",
+           zh: "分母是一共切成几份：每份再切成两份，两份变四份，分母乘二。分子是拿了几份：拿的一份也变成两份，分子乘二。切成三份时同理，分子分母都乘三。" },
+  moreQ: { en: "Next question: one point can have many names. So how do we add one half and one third?",
+           zh: "下一个问题：同一个点有很多名字。那二分之一加三分之一，该怎么加？" },
+  foot: { en: "Green is one half, red is a wrong spot, gold is what you move. Drag or tap on the line; on a focused picture, arrow keys work too (step 1: ← → move the hollow dot; step 2: ← → count, ↑ ↓ cut; step 3: ← → change the number, ↑ ↓ switch × and +).",
+          zh: "绿色是二分之一，红色是错的位置，金色是你能动的。在数轴上拖或点；选中图后也能用方向键（第 1 步：← → 挪空心点；第 2 步：← → 数份数，↑ ↓ 换切法；第 3 步：← → 换数，↑ ↓ 切换 × 和 +）。" },
+  ch: [{ en: "One half is bigger", zh: "二分之一更大" }, { en: "Two fourths is bigger", zh: "四分之二更大" }, { en: "They are the same size", zh: "一样大" }],
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a) || 1);
+const FR = (p, q) => `<span class="frac"><span>${p}</span><span>${q}</span></span>`;
+const HEIGHT = { 1: 175, 2: 215, 3: 240 };
+
+const G0 = 5 / 8;          // where the guess starts: a bit right of 1/2 (value never shown)
+let step = 1, dirty = true;
+let g = G0, chk = -1, pick = -1;          // step 1
+let k = 2, m = 0, found = new Set([1]);   // step 2: each half cut into k, count m of 2k
+let mode = "mul", n = 2, focus = null;    // step 3
+
+// ---------- geometry ----------
+function geo(w, h) {
+  const len = Math.min(w - 64, 560), xl = (w - len) / 2, xr = xl + len;
+  let yl;
+  if (step === 1) yl = Math.round(h - 64);
+  else if (step === 2) yl = 104;
+  else yl = 150;
+  return { xl, xr, yl, X: (v) => xl + v * (xr - xl), w, h };
+}
+let Gm = null;
+
+// ---------- drawing helpers ----------
+function circle(x, cx, cy, r, fill, stroke, lw, dash) {
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
+}
+function textW(x, s, size, weight) { x.font = `${weight || 700} ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width; }
+// draw labels above points on the line; each {x, s, c}; bumps to a higher row on overlap and keeps inside the canvas
+function labels(x, list, y0, size) {
+  const placed = [];
+  list.forEach((o) => {
+    const lw = textW(x, o.s, size, 750) + 10;
+    let cx = clamp(o.x, lw / 2 + 4, Gm.w - lw / 2 - 4), row = 0;
+    while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
+    placed.push({ x: cx, w: lw, row });
+    const y = y0 - row * 24;
+    if (o.bg) {
+      x.fillStyle = o.bg; x.beginPath();
+      x.roundRect ? x.roundRect(cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6) : x.rect(cx - lw / 2, y - size * 0.75, lw, size * 1.5);
+      x.fill();
+    }
+    Play.text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
+  });
+  return placed;
+}
+// the number line, cut into N equal pieces; first `take` pieces shaded with `col`
+function line(x, N, take, col, tickHot) {
+  const { xl, xr, yl, X } = Gm, mu = color("--muted"), fg = color("--fg");
+  if (take > 0) { x.fillStyle = rgba(col, 0.32); x.fillRect(xl, yl - 8, X(take / N) - xl, 16); }
+  x.strokeStyle = mu; x.lineWidth = 2; x.beginPath(); x.moveTo(xl, yl); x.lineTo(xr, yl); x.stroke();
+  x.beginPath();
+  for (let i = 0; i <= N; i++) { const tk = i === 0 || i === N ? 11 : 8; x.moveTo(X(i / N), yl - tk); x.lineTo(X(i / N), yl + tk); }
+  x.strokeStyle = tickHot ? color("--hl") : mu; x.lineWidth = tickHot ? 3 : 1.8; x.stroke();
+  Play.text(x, "0", xl - 16, yl, { size: 16, weight: 700, color: fg });
+  Play.text(x, "1", xr + 16, yl, { size: 16, weight: 700, color: fg });
+}
+function counts(x, N, upto, col) {
+  const { X, yl } = Gm, pw = X(1 / N) - X(0);
+  if (pw < 15) return;
+  for (let i = 1; i <= upto; i++) Play.text(x, String(i), (X((i - 1) / N) + X(i / N)) / 2, yl + 22, { size: 13, weight: 700, color: col });
+}
+function bar(x, N, take, col, y, hot) {
+  const { xl, xr, X } = Gm, hgt = 26, mu = color("--muted");
+  x.fillStyle = color("--soft"); x.fillRect(xl, y, xr - xl, hgt);
+  x.fillStyle = rgba(col, 0.75); x.fillRect(xl, y, X(take / N) - xl, hgt);
+  if (hot === "take") { x.strokeStyle = color("--hl"); x.lineWidth = 3; x.strokeRect(xl, y, X(take / N) - xl, hgt); }
+  x.strokeStyle = hot === "all" ? color("--hl") : mu; x.lineWidth = hot === "all" ? 2.5 : 1.5; x.beginPath();
+  for (let i = 1; i < N; i++) { x.moveTo(X(i / N), y); x.lineTo(X(i / N), y + hgt); }
+  x.stroke(); x.strokeStyle = mu; x.lineWidth = 1.5; x.strokeRect(xl, y, xr - xl, hgt);
+}
+function vguide(x, xx, y0, y1, col) {
+  x.strokeStyle = rgba(col, 0.6); x.lineWidth = 1.5; x.setLineDash([4, 4]);
+  x.beginPath(); x.moveTo(xx, y0); x.lineTo(xx, y1); x.stroke(); x.setLineDash([]);
+}
+
+function draw(x, w, h) {
+  Gm = geo(w, h);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x);
+}
+
+function draw1(x) {
+  const { X, yl } = Gm, A = color("--a"), NO = color("--no"), HL = color("--hl");
+  const ph = chk < 0 ? -1 : chk;                       // 0..1 ticks, 1..2 piece 1, 2..3 piece 2
+  const N = ph >= 0 ? 4 : 2, shade = ph < 1 ? 0 : Math.min(2, ph - 1);
+  if (ph >= 0 && ph < 1) { line(x, 2, 0); x.globalAlpha = ph; line(x, 4, 0); x.globalAlpha = 1; }
+  else line(x, N, 0);
+  if (shade > 0) { x.fillStyle = rgba(A, 0.32); x.fillRect(Gm.xl, yl - 8, X(shade / 4) - Gm.xl, 16); }
+  if (ph >= 1) counts(x, 4, Math.min(2, Math.ceil(shade - 1e-9)), A);
+  const done = ph >= 3;
+  // guess (hollow, red)
+  x.globalAlpha = done ? 0.45 : 1;
+  circle(x, X(g), yl, 8, color("--surface"), NO, 3, done ? [3, 3] : null);
+  x.globalAlpha = 1;
+  // the dot one half never moves
+  circle(x, X(0.5), yl, 8, A, color("--surface"), 2);
+  const L = [{ x: X(0.5), s: done ? "1/2 = 2/4" : "1/2", c: done ? color("--fg") : A, bg: done ? rgba(HL, 0.35) : null },
+             { x: X(g), s: "2/4?", c: rgba(NO, done ? 0.55 : 1) }];
+  labels(x, L, yl - 32, 17);
+}
+
+function draw2(x) {
+  const { X, yl } = Gm, A = color("--a"), HL = color("--hl"), fg = color("--fg"), N = 2 * k;
+  line(x, N, m, A);
+  counts(x, N, m, A);
+  circle(x, X(0.5), yl, 8, A, color("--surface"), 2);
+  const names = [...found].sort((p, q) => p - q).map((j) => `${j}/${2 * j}`);
+  const show = names.length > 4 ? [names[0], "…", ...names.slice(-2)] : names;
+  labels(x, [{ x: X(0.5), s: show.join(" = "), c: fg, bg: found.size > 1 ? rgba(HL, 0.3) : null }], yl - 32, 16);
+  // handle
+  const hx = X(m / N), hy = yl + 52;
+  x.strokeStyle = HL; x.lineWidth = 2.5; x.beginPath(); x.moveTo(hx, yl + 10); x.lineTo(hx, hy - 11); x.stroke();
+  circle(x, hx, hy, 11, HL, fg, 1.5);
+  if (m > 0) labels(x, [{ x: hx, s: `${m}/${N}`, c: m === k ? A : fg }], hy + 28, 16);
+}
+
+function draw3(x) {
+  const { X, yl } = Gm, A = color("--a"), NO = color("--no"), fg = color("--fg"), HL = color("--hl");
+  const mul = mode === "mul", top = mul ? n : 1 + n, bot = mul ? 2 * n : 2 + n, col = mul ? A : NO, v = top / bot;
+  const yb = 52;
+  bar(x, bot, top, col, yb, mul ? (focus === "bot" ? "all" : focus === "top" ? "take" : null) : null);
+  line(x, bot, top, col, mul && focus === "bot");
+  counts(x, bot, top, col);
+  if (mul && focus === "top") { x.strokeStyle = HL; x.lineWidth = 3; x.strokeRect(Gm.xl, yl - 9, X(v) - Gm.xl, 18); }
+  // guides from the end of the shading to the dot
+  if (!mul) vguide(x, X(0.5), yb + 26, yl - 46, A);
+  vguide(x, X(v), yb + 26, yl - 46, col);
+  circle(x, X(0.5), yl, 8, A, color("--surface"), 2);
+  if (mul) {
+    labels(x, [{ x: X(0.5), s: n > 1 ? `1/2 = ${top}/${bot}` : "1/2", c: fg, bg: rgba(HL, 0.3) }], yl - 32, 16);
+  } else {
+    circle(x, X(v), yl, 8, NO, color("--surface"), 2);
+    labels(x, [{ x: X(0.5), s: "1/2", c: A }, { x: X(v), s: `${top}/${bot}`, c: NO }], yl - 32, 16);
+    // bracket: how far the dot ran
+    const yb2 = yl + 42, gn = n, gd = 2 * bot, q = gcd(gn, gd);
+    x.strokeStyle = NO; x.lineWidth = 2; x.beginPath();
+    x.moveTo(X(0.5), yb2 - 8); x.lineTo(X(0.5), yb2); x.lineTo(X(v), yb2); x.lineTo(X(v), yb2 - 8); x.stroke();
+    labels(x, [{ x: (X(0.5) + X(v)) / 2, s: `+${gn / q}/${gd / q}`, c: NO }], yb2 + 18, 15);
+  }
+}
+
+// ---------- state changes ----------
+function setGuess(v) { g = clamp(Math.round(v * 80) / 80, 0, 1); dirty = true; }
+function startCheck() { chk = Play.reduced ? 3 : 0; found.add(2); render(); }
+function setM(v) { const nm = clamp(v, 0, 2 * k); if (nm === m) return; m = nm; if (m === k) found.add(k); render(); }
+function setK(v) {
+  const nk = clamp(v, 1, 6); if (nk === k) return;
+  m = Math.round((m / (2 * k)) * 2 * nk); k = nk; if (m === k) found.add(k); render();
+}
+function setN(v) { n = clamp(v, 1, 6); render(); }
+function setMode(md) { mode = md; focus = null; render(); }
+
+let grab = false;
+Play.drag(cvEl, {
+  down(px, py) {
+    if (!Gm || step === 3) return false;
+    const { xl, xr, yl } = Gm;
+    if (px < xl - 24 || px > xr + 24) return false;
+    if (step === 1 && Math.abs(py - yl) < 36) { grab = true; setGuess((px - xl) / (xr - xl)); return true; }
+    if (step === 2 && py > yl - 30 && py < yl + 80) { grab = true; setM(Math.round(((px - xl) / (xr - xl)) * 2 * k)); return true; }
+    return false;
+  },
+  move(px) {
+    if (!grab) return;
+    const { xl, xr } = Gm, v = (px - xl) / (xr - xl);
+    if (step === 1) setGuess(v); else setM(Math.round(v * 2 * k));
+  },
+  up() { if (grab) { grab = false; render(); } },
+});
+Play.keys(cvEl, {
+  ArrowRight: () => (step === 1 ? (setGuess(g + 1 / 40), render()) : step === 2 ? setM(m + 1) : setN(n + 1)),
+  ArrowLeft: () => (step === 1 ? (setGuess(g - 1 / 40), render()) : step === 2 ? setM(m - 1) : setN(n - 1)),
+  ArrowUp: () => (step === 2 ? setK(k + 1) : step === 3 && setMode(mode === "mul" ? "add" : "mul")),
+  ArrowDown: () => (step === 2 ? setK(k - 1) : step === 3 && setMode(mode === "mul" ? "add" : "mul")),
+  Enter: () => step === 1 && startCheck(),
+});
+
+// ---------- explanations ----------
+function explain1() {
+  const done = chk >= 3, off = Math.abs(g - 0.5) < 0.013;
+  let out = `<div class="kicker">${t({ en: "Step 01 · guess", zh: "第 1 步 · 先猜" })}</div>
+    <h2>${t({ en: "Which is bigger: one half or two fourths?", zh: "二分之一和四分之二，哪个大？" })}</h2>
+    <p>${t({ en: "On the same road to school, big brother has walked one half and little sister two fourths. Who has gone farther?", zh: "同一条上学的路，哥哥走了二分之一，妹妹走了四分之二，谁走得远？" })}</p>
+    <div class="choices">${D.ch.map((c, i) => `<button data-c="${i}" class="${pick === i ? "on" : ""}${done && pick === i ? (i === 2 ? " ok" : " bad") : ""}">${t(c)}</button>`).join("")}</div>`;
+  if (!done) {
+    out += `<p>${t({ en: "Little sister is proud: two fourths has bigger numbers, so I went farther. If two fourths were bigger, it would be to the right, maybe about here.", zh: "妹妹很得意：四分之二，数字更大，我走得更远。如果四分之二更大，它该在右边，比如这儿。" })}</p>
+      <p class="big">${t({ en: "Drag the hollow dot to where you think two fourths is. Then count.", zh: "把空心点拖到你觉得四分之二在的地方，再数一数。" })}</p>`;
+  } else {
+    out += `<div class="mathline">${FR(1, 2)} = ${FR(2, 4)}</div>
+      <p class="big">${t({ en: "One piece, two pieces, and we stop exactly on one half.", zh: "一份，两份，正好停在二分之一上。" })}</p>
+      <p>${t({ en: "The dot hasn't moved at all; it just got a new name.", zh: "这个点一步没动，只是多了个名字。" })}</p>
+      <p>${off ? t({ en: "Your hollow dot was already on one half.", zh: "你的空心点本来就放在二分之一上。" })
+        : `<span class="tag-no">${t({ en: "Not there.", zh: "不在那儿。" })}</span> ` + t(g > 0.5
+          ? { en: "The hollow dot was to the right of one half, but two fourths is not bigger.", zh: "空心点在二分之一的右边，可四分之二并不更大。" }
+          : { en: "The hollow dot was to the left of one half, but two fourths is not smaller.", zh: "空心点在二分之一的左边，可四分之二并不更小。" })}</p>
+      <p>${t({ en: "Go to step 2 and cut even finer.", zh: "到第 2 步，切得再细一点。" })}</p>`;
+  }
+  return out;
+}
+
+function explain2() {
+  const N = 2 * k, list = [...found].sort((p, q) => p - q);
+  let out = `<div class="kicker">${t({ en: "Step 02 · cut finer", zh: "第 2 步 · 切得更细" })}</div>
+    <h2>${t({ en: "Cut every piece finer. Does the dot move?", zh: "每一份再切细，点会动吗？" })}</h2>
+    <p>${t({ en: `Each of the 2 pieces is cut into ${k}, so there are ${N} pieces in all. Drag the gold handle to count small pieces from zero.`,
+              zh: `两份里的每一份切成 ${k} 小份，一共 ${N} 份。拖动金色把手，从零开始数小份。` })}</p>
+    <div class="mathline">${t({ en: "count", zh: "数" })} <span class="na">${m}</span> ${t({ en: "of", zh: "份，共" })} ${N} ${t({ en: "pieces", zh: "份" })} → ${FR(m, N)}</div>`;
+  if (m === k) {
+    out += `<p class="big">${t({ en: `We stop exactly on one half. ${m}/${N} is a new name for the same dot.`, zh: `正好停在二分之一上。${m}/${N} 是同一个点的新名字。` })}</p>
+      <p>${t({ en: `Each piece is ${k === 1 ? "as big as before" : k + " times smaller"}, and we take ${k === 1 ? "one" : k + " times as many"}. The numbers got bigger because each piece got smaller.`,
+              zh: `每一份${k === 1 ? "没变" : `小了 ${k} 倍`}，拿的份数${k === 1 ? "还是一份" : `多了 ${k} 倍`}。数字变大，是因为每一份变小了。` })}</p>`;
+  } else if (m < k) {
+    out += `<p>${t({ en: `${m}/${N} is to the left of one half. ${k - m} more ${k - m === 1 ? "piece" : "pieces"} to go. Where will we land?`, zh: `${m}/${N} 在二分之一的左边，还差 ${k - m} 份。会数到哪？` })}</p>`;
+  } else {
+    out += `<p>${t({ en: `${m}/${N} is to the right of one half: ${m - k} ${m - k === 1 ? "piece" : "pieces"} too many.`, zh: `${m}/${N} 在二分之一的右边，多数了 ${m - k} 份。` })}</p>`;
+  }
+  out += `<p>${t({ en: "Names found for the dot:", zh: "这个点已经找到的名字：" })} <strong class="math">${list.map((j) => `${j}/${2 * j}`).join(" = ")}</strong></p>`;
+  if (list.length < 3) out += `<p class="note">${t({ en: "Try another cut, then count again.", zh: "换一种切法，再数一次。" })}</p>`;
+  return out;
+}
+
+function explain3() {
+  const hot = (f) => (focus === f ? " hot" : "");
+  if (mode === "mul") {
+    const eq = `<div class="eq">${FR(`<span class="${hot("top").trim()}">1</span>`, `<span class="${hot("bot").trim()}">2</span>`)}
+      <span class="arw"><span class="${hot("top").trim()}">×${n} →</span><span class="${hot("bot").trim()}">×${n} →</span></span>
+      ${FR(`<span class="${hot("top").trim()}">${n}</span>`, `<span class="${hot("bot").trim()}">${2 * n}</span>`)}</div>`;
+    return `<div class="kicker">${t({ en: "Step 03 · times, not plus", zh: "第 3 步 · 乘，不是加" })}</div>
+      <h2>${t({ en: `Top and bottom are both times ${n}`, zh: `分子分母都乘 ${n}` })}</h2>${eq}
+      <div class="choices"><button class="ftab${focus === "bot" ? " on" : ""}" data-f="bot">${t({ en: "bottom number", zh: "分母" })}</button><button class="ftab${focus === "top" ? " on" : ""}" data-f="top">${t({ en: "top number", zh: "分子" })}</button></div>
+      <p${focus === "bot" ? ' class="big"' : ""}>${t({ en: `The bottom number counts all the pieces. Two pieces became ${2 * n}, so the bottom is times ${n}.`, zh: `下面的数叫分母，是一共几份。两份变 ${2 * n} 份，分母乘 ${n}。` })}</p>
+      <p${focus === "top" ? ' class="big"' : ""}>${t({ en: `The top number counts the pieces we take. One piece became ${n}, so the top is times ${n} as well.`, zh: `上面的数叫分子，是拿了几份。一份变 ${n} 份，分子也乘 ${n}。` })}</p>
+      <p>${t({ en: "The fraction bar, with half shaded, lines up with this dot too.", zh: "分数条涂一半，也对着这个点。" })}</p>`;
+  }
+  const top = 1 + n, bot = 2 + n, r = gcd(top, bot), q = gcd(n, 2 * bot);
+  return `<div class="kicker">${t({ en: "Step 03 · non-example", zh: "第 3 步 · 非例" })}</div>
+    <h2>${t({ en: `What if we add ${n} to the top and the bottom?`, zh: `要是上下都加 ${n} 呢？` })}</h2>
+    <div class="eq">${FR(`1+${n}`, `2+${n}`)} = ${FR(top, bot)}${r > 1 ? ` = ${FR(top / r, bot / r)}` : ""} <span class="ne">≠</span> ${FR(1, 2)}</div>
+    <p class="big"><span class="tag-no">${t({ en: "The dot ran off to the right.", zh: "点跑到右边了。" })}</span></p>
+    <p>${t({ en: `Cut every piece in two to compare: ${FR(top, bot)} = ${FR(2 * top, 2 * bot)} and ${FR(1, 2)} = ${FR(bot, 2 * bot)}. That is ${2 * top - bot} ${2 * top - bot === 1 ? "piece" : "pieces"} of ${2 * bot}, or ${FR(n / q, 2 * bot / q)}, more than one half.`,
+            zh: `每一份再切成两份来比：${FR(top, bot)} = ${FR(2 * top, 2 * bot)}，${FR(1, 2)} = ${FR(bot, 2 * bot)}。多了 ${2 * top - bot} 份（共 ${2 * bot} 份），也就是比二分之一多 ${FR(n / q, 2 * bot / q)}。` })}</p>
+    <p>${t(n === 1 ? { en: "Adding one changes the size; multiplying by the same number doesn't.", zh: "加一会改变大小，乘同一个数不会。" }
+      : { en: `Adding ${n} changes the size; multiplying by the same number doesn't.`, zh: `加 ${n} 会改变大小，乘同一个数不会。` })}</p>`;
+}
+
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(step === 1 && chk >= 0 ? D.v1b : D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("check").textContent = t(chk >= 0 ? D.againB : D.checkB);
+  el("kBtns").innerHTML = [1, 2, 3, 4, 5, 6].map((j) => `<button data-k="${j}" class="${j === k ? "on" : ""}" aria-label="${j}">${j}</button>`).join(" ");
+  el("nBtns").innerHTML = [1, 2, 3, 4, 5, 6].map((j) => `<button data-n="${j}" class="${j === n ? "on" : ""}">${mode === "mul" ? "×" : "+"}${j}</button>`).join(" ");
+  el("mMul").classList.toggle("on", mode === "mul"); el("mAdd").classList.toggle("on", mode === "add");
+  cvEl.style.height = HEIGHT[step] + "px";
+  dirty = true;
+}
+
+el("explain").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-c]"), f = e.target.closest("[data-f]");
+  if (c) { pick = +c.dataset.c; render(); }
+  if (f) { focus = focus === f.dataset.f ? null : f.dataset.f; render(); }
+});
+el("check").onclick = startCheck;
+el("kBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) setK(+b.dataset.k); });
+el("nBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-n]"); if (b) setN(+b.dataset.n); });
+el("mMul").onclick = () => setMode("mul");
+el("mAdd").onclick = () => setMode("add");
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; focus = null; render(); });
+el("reset").onclick = () => {
+  g = G0; chk = -1; pick = -1; k = 2; m = 0; found = new Set([1]); mode = "mul"; n = 2; focus = null; nav.set(1);
+};
+el("resM").innerHTML = `${FR(1, 2)} = ${FR(2, 4)} = ${FR(3, 6)}`;
+
+const cv = Play.canvas(cvEl, draw);
+Play.loop((dt) => {
+  if (step === 1 && chk >= 0 && chk < 3) {
+    chk = Math.min(3, chk + dt * 1.6); dirty = true;
+    if (chk >= 3) render();
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
