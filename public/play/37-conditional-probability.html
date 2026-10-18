@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conditional Probability: Shrinking the Sample Space · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 38px; font-size: 14px; }
+  .controls .big { font-weight: 700; padding: 6px 14px; }
+  .controls button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .grp { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .grp > span { margin-right: 2px; }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; font-family: var(--math); font-size: 17px; }
+  .choices button.right { border-color: var(--a); color: var(--a); background: var(--surface); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); background: var(--surface); }
+  .mathline { font-size: 17px; overflow-wrap: anywhere; }
+  .mathline b { color: var(--hl); }
+  .mathline .dim, .dim { opacity: .5; }
+  .cB { color: var(--c); font-weight: 700; }
+  .cG { color: var(--h); font-weight: 700; }
+  .cA { color: var(--a); font-weight: 700; }
+  .warn { color: var(--no); font-weight: 650; }
+  .explain button.small { align-self: flex-start; }
+  .result .math, .result .rn .math { white-space: normal; }
+  .result > div { min-width: 0; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="cases of two children"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="add10" data-t="add10"></button>
+        <button class="big" id="add100" data-t="add100"></button>
+        <button class="small" id="clear1" data-t="clear"></button>
+      </div>
+      <div class="controls" id="c2" hidden><span data-t="tapHint"></span></div>
+      <div class="controls" id="c3" hidden>
+        <button class="big" id="auto3" data-t="auto3"></button>
+        <button class="small" id="undo3" data-t="undo3"></button>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="grp"><span data-t="givenW"></span><span id="condBtns" class="grp"></span></span>
+        <span class="grp"><span data-t="askW"></span><span id="evBtns" class="grp"></span></span>
+        <span class="grp"><span data-t="kidsW"></span><button class="small" data-n="2">2</button><button class="small" data-n="3">3</button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" id="resMath"></div></div>
+    <div class="rn" id="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Conditional Probability: Shrinking the Sample Space", zh: "条件概率：把样本空间缩小" },
+  eyebrow: { en: "Boxi Math · Try it · #37", zh: "Boxi Math · 动手试试 · #37" },
+  intro: { en: "Two children, at least one a boy. Guess first, meet some families, then cross out the impossible cases and count again in what's left.",
+           zh: "两个孩子，至少一个是男孩。先凭感觉猜，再看看很多家庭，最后划掉不可能的情况，在剩下的里面重新数。" },
+  s1: { en: "Gut feeling", zh: "凭感觉" }, s2: { en: "Four cases", zh: "四种情况" }, s3: { en: "Cross out", zh: "划掉" }, s4: { en: "Change the condition", zh: "换个条件" },
+  reset: { en: "Reset", zh: "重置" },
+  add10: { en: "+10 families", zh: "+10 家" }, add100: { en: "+100 families", zh: "+100 家" }, clear: { en: "Start over", zh: "重新来" },
+  tapHint: { en: "Tap a cell to read it.", zh: "点一个格子，看看它是什么意思。" },
+  auto3: { en: "Cross out for me", zh: "帮我划" }, undo3: { en: "Undo", zh: "撤销" },
+  givenW: { en: "Given:", zh: "已知：" }, askW: { en: "Chance of:", zh: "求：" }, kidsW: { en: "Children:", zh: "孩子数：" },
+  v1: { en: "Families with two children", zh: "有两个孩子的家庭" }, v2: { en: "Older, then younger", zh: "按老大、老二排" },
+  v3: { en: "Given: at least one boy", zh: "已知：至少一个男孩" }, v4: { en: "Cross out, then count", zh: "先划掉，再数" },
+  tag1: { en: "random families", zh: "随机的家庭" }, tag2: { en: "tap a cell", zh: "点格子" }, tag3: { en: "tap to cross out", zh: "点格子划掉" }, tag4: { en: "tap a cell", zh: "点格子" },
+  resT: { en: "Cross out what's impossible, then count in what's left.", zh: "先划掉不可能的，再在剩下的里面数。" },
+  moreS: { en: "Why are the three cells left still equally likely?", zh: "为什么剩下的三格还是一样可能？" },
+  moreP: { en: "Before we knew anything, each cell had probability 1/4. Knowing that at least one is a boy only removes girl-girl; it doesn't make any remaining cell more likely than another. So the 3/4 that's left is shared equally, and each cell becomes 1/4 ÷ 3/4 = 1/3. In symbols: P(A | B) = P(A and B) ÷ P(B) = (1/4) ÷ (3/4) = 1/3.",
+           zh: "什么都不知道时，每格的概率是 1/4。知道「至少一个男孩」只是划掉了女女，并没有让剩下哪一格更可能。所以剩下的 3/4 平分给三格，每格变成 1/4 ÷ 3/4 = 1/3。写成式子：P(A | B) = P(A 且 B) ÷ P(B) = (1/4) ÷ (3/4) = 1/3。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, use the arrow keys to move between cells and Enter to tap one.",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键在格子间移动，回车相当于点一下。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · go with your gut", zh: "第 1 步 · 凭感觉" },
+       h: { en: "At least one is a boy. How likely is it that both are boys?", zh: "至少有一个男孩，两个都是男孩的可能有多大？" },
+       p: { en: "The new neighbours have two children. All you know is that at least one of them is a boy. A friend blurts out: one half, the other one is either a boy or a girl.",
+            zh: "新搬来的邻居家有两个孩子，你只知道，其中至少有一个男孩。朋友脱口而出：二分之一，另一个不是男孩就是女孩嘛。" } },
+  2: { kicker: { en: "Step 02 · list every case", zh: "第 2 步 · 列出全部情况" },
+       h: { en: "Listing older then younger, there are four cases", zh: "按老大、老二排，一共四种情况" },
+       p: { en: "Boy-boy, boy-girl, girl-boy, girl-girl: each equally likely. Boy-girl means older boy, younger girl; girl-boy is the other way round.",
+            zh: "男男、男女、女男、女女，每一种都一样可能。男女是老大男孩、老二女孩；女男正好反过来。" } },
+  3: { kicker: { en: "Step 03 · shrink the sample space", zh: "第 3 步 · 把样本空间缩小" },
+       h: { en: "Now we know: at least one is a boy", zh: "现在多知道了一件事：至少有一个是男孩" },
+       p: { en: "Tap every case that is now impossible to cross it out.", zh: "点一下现在已经不可能的情况，把它划掉。" } },
+  4: { kicker: { en: "Step 04 · a different condition", zh: "第 4 步 · 条件一变" },
+       h: { en: "Change the condition, and what's left changes", zh: "条件一变，剩下的样本空间就变了" },
+       p: { en: "Pick what you know and what you ask about. The cases that don't fit fade out; count only in what's left.",
+            zh: "选「已知」和「求」。不符合已知的格子变淡，只在剩下的格子里数。" } },
+};
+Play.i18n(D);
+
+// ---------- the cases ----------
+// cell i: child j (0 = oldest) is a boy when bit (n-1-j) of i is 0, so i = 0 is all boys.
+// rows = oldest (boy on top), columns = the younger ones.
+function cases(n) {
+  const out = [];
+  for (let i = 0; i < (1 << n); i++) {
+    const seq = []; for (let j = 0; j < n; j++) seq.push(((i >> (n - 1 - j)) & 1) === 0);
+    out.push({ i, seq, row: i >> (n - 1), col: i & ((1 << (n - 1)) - 1) });
+  }
+  return out;
+}
+const COND = {
+  none: { f: () => true },
+  any: { f: (s) => s.some(Boolean) },
+  older: { f: (s) => s[0] },
+  younger: { f: (s) => s[s.length - 1] },
+  all: { f: (s) => s.every(Boolean) },
+};
+const EV = { all: (s) => s.every(Boolean), any: (s) => s.some(Boolean) };
+const allBoys = (n) => (n === 2 ? { en: "two boys", zh: "都是男孩" } : { en: "three boys", zh: "都是男孩" });
+function condName(c, n, chip) {
+  if (c === "none") return { en: "nothing", zh: "什么都不知道" };
+  if (c === "any") return chip ? { en: "at least one boy", zh: "至少一个男孩" } : { en: "at least one boy", zh: "有男孩" };
+  if (c === "older") return n === 2 ? { en: "older is a boy", zh: "老大是男孩" } : { en: "oldest is a boy", zh: "老大是男孩" };
+  if (c === "younger") return n === 2 ? { en: "younger is a boy", zh: "老二是男孩" } : { en: "youngest is a boy", zh: "老三是男孩" };
+  return allBoys(n);
+}
+const evName = (e, n) => (e === "all" ? allBoys(n) : { en: "at least one boy", zh: "有男孩" });
+const sexW = (b) => t(b ? { en: "boy", zh: "男" } : { en: "girl", zh: "女" });
+const cellName = (seq) => Play.lang === "zh" ? seq.map((b) => (b ? "男" : "女")).join("") : seq.map((b) => (b ? "boy" : "girl")).join("-");
+function cellLong(seq) {
+  const who = seq.length === 2
+    ? [{ en: "older", zh: "老大" }, { en: "younger", zh: "老二" }]
+    : [{ en: "oldest", zh: "老大" }, { en: "middle", zh: "老二" }, { en: "youngest", zh: "老三" }];
+  return seq.map((b, j) => t(who[j]) + (Play.lang === "zh" ? "" : " ") + t(b ? { en: "boy", zh: "男孩" } : { en: "girl", zh: "女孩" })).join(Play.lang === "zh" ? "、" : ", ");
+}
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+function frac(k, m) {
+  if (m <= 0) return "—";
+  const g = gcd(k, m) || 1, a = k / g, b = m / g;
+  return b === 1 ? String(a) : `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+}
+const fracTxt = (k, m) => { const g = gcd(k, m) || 1; return m / g === 1 ? String(k / g) : `${k / g}/${m / g}`; };
+// P(event | condition) by counting cells
+function prob(n, c, e) {
+  const cs = cases(n).filter((x) => COND[c].f(x.seq));
+  return { k: cs.filter((x) => EV[e](x.seq)).length, m: cs.length };
+}
+function pLine(n, c, e, cls = "") {
+  const { k, m } = prob(n, c, e), E = t(evName(e, n)), C = t(condName(c, n));
+  return `<span class="${cls}">P(${E}${c === "none" ? "" : " | " + C}) = ${k} ÷ ${m} = <b>${frac(k, m)}</b></span>`;
+}
+
+// ---------- state ----------
+let step = 1, n4 = 2, cond4 = "any", ev4 = "all";
+let crossed = new Set(), warn = -1, predict = -1, merge = false;
+let sel = -1, focus = 0, showFocus = false;
+let guess = -1, fam = [], tot = 0, nAny = 0, nBB = 0;
+let geom = [], dirty = true;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+
+function config() {
+  if (step === 2) return { n: 2, c: "none", e: "all", out: () => false, frame: false };
+  if (step === 3) return { n: 2, c: "any", e: "all", out: (x) => crossed.has(x.i), frame: crossed.size > 0 };
+  return { n: n4, c: cond4, e: ev4, out: (x) => !COND[cond4].f(x.seq), frame: cond4 !== "none" };
+}
+const done3 = () => cases(2).every((x) => crossed.has(x.i) === !COND.any.f(x.seq));
+
+// ---------- drawing ----------
+function rr(x, a, b, w, h, r) { x.beginPath(); if (x.roundRect) x.roundRect(a, b, w, h, r); else x.rect(a, b, w, h); }
+function badge(x, cx, cy, r, boy, alpha) {
+  x.globalAlpha = alpha;
+  x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI); x.fillStyle = color(boy ? "--c" : "--h"); x.fill();
+  Play.text(x, t(boy ? { en: "B", zh: "男" } : { en: "G", zh: "女" }), cx, cy + 0.5, { size: 13, weight: 750, color: color("--surface"), halo: false });
+  x.globalAlpha = 1;
+}
+
+function drawGrid(x, w, h) {
+  const cf = config(), n = cf.n, cols = 1 << (n - 1), head = n === 2;
+  const list = cases(n).map((c) => ({ ...c, out: cf.out(c), ev: EV[cf.e](c.seq) }));
+  const m = list.filter((c) => !c.out).length, k = list.filter((c) => !c.out && c.ev).length;
+  const top = head ? 64 : 40, left = head ? 70 : 12, right = 12, bot = 40, gap = 10;
+  const cw = Math.min(170, (w - left - right - gap * (cols - 1)) / cols), ch = Math.min(112, (h - top - bot - gap) / 2);
+  const gx = left + (w - left - right - (cw * cols + gap * (cols - 1))) / 2, gy = top;
+  geom = list.map((c) => ({ x: gx + c.col * (cw + gap), y: gy + c.row * (ch + gap), w: cw, h: ch, c }));
+  if (head) {
+    [true, false].forEach((b, j) => {
+      const cx = gx + j * (cw + gap) + cw / 2;
+      Play.text(x, t({ en: "younger: ", zh: "老二：" }) + sexW(b), cx, gy - 15, { size: 13, weight: 650, color: color(b ? "--c" : "--h") });
+      const cy = gy + j * (ch + gap) + ch / 2;
+      Play.text(x, t({ en: "older:", zh: "老大：" }), gx - 34, cy - 10, { size: 13, color: color("--muted") });
+      Play.text(x, sexW(b), gx - 34, cy + 10, { size: 14, weight: 700, color: color(b ? "--c" : "--h") });
+    });
+  }
+  const r = Math.max(10, Math.min(15, cw / (2.5 * n + 0.5), ch * 0.17)), MU = color("--muted"), NO = color("--no");
+  geom.forEach((g) => {
+    const c = g.c, al = c.out ? 0.28 : 1;
+    rr(x, g.x, g.y, g.w, g.h, 10);
+    x.fillStyle = c.out ? rgba(MU, 0.07) : c.ev ? rgba(color("--hl"), 0.38) : rgba(color("--a"), 0.06);
+    x.fill();
+    if (c.out) { x.setLineDash([4, 4]); x.strokeStyle = rgba(MU, 0.45); x.lineWidth = 1.2; }
+    else if (cf.frame) { x.strokeStyle = color("--a"); x.lineWidth = 2.6; }
+    else { x.strokeStyle = color("--line"); x.lineWidth = 1.5; }
+    x.stroke(); x.setLineDash([]);
+    const cy = g.y + g.h / 2 - (head ? 9 : 0), sp = 2.3 * r;
+    c.seq.forEach((b, j) => badge(x, g.x + g.w / 2 + (j - (n - 1) / 2) * sp, cy, r, b, al));
+    if (head) Play.text(x, cellName(c.seq), g.x + g.w / 2, cy + r + 14, { size: 13, weight: 650, color: c.out ? MU : color("--fg") });
+    Play.text(x, c.out ? "0" : fracTxt(1, m), g.x + g.w / 2, g.y + 12, { size: 13, color: MU, halo: false });
+    if (c.out) {
+      const ix = g.w * 0.2, iy = g.h * 0.2;
+      x.strokeStyle = rgba(NO, 0.8); x.lineWidth = 2.6; x.lineCap = "round";
+      x.beginPath(); x.moveTo(g.x + ix, g.y + iy); x.lineTo(g.x + g.w - ix, g.y + g.h - iy);
+      x.moveTo(g.x + g.w - ix, g.y + iy); x.lineTo(g.x + ix, g.y + g.h - iy); x.stroke(); x.lineCap = "butt";
+    }
+    if (c.i === warn) { rr(x, g.x - 3, g.y - 3, g.w + 6, g.h + 6, 12); x.strokeStyle = NO; x.lineWidth = 3; x.stroke(); }
+    if (c.i === sel) { rr(x, g.x - 4, g.y - 4, g.w + 8, g.h + 8, 13); x.strokeStyle = color("--fg"); x.lineWidth = 1.6; x.stroke(); }
+    if (showFocus && c.i === focus) { rr(x, g.x - 6, g.y - 6, g.w + 12, g.h + 12, 14); x.setLineDash([5, 4]); x.strokeStyle = color("--hl"); x.lineWidth = 2; x.stroke(); x.setLineDash([]); }
+  });
+  if (step === 3 && merge && done3()) {
+    const a = geom[1], b = geom[2], ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2;
+    x.setLineDash([7, 5]); x.strokeStyle = NO; x.lineWidth = 2.5;
+    x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); x.setLineDash([]);
+    Play.text(x, t({ en: "one case?", zh: "算一种？" }), (ax + bx) / 2, (ay + by) / 2, { size: 14, weight: 700, color: NO });
+  }
+  Play.text(x, m === list.length
+    ? t({ en: `${m} cells · ${k} shaded`, zh: `${m} 格 · 阴影 ${k} 格` })
+    : t({ en: `${m} ${m === 1 ? "cell" : "cells"} left · ${k} shaded`, zh: `剩 ${m} 格 · 阴影 ${k} 格` }), w / 2, h - 18, { size: 15, weight: 700 });
+}
+
+function drawFamilies(x, w, h) {
+  const B = color("--c"), G = color("--h"), MU = color("--muted"), NO = color("--no"), A = color("--a");
+  const top = 40, barY = h - 52;
+  if (tot === 0) {
+    const cy = top + (barY - 30 - top) / 2;
+    Play.text(x, t({ en: "At least one is a boy.", zh: "至少有一个是男孩。" }), w / 2, cy - 50, { size: 15, weight: 650 });
+    badge(x, w / 2 - 26, cy, 18, true, 1);
+    x.beginPath(); x.arc(w / 2 + 26, cy, 18, 0, 2 * Math.PI); x.setLineDash([4, 3]); x.strokeStyle = MU; x.lineWidth = 1.6; x.stroke(); x.setLineDash([]);
+    Play.text(x, "?", w / 2 + 26, cy + 1, { size: 18, weight: 700, color: MU, halo: false });
+    Play.text(x, t({ en: "The other one: boy or girl.", zh: "另一个：不是男孩就是女孩。" }), w / 2, cy + 44, { size: 14, color: NO });
+    Play.text(x, t({ en: "So 1/2?", zh: "所以 1/2？" }), w / 2, cy + 66, { size: 15, weight: 700, color: NO });
+  } else {
+    const cols = 10, px = Math.min(44, (w - 24) / cols), py = Math.min(24, (barY - 30 - top) / 10), s = Math.min(13, px * 0.38, py * 0.7);
+    const x0 = (w - px * cols) / 2;
+    fam.forEach((f, i) => {
+      const cx = x0 + (i % cols) * px + px / 2, cy = top + Math.floor(i / cols) * py + py / 2, none = !f[0] && !f[1], both = f[0] && f[1];
+      x.globalAlpha = none ? 0.22 : 1;
+      [0, 1].forEach((j) => { rr(x, cx - s - 1 + j * (s + 2), cy - s / 2, s, s, 3); x.fillStyle = f[j] ? B : G; x.fill(); });
+      x.globalAlpha = 1;
+      if (both) { rr(x, cx - s - 3.5, cy - s / 2 - 2.5, 2 * s + 7, s + 5, 4); x.strokeStyle = color("--hl"); x.lineWidth = 2; x.stroke(); }
+    });
+  }
+  const bx0 = 24, bx1 = w - 24, L = bx1 - bx0, p = nAny ? nBB / nAny : 0;
+  rr(x, bx0, barY, L, 12, 6); x.fillStyle = color("--line"); x.fill();
+  if (nAny) { rr(x, bx0, barY, Math.max(4, L * p), 12, 6); x.fillStyle = color("--hl"); x.fill(); }
+  [[1 / 3, "1/3", A], [1 / 2, "1/2?", NO]].forEach(([q, s, c]) => {
+    x.strokeStyle = c; x.lineWidth = 2; x.beginPath(); x.moveTo(bx0 + L * q, barY - 5); x.lineTo(bx0 + L * q, barY + 17); x.stroke();
+    Play.text(x, s, bx0 + L * q, barY - 14, { size: 13, weight: 700, color: c });
+  });
+  Play.text(x, nAny ? `${nBB} ÷ ${nAny} = ${fmt(p, 2)}` : t({ en: "two boys ÷ families with a boy = ?", zh: "两个男孩 ÷ 有男孩的家庭 = ?" }), w / 2, h - 16, { size: 15, weight: 700 });
+}
+
+function draw(x, w, h) { if (step === 1) drawFamilies(x, w, h); else drawGrid(x, w, h); }
+
+function sizeCanvas() {
+  const narrow = innerWidth < 560;
+  cv.style.height = (step === 4 && n4 === 3 ? (narrow ? 270 : 300) : narrow ? 300 : 340) + "px";
+}
+
+// ---------- families (step 1) ----------
+function addFamilies(k) {
+  for (let i = 0; i < k; i++) {
+    const f = [Math.random() < 0.5, Math.random() < 0.5];
+    fam.push(f); tot++;
+    if (f[0] || f[1]) nAny++;
+    if (f[0] && f[1]) nBB++;
+  }
+  if (fam.length > 100) fam = fam.slice(fam.length - 100);
+  render();
+}
+
+// ---------- explain panel ----------
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>`;
+  if (step === 1) {
+    html += `<p><strong>${t({ en: "Don't calculate, just go with your gut:", zh: "不用算，凭感觉说：" })}</strong></p><div class="choices">` +
+      [[1, 2], [1, 3], [1, 4]].map(([a, b], i) => `<button data-g="${i}" class="${guess === i ? (nAny >= 30 ? (i === 1 ? "right" : "wrong") : "on") : ""}">${a}/${b}</button>`).join("") + `</div>`;
+    if (guess >= 0) {
+      if (!tot) html += `<p>${t({ en: "Let's check. Press “+100 families”: each family's two children are random, boy or girl.", zh: "来验证一下。按「+100 家」：每家两个孩子随机，男或女。" })}</p>`;
+      else {
+        const p = nBB / Math.max(1, nAny);
+        html += `<div class="mathline">${t({ en: "families", zh: "家庭" })}: ${tot}<br>${t({ en: "with a boy", zh: "有男孩" })}: ${nAny}<br>${t({ en: "two boys", zh: "两个男孩" })}: ${nBB} → ${nBB} ÷ ${nAny} = <b>${fmt(p, 2)}</b></div>`;
+        html += nAny < 30 ? `<p>${t({ en: "Too few families to tell. Add more.", zh: "家庭太少，看不出来。再多加一些。" })}</p>`
+          : Math.abs(p - 1 / 3) < Math.abs(p - 1 / 2)
+            ? `<p><span class="tag-no">${t({ en: "Not one half.", zh: "不是二分之一。" })}</span> ${t({ en: "It's close to one third. Why? Step 2 lists every case.", zh: "接近三分之一。为什么？第 2 步把情况都列出来。" })}</p>`
+            : `<p>${t({ en: "Random numbers wobble. Add more families and watch where it settles.", zh: "随机的数会晃。再加一些家庭，看它停在哪里。" })}</p>`;
+      }
+    }
+    html += `<div class="legend"><span><span class="dot" style="background:var(--c)"></span>${t({ en: "boy", zh: "男孩" })}</span><span><span class="dot" style="background:var(--h)"></span>${t({ en: "girl", zh: "女孩" })}</span><span>${t({ en: "faded: no boy · gold ring: two boys", zh: "变淡：没有男孩 · 金框：两个男孩" })}</span></div>`;
+    html += `<p class="note">${t({ en: "Random families: your numbers will differ each time.", zh: "家庭是随机的：每次的数都不一样。" })}</p>`;
+  } else if (step === 2) {
+    if (sel >= 0) { const c = cases(2)[sel]; html += `<p><strong>${cellName(c.seq)}</strong>: ${cellLong(c.seq)}.</p>`; }
+    html += `<div class="mathline">${pLine(2, "none", "all")}</div>`;
+    html += `<p>${t({ en: "Two boys is just one cell: one quarter, to begin with.", zh: "两个都是男孩只占一格，本来是四分之一。" })}</p>`;
+  } else if (step === 3) {
+    const { k, m } = prob(2, "any", "all");
+    if (warn >= 0) html += `<p class="warn">${t({ en: `${cellName(cases(2)[warn].seq)} has a boy, so it's still possible. Keep it.`, zh: `${cellName(cases(2)[warn].seq)} 里有男孩，还可能发生，要留着。` })}</p>`;
+    if (!done3()) html += `<p>${t({ en: `Crossed out: ${crossed.size}.`, zh: `已划掉：${crossed.size} 格。` })}</p>`;
+    else {
+      html += `<p><strong>${t({ en: `So girl-girl is impossible. The sample space shrinks to the ${m} cells left.`, zh: `女女不可能了。样本空间缩小成剩下的 ${m} 格。` })}</strong></p>`;
+      html += `<p>${t({ en: `Of the ${m} cells left, how many are two boys?`, zh: `剩下 ${m} 格里，两个都是男孩的占几格？` })}</p><div class="choices">` +
+        Array.from({ length: m }, (_, i) => i + 1).map((v) => `<button data-p="${v}" class="${predict === v ? (v === k ? "right" : "wrong") : ""}">${v}</button>`).join("") + `</div>`;
+      if (predict >= 0 && predict !== k) html += `<p class="warn">${t({ en: "Count the gold cells again.", zh: "再数一数金色的格子。" })}</p>`;
+      if (predict === k) {
+        html += `<div class="mathline">${pLine(2, "any", "all")}</div>`;
+        html += `<p>${t({ en: `Just ${k}, so the probability is one third, not one half. The ${m} remaining cells are still equally likely: each is now 1/${m}.`, zh: `只有 ${k} 格，所以概率是三分之一，不是二分之一。剩下的 ${m} 格机会相同，每格现在是 1/${m}。` })}</p>`;
+        html += `<button class="small" id="mergeBtn">${t(merge ? { en: "Hide", zh: "收起" } : { en: "Where does 1/2 come from?", zh: "1/2 是怎么来的？" })}</button>`;
+        if (merge) html += `<p><span class="tag-no">1/2 ✗</span> ${t({ en: "Saying one half treats boy-girl and girl-boy as a single case.", zh: "说二分之一的人，其实是把男女和女男当成了同一种情况。" })}</p>`;
+      }
+    }
+  } else {
+    const n = n4, { k, m } = prob(n, cond4, ev4), N = 1 << n;
+    html += `<div class="mathline">${pLine(n, cond4, ev4)}${cond4 !== "none" ? "<br>" + pLine(n, "none", ev4, "dim") : ""}</div>`;
+    let note;
+    if (cond4 === "none") note = { en: `No condition: nothing is crossed out, so the denominator is all ${N} cells.`, zh: `没有条件：一格都不划，分母是全部 ${N} 格。` };
+    else if (cond4 === "all" && ev4 === "any") {
+      const b = prob(n, "any", "all");
+      note = { en: `It's ${k}: every cell left has a boy. Swapping condition and event changes the probability: P(${t(allBoys(n))} | at least one boy) = ${fracTxt(b.k, b.m)}, but P(at least one boy | ${t(allBoys(n))}) = ${fracTxt(k, m)}.`,
+               zh: `是 ${k}：剩下的格子里都有男孩。条件和结论换位置，概率就变了：P(都是男孩 | 有男孩) = ${fracTxt(b.k, b.m)}，P(有男孩 | 都是男孩) = ${fracTxt(k, m)}。` };
+    } else if (n === 2 && ev4 === "all" && (cond4 === "older" || cond4 === "younger"))
+      note = { en: `This time a whole ${cond4 === "older" ? "row" : "column"} is crossed out, leaving ${m} cells. Only now is it one half.`, zh: `这次划掉的是一整${cond4 === "older" ? "行" : "列"}，剩下 ${m} 格。这时才是二分之一。` };
+    else note = { en: `${N - m} crossed out, ${m} left, ${k} of them shaded: ${k} ÷ ${m}.`, zh: `划掉 ${N - m} 格，剩 ${m} 格，其中阴影 ${k} 格：${k} ÷ ${m}。` };
+    html += `<p>${t(note)}</p>`;
+    if (sel >= 0 && sel < N) { const c = cases(n)[sel]; html += `<p class="note"><strong>${cellName(c.seq)}</strong>: ${cellLong(c.seq)}.</p>`; }
+    html += `<p class="note">${t({ en: "The denominator is no longer all the cells, just the ones that remain.", zh: "分母不再是全部格子，而是划完以后剩下的格子。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== step));
+  $("condBtns").innerHTML = ["none", "any", "older", "younger", "all"].map((c) => `<button class="small${c === cond4 ? " on" : ""}" data-c="${c}">${t(condName(c, n4, true))}</button>`).join("");
+  $("evBtns").innerHTML = ["all", "any"].map((e) => `<button class="small${e === ev4 ? " on" : ""}" data-e="${e}">${t(evName(e, n4))}</button>`).join("");
+  document.querySelectorAll("[data-n]").forEach((b) => b.classList.toggle("on", +b.dataset.n === n4));
+  const r1 = prob(2, "any", "all"), r2 = prob(2, "older", "all");
+  $("resMath").innerHTML = `P(${t(allBoys(2))} | ${t(condName("any", 2))}) =&nbsp;${r1.k}&nbsp;÷&nbsp;${r1.m}&nbsp;=&nbsp;${frac(r1.k, r1.m)}`;
+  $("resN").innerHTML = t({ en: "A different condition leaves a different sample space: ", zh: "条件不同，剩下的样本空间就不同：" }) +
+    `<span class="math">P(${t(allBoys(2))} | ${t(condName("older", 2))}) =&nbsp;${r2.k}&nbsp;÷&nbsp;${r2.m}&nbsp;=&nbsp;${frac(r2.k, r2.m)}</span>`;
+  sizeCanvas();
+  dirty = true;
+}
+$("explain").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-g]"), p = e.target.closest("[data-p]");
+  if (g) { guess = +g.dataset.g; render(); }
+  if (p) { predict = +p.dataset.p; render(); }
+  if (e.target.id === "mergeBtn") { merge = !merge; render(); }
+});
+$("c4").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.c) cond4 = b.dataset.c;
+  if (b.dataset.e) ev4 = b.dataset.e;
+  if (b.dataset.n) { n4 = +b.dataset.n; sel = -1; focus = 0; }
+  render();
+});
+
+// ---------- input ----------
+function tap(i) {
+  if (step === 1 || i < 0) return;
+  sel = i; focus = i;
+  if (step === 3) {
+    const c = cases(2)[i];
+    if (crossed.has(i)) { crossed.delete(i); warn = -1; }
+    else if (COND.any.f(c.seq)) warn = i;
+    else { crossed.add(i); warn = -1; }
+    if (!done3()) { predict = -1; merge = false; }
+  }
+  render();
+}
+const nav = Play.steps(document.querySelector(".steps"), (n) => {
+  step = n; sel = -1; warn = -1; focus = 0; showFocus = false;
+  render();
+});
+$("add10").onclick = () => addFamilies(10);
+$("add100").onclick = () => addFamilies(100);
+$("clear1").onclick = () => { fam = []; tot = nAny = nBB = 0; render(); };
+$("auto3").onclick = () => { crossed = new Set(cases(2).filter((c) => !COND.any.f(c.seq)).map((c) => c.i)); warn = -1; render(); };
+$("undo3").onclick = () => { crossed = new Set(); warn = -1; predict = -1; merge = false; render(); };
+
+Play.drag(cv, {
+  down(px, py) {
+    if (step === 1) { addFamilies(10); return false; }
+    showFocus = false;
+    const g = geom.find((q) => px >= q.x && px <= q.x + q.w && py >= q.y && py <= q.y + q.h);
+    if (g) tap(g.c.i);
+    return false;
+  },
+});
+const moveFocus = (dx, dy) => {
+  if (step === 1) return;
+  const n = config().n, cols = 1 << (n - 1);
+  const r = clamp((focus >> (n - 1)) + dy, 0, 1), c = clamp((focus & (cols - 1)) + dx, 0, cols - 1);
+  focus = (r << (n - 1)) | c; showFocus = true; dirty = true;
+};
+const enter = () => (step === 1 ? addFamilies(10) : (showFocus = true, tap(focus)));
+Play.keys(cv, {
+  ArrowLeft: () => moveFocus(-1, 0), ArrowRight: () => moveFocus(1, 0), ArrowUp: () => moveFocus(0, -1), ArrowDown: () => moveFocus(0, 1),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  n4 = 2; cond4 = "any"; ev4 = "all"; crossed = new Set(); predict = -1; merge = false;
+  guess = -1; fam = []; tot = nAny = nBB = 0;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+Play.loop(() => { if (dirty) { dirty = false; main.redraw(); } });
+nav.set(1);
+</script>
+</body>
+</html>

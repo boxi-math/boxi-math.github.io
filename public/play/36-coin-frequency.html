@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coin Flips: Why Frequencies Settle Down · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on, .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls button:disabled { opacity: .45; cursor: default; }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .tools .seed { font-family: var(--math); font-size: 14px; color: var(--fg); }
+  .explain .mathline { font-size: 19px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .choices button { min-height: 38px; padding: 4px 14px; font-size: 14px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .tbl { border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; width: 100%; max-width: 380px; font-variant-numeric: tabular-nums; }
+  .tbl th { font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--line); }
+  .tbl td { text-align: right; padding: 3px 6px; color: var(--fg); font-family: var(--math); font-size: 15px; }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl tr.sel td { background: var(--soft); font-weight: 700; }
+  .tbl tr.dim td { color: var(--muted); }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 5px; vertical-align: 3px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--hl); margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools">
+      <span class="seed" id="seedV"></span>
+      <button class="small" id="newset" data-t="newset"></button>
+      <button class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="coin flips"></canvas>
+      <div class="controls" id="c1">
+        <button id="f1" data-t="flip1"></button><button id="f10" data-t="flip10"></button><button id="undo" class="small" data-t="undo"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button id="add1">+1</button><span data-t="upTo"></span><button data-to="10">10</button><button data-to="100">100</button><button data-to="1000">1000</button>
+        <button class="small" id="play" data-t="pause"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <label class="check"><input id="runs" type="checkbox" checked><span data-t="runsL"></span></label>
+        <label class="check"><input id="band" type="checkbox"><span data-t="bandL"></span></label>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span data-t="afterL"></span><span id="lBtns"></span><span data-t="tailsRow"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><span data-t="freqW"></span> = <span class="frac"><span data-t="headsW"></span><span data-t="flipsW"></span></span> → <span class="frac"><span>1</span><span>2</span></span></div></div>
+    <div class="rn"><span class="tag-demo" data-t="demo"></span><br><span data-t="resN"></span></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Coin Flips: Why Frequencies Settle Down", zh: "抛硬币：频率为什么会稳定" },
+  eyebrow: { en: "Boxi Math · Try it · #36", zh: "Boxi Math · 动手试试 · #36" },
+  intro: { en: "At break, a coin lands tails five times in a row. Is heads due now? Flip a computer-simulated coin yourself, watch the share of heads over a thousand flips, then count what really comes after five tails.",
+           zh: "课间抛硬币，一连五次都是反面。这回该轮到正面了吗？自己抛一枚电脑模拟的硬币，看一千次里正面的比例怎么走，再数一数连着五次反面之后到底出了什么。" },
+  s1: { en: "Heads is due?", zh: "该轮到正面？" }, s2: { en: "Flip more", zh: "多抛几次" }, s3: { en: "Five coins", zh: "五枚硬币" }, s4: { en: "No memory", zh: "硬币没记性" },
+  newset: { en: "New set", zh: "换一组" }, reset: { en: "Reset", zh: "重置" },
+  flip1: { en: "Flip 1", zh: "抛 1 次" }, flip10: { en: "Flip 10", zh: "抛 10 次" }, undo: { en: "Undo", zh: "撤回" },
+  upTo: { en: "flip up to", zh: "抛到" }, pause: { en: "Pause", zh: "暂停" }, playB: { en: "Play", zh: "继续" },
+  runsL: { en: "4 more coins", zh: "再加四枚硬币" }, bandL: { en: "funnel 1/2 ± 1/√k", zh: "漏斗 1/2 ± 1/√k" },
+  afterL: { en: "After", zh: "连着" }, tailsRow: { en: "tails in a row", zh: "次反面之后" },
+  freqW: { en: "frequency", zh: "频率" }, headsW: { en: "heads", zh: "正面次数" }, flipsW: { en: "flips", zh: "抛的次数" },
+  demo: { en: "Demo, not proof", zh: "这是演示，不是证明" },
+  resT: { en: "A probability of one half means that over many flips, the frequency settles near one half.", zh: "概率二分之一，说的是抛很多次，频率会稳在一半附近。" },
+  resN: { en: "It steadies because of the sheer number of flips, not because later flips make up for earlier ones. Ten flips don't have to give five heads.",
+          zh: "频率变稳，靠的是次数多，不是后面去补前面。抛十次也不一定是五次正面。" },
+  moreS: { en: "Why does the share settle if the heads count never catches up?", zh: "正面次数没有“追回来”，比例为什么还会稳？" },
+  moreP: { en: "Heads minus half the flips is a gap that usually grows, roughly like √k: about ±5 after 100 flips, about ±16 after 1000. But the frequency is that gap divided by k, plus 1/2. Dividing a gap of size √k by k leaves 1/√k, which shrinks. So the early jumps are diluted, not paid back. The funnel 1/2 ± 1/√k is where the line stays about 95% of the time.",
+           zh: "正面次数减去一半次数，这个差一般会越来越大，大约像 √k：一百次时 ±5 左右，一千次时 ±16 左右。可频率是这个差除以 k 再加 1/2。大小像 √k 的差除以 k，剩下 1/√k，越来越小。所以前面的乱跳是被冲淡的，不是被还回来的。漏斗 1/2 ± 1/√k 是折线大约 95% 的时候待着的地方。" },
+  moreQ: { en: "This page shows it with simulated flips; it does not prove it. The statement that the frequency settles is called the law of large numbers, proved in probability courses. Each set of flips comes from a fixed seed, so the same seed always replays the same coins.",
+           zh: "这一页是用模拟的抛掷演示，不是证明。“频率会稳定”这件事叫大数定律，概率课上会证明。每组抛掷都由一个固定的种子生成，同一个种子总是重放同样的硬币。" },
+  foot: { en: "Click the coins (or press → / space) to flip, ← to undo · drag or arrow keys on the chart to read any point · ← → choose the streak length in step 4. Green is heads, brown is tails, the gold dashed line is 1/2.",
+          zh: "点硬币区（或按 → / 空格）抛一次，← 撤回 · 在折线图上拖动或用方向键读任意一点 · 第 4 步用 ← → 选连续几次反面。绿色是正面，棕色是反面，金色虚线是 1/2。" },
+  v1: { en: "Your flips, one by one", zh: "一次一次地抛" }, v2: { en: "Share of heads after each flip", zh: "每抛一次后正面的比例" },
+  v3: { en: "Five coins, a thousand flips each", zh: "五枚硬币，各抛一千次" }, v4: { en: "1000 flips: what comes next?", zh: "一千次：接下来出什么？" },
+  tag1: { en: "click to flip", zh: "点一下抛一次" }, tag2: { en: "drag to read", zh: "拖动读数" }, tag3: { en: "drag to read", zh: "拖动读数" }, tag4: { en: "← → streak length", zh: "← → 选连续几次" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const N = 1000, CAP1 = 20, SEED0 = 8770;
+const HT = () => t({ en: "H", zh: "正" }), TT = () => t({ en: "T", zh: "反" });
+const hot = (s) => `<span class="hot">${s}</span>`;
+const sgnN = (v) => (v > 0 ? "+" + v : v < 0 ? "−" + -v : "0");
+
+// ---------- replayable coins: the same Mersenne Twister as Python's random.Random(seed) ----------
+function pyRandom(seed) {
+  const n = 624, m = 397, mt = new Uint32Array(n); let mti;
+  const mul = (a, b) => Math.imul(a, b) >>> 0;
+  mt[0] = 19650218; for (mti = 1; mti < n; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
+  let i = 1;
+  for (let k = n; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0)) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+  for (let k = n - 1; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+  mt[0] = 0x80000000;
+  function next() {
+    if (mti >= n) {
+      for (let k = 0; k < n; k++) { const y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff); mt[k] = mt[(k + m) % n] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
+      mti = 0;
+    }
+    let y = mt[mti++];
+    y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
+    return y >>> 0;
+  }
+  return () => ((next() >>> 5) * 67108864 + (next() >>> 6)) / 9007199254740992;
+}
+function coins(seed) {                       // 1 = heads; cum[k] = heads in the first k flips
+  const r = pyRandom(seed), f = [], cum = [0];
+  for (let i = 0; i < N; i++) { f.push(r() < 0.5 ? 1 : 0); cum.push(cum[i] + f[i]); }
+  return { f, cum };
+}
+function streaks(f, L) {                     // positions i whose previous L flips are all tails (overlaps count)
+  const out = []; let run = 0;
+  for (let i = 0; i < f.length; i++) { if (run >= L) out.push(i); run = f[i] ? 0 : run + 1; }
+  return out;
+}
+
+// ---------- state ----------
+let seed, R, n1, bets, n2, nD, playing, cursor, pick, L, step = 1, dirty = true;
+function load(s) { seed = s; R = [0, 1, 2, 3, 4].map((j) => coins(s + j)); }
+function init(s) { load(s); n1 = 0; bets = {}; n2 = 0; nD = 0; playing = !Play.reduced; cursor = null; pick = null; L = 5; }
+init(SEED0);
+const main = () => R[0];
+const tailRun = (n) => { let k = 0; while (k < n && !main().f[n - 1 - k]) k++; return k; };
+
+// ---------- labels that avoid each other (as in #24) ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let p = null;
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { p = c; break; }
+  }
+  if (!p) { if (o.optional) return; p = cands[0]; }
+  boxes.push(boxOf(x, s, p[0], p[1], size, p[2] || "center"));
+  Play.text(x, s, p[0], p[1], { weight: 700, ...o, size, align: p[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function rrect(x, l, tp, w, h, r) { x.beginPath(); x.roundRect ? x.roundRect(l, tp, w, h, r) : x.rect(l, tp, w, h); }
+function fitHeight(h) {                       // canvas height follows the content; RO redraws after a change
+  const want = Math.round(h) + "px";
+  if (cvEl.style.height !== want) { cvEl.style.height = want; return true; }
+  return false;
+}
+
+// ---------- step 1: coins one by one ----------
+const TOP = 34;
+function coinGeo(w) {
+  const cell = Math.min(64, (w - 24) / 10), r = Math.min(20, cell / 2 - 3), rowH = 2 * r + 36;
+  return { cell, r, rowH, x0: (w - cell * 10) / 2, H: TOP + 2 * rowH + 18 };
+}
+function coinXY(G, i) { return [G.x0 + G.cell * (i % 10 + 0.5), TOP + 8 + G.r + Math.floor(i / 10) * G.rowH]; }
+function draw1(x, w) {
+  const G = coinGeo(w);
+  if (fitHeight(G.H)) return;
+  const A = color("--a"), B = color("--b"), MU = color("--muted"), S = color("--surface");
+  const run = tailRun(n1);
+  if (run >= 2) {                                       // frame the tails streak, row by row
+    const first = n1 - run, rows = {};
+    for (let i = first; i < n1; i++) (rows[Math.floor(i / 10)] ||= []).push(i);
+    x.setLineDash([5, 4]); x.strokeStyle = run >= 5 ? color("--no") : rgba(MU, 0.8); x.lineWidth = 2;
+    Object.values(rows).forEach((ix) => {
+      const a = coinXY(G, ix[0]), b = coinXY(G, ix[ix.length - 1]), pad = G.r + 5;
+      rrect(x, a[0] - pad, a[1] - pad, b[0] - a[0] + 2 * pad, 2 * pad + 20, 10); x.stroke();
+    });
+    x.setLineDash([]);
+  }
+  for (let i = 0; i < CAP1; i++) {
+    const [cx, cy] = coinXY(G, i);
+    if (i < n1) {
+      const hd = main().f[i];
+      dot(x, cx, cy, G.r, hd ? A : B, bets[i] != null ? color("--hl") : null, 3);
+      Play.text(x, hd ? HT() : TT(), cx, cy + 0.5, { color: S, size: Math.max(13, Math.round(G.r * 0.9)), weight: 800, halo: false });
+    } else {
+      x.setLineDash([3, 4]); dot(x, cx, cy, G.r, null, rgba(MU, i === n1 ? 0.9 : 0.35), 1.5); x.setLineDash([]);
+      if (i === n1) Play.text(x, "?", cx, cy + 0.5, { color: MU, size: 15, weight: 700, halo: false });
+    }
+    Play.text(x, String(i + 1), cx, cy + G.r + 12, { color: i < n1 ? color("--fg") : MU, size: 13, weight: 500, halo: false });
+  }
+}
+
+// ---------- steps 2 and 3: frequency chart ----------
+const SCALES = [10, 20, 50, 100, 200, 500, 1000];
+function chartView(w, h, X) {
+  const l = 46, r = 16, tp = TOP + 8, b = 30;
+  return { l, r: w - r, t: tp, b: h - b, X, px: (k) => l + (k / X) * (w - r - l), py: (f) => tp + (1 - f) * (h - b - tp), k: (px) => ((px - l) / (w - r - l)) * X };
+}
+function axes(x, V) {
+  const st = V.X / 10;
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let k = st; k <= V.X + 1e-9; k += st) { x.moveTo(V.px(k), V.t); x.lineTo(V.px(k), V.b); }
+  for (let j = 1; j <= 10; j++) { x.moveTo(V.l, V.py(j / 10)); x.lineTo(V.r, V.py(j / 10)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(V.l, V.b); x.lineTo(V.r, V.b); x.moveTo(V.l, V.t); x.lineTo(V.l, V.b); x.stroke();
+  x.strokeStyle = color("--hl"); x.lineWidth = 2; x.setLineDash([7, 5]); x.beginPath();
+  x.moveTo(V.l, V.py(0.5)); x.lineTo(V.r, V.py(0.5)); x.stroke(); x.setLineDash([]);
+}
+function ticks(x, V) {
+  const mu = color("--muted");
+  for (let k = 0; k <= V.X; k += V.X / 5) Play.text(x, String(k), V.px(k), V.b + 14, { size: 13, color: mu, weight: 500 });
+  [0, 0.25, 0.75, 1].forEach((f) => Play.text(x, fmt(f), V.l - 7, V.py(f), { size: 13, color: mu, align: "right", weight: 500 }));
+  Play.text(x, "1/2", V.l - 7, V.py(0.5), { size: 14, color: color("--hl"), align: "right", weight: 800 });
+}
+function freqLine(x, V, run, upto, col, lw) {
+  x.strokeStyle = col; x.lineWidth = lw; x.lineJoin = "round"; x.beginPath();
+  const whole = Math.floor(upto);
+  for (let k = 1; k <= whole; k++) { const p = [V.px(k), V.py(run.cum[k] / k)]; k === 1 ? x.moveTo(...p) : x.lineTo(...p); }
+  x.stroke();
+}
+function drawChart(x, w, h, which) {
+  if (fitHeight(w < 560 ? 300 : 360)) return;
+  const all = which === 3, upto = all ? N : nD, target = all ? N : n2;
+  const V = chartView(w, h, all ? N : SCALES.find((s) => s >= Math.max(10, target)));
+  boxes = [[0, 0, w, TOP]];
+  if (all && el("band").checked) {                     // funnel 1/2 ± 1/√k
+    x.fillStyle = rgba(color("--c"), 0.13); x.beginPath();
+    for (let k = 1; k <= N; k++) x.lineTo(V.px(k), V.py(Math.min(1, 0.5 + 1 / Math.sqrt(k))));
+    for (let k = N; k >= 1; k--) x.lineTo(V.px(k), V.py(Math.max(0, 0.5 - 1 / Math.sqrt(k))));
+    x.closePath(); x.fill();
+  }
+  axes(x, V);
+  if (all && el("runs").checked) [["--c", 1], ["--b", 2], ["--h", 3], ["--muted", 4]].forEach(([c, j]) => freqLine(x, V, R[j], N, rgba(color(c), 0.6), 1.5));
+  const A = color("--a");
+  if (upto >= 1) freqLine(x, V, main(), upto, A, 2.6);
+  const whole = Math.floor(upto);
+  if (!all && whole && whole <= 100) for (let k = 1; k <= whole; k++) dot(x, V.px(k), V.py(main().cum[k] / k), whole <= 20 ? 3.5 : 2, A);
+  ticks(x, V);
+  if (!whole) { place(x, t({ en: "Press +1 or a number below", zh: "按 +1 或下面的数字开始抛" }), [[(V.l + V.r) / 2, V.py(0.75)]], { color: color("--muted"), size: 14 }); return; }
+  // readout at the cursor
+  const k = clamp(cursor == null ? whole : Math.min(cursor, whole), 1, whole), hk = main().cum[k], fk = hk / k;
+  const P = [V.px(k), V.py(fk)];
+  x.strokeStyle = rgba(color("--fg"), 0.45); x.lineWidth = 1; x.setLineDash([3, 4]); x.beginPath(); x.moveTo(P[0], V.t); x.lineTo(P[0], V.b); x.stroke(); x.setLineDash([]);
+  dot(x, ...P, 7, color("--hl"), color("--fg"), 1.5); reserve(...P, 10);
+  reserve(V.r - 22, V.py(0.5), 10);
+  place(x, `${t({ en: "heads", zh: "正面" })} ${main().cum[whole]}/${whole}`, [[V.r - 6, TOP + 22, "right"], [V.l + 8, TOP + 22, "left"]], { color: A, size: 15 });
+  const s = `${hk}/${k} = ${fmt(fk, 3)}`, d = P[1] < V.py(0.5) ? -1 : 1, sd = P[0] > (V.l + V.r) / 2 ? "right" : "left", o = sd === "left" ? 12 : -12;
+  place(x, s, [[P[0] + o, P[1] + d * 22, sd], [P[0] + o, P[1] - d * 22, sd], [P[0] - o, P[1] + d * 22, sd === "left" ? "right" : "left"], [P[0] + o, P[1] + d * 44, sd]], { size: 15 });
+}
+
+// ---------- step 4: all 1000 flips, marking what comes after L tails ----------
+function grid4(w) { const cols = w < 520 ? 40 : 50, cell = (w - 24) / cols, rows = N / cols; return { cols, cell, rows, x0: 12, y0: TOP + 4, H: TOP + 4 + rows * cell + 86 }; }
+function draw4(x, w, h) {
+  const G = grid4(w);
+  if (fitHeight(G.H)) return;
+  boxes = [[0, 0, w, TOP]];
+  const f = main().f, pos = streaks(f, L), next = new Set(pos), pre = new Set();
+  pos.forEach((i) => { for (let j = i - L; j < i; j++) pre.add(j); });
+  const A = color("--a"), B = color("--b"), FG = color("--fg"), g = Math.max(1, G.cell * 0.12);
+  for (let i = 0; i < N; i++) {
+    const cx = G.x0 + (i % G.cols) * G.cell, cy = G.y0 + Math.floor(i / G.cols) * G.cell;
+    x.fillStyle = next.has(i) ? (f[i] ? A : B) : pre.has(i) ? rgba(B, 0.5) : f[i] ? rgba(A, 0.2) : rgba(B, 0.13);
+    x.fillRect(cx + g / 2, cy + g / 2, G.cell - g, G.cell - g);
+    if (next.has(i)) { x.strokeStyle = FG; x.lineWidth = 1.2; x.strokeRect(cx + g / 2, cy + g / 2, G.cell - g, G.cell - g); }
+  }
+  // stacked bar: next flip heads vs tails
+  const hN = pos.filter((i) => f[i]).length, tot = pos.length, by = G.y0 + G.rows * G.cell + 30, bl = 12, bw = w - 24, bh = 26;
+  Play.text(x, t({ en: `${tot} times after ${L} tails in a row; next flip:`, zh: `连着 ${L} 次反面之后：${tot} 回，下一次是` }), bl, by - 14, { size: 14, align: "left", weight: 600 });
+  if (!tot) { Play.text(x, t({ en: "(never in these 1000 flips)", zh: "（这一千次里一回也没有）" }), bl, by + bh / 2, { size: 14, align: "left", color: color("--muted") }); return; }
+  const hw = bw * hN / tot;
+  x.fillStyle = A; x.fillRect(bl, by, hw, bh); x.fillStyle = B; x.fillRect(bl + hw, by, bw - hw, bh);
+  x.strokeStyle = color("--hl"); x.lineWidth = 2.5; x.setLineDash([5, 3]); x.beginPath(); x.moveTo(bl + bw / 2, by - 5); x.lineTo(bl + bw / 2, by + bh + 5); x.stroke(); x.setLineDash([]);
+  const S = color("--surface"), lab = (s, px, al, c) => Play.text(x, s, px, by + bh / 2 + 0.5, { size: 14, weight: 800, align: al, color: c, halo: false });
+  const hs = `${t({ en: "heads", zh: "正面" })} ${hN}`, ts = `${t({ en: "tails", zh: "反面" })} ${tot - hN}`;
+  x.font = "800 14px Inter, system-ui, sans-serif";
+  if (x.measureText(hs).width + 12 < hw) lab(hs, bl + 6, "left", S); else Play.text(x, hs, bl, by + bh + 16, { size: 14, weight: 800, align: "left", color: A });
+  if (x.measureText(ts).width + 12 < bw - hw) lab(ts, bl + bw - 6, "right", S); else Play.text(x, ts, bl + bw, by + bh + 16, { size: 14, weight: 800, align: "right", color: B });
+  Play.text(x, "1/2", bl + bw / 2, by + bh + 16, { size: 13, weight: 800, color: color("--hl") });
+}
+
+function draw(x, w, h) {
+  W0 = w; H0 = h;
+  if (step === 1) draw1(x, w); else if (step === 4) draw4(x, w, h); else drawChart(x, w, h, step);
+}
+
+// ---------- explanations ----------
+const tbl = (head, rows) => `<table class="tbl"><tr>${head.map((s) => `<th>${s}</th>`).join("")}</tr>${rows.join("")}</table>`;
+function explain1() {
+  const n = n1, h = main().cum[n], run = tailRun(n), last = n - 1;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "观察 01 / 先试试直觉" })}</div>
+    <h2>${t({ en: "Five tails in a row: is heads due?", zh: "连着五次反面：该轮到正面了吗？" })}</h2>
+    <p>${t({ en: "Someone says: heads has a one-half chance, so ten flips should give five heads, and after a run of tails, heads is due. Flip and see.", zh: "有人说：正面的概率是二分之一，所以抛十次该有五次正面；反面连着出了几次，就该轮到正面了。自己抛抛看。" })}</p>`;
+  if (n) out += `<div class="mathline">${t({ en: "heads", zh: "正面" })} ÷ ${t({ en: "flips", zh: "次数" })} = ${h} ÷ ${n} = <b>${fmt(h / n, 3)}</b></div>`;
+  if (n >= 10) {
+    const h10 = main().cum[10];
+    out += `<p>${h10 === 5 ? t({ en: "The first ten gave exactly 5 heads this time. Press New set: it often isn't 5.", zh: "这一组前十次正好 5 次正面。按「换一组」试试：经常不是 5。" })
+      : t({ en: `The first ten: ${hot(h10 + " heads")}, ${h10} ÷ 10 = ${fmt(h10 / 10)}, <span class="no-t">not 5</span>, far from one half.`, zh: `前十次：${hot(h10 + " 次正面")}，${h10} ÷ 10 = ${fmt(h10 / 10)}，<span class="no-t">不是 5 次</span>，离二分之一还差得远。` })}</p>`;
+  }
+  const bet = bets[last], after = n > 0 && tailRun(n - 1) >= 5;
+  if (after) {
+    const hd = main().f[last], ok = bet != null && (bet === 1) === !!hd;
+    out += `<p class="big">${bet != null ? t({ en: `You picked ${bet ? "heads" : "tails"}. `, zh: `你押了${bet ? "正面" : "反面"}。` }) : ""}${t({ en: `Flip ${n}: <b>${hd ? "heads" : "tails"}</b>.`, zh: `第 ${n} 次：<b>${hd ? "正面" : "反面"}</b>。` })} ${ok ? t({ en: "Lucky this time, but that's all it was.", zh: "这回押中了，但只是碰巧。" }) : ""}
+      ${t({ en: "The coin doesn't remember what came before: the next flip is still one half. Step 04 counts every such moment in a thousand flips.", zh: "硬币不记得前面出过什么：下一次还是二分之一。第 04 步会把一千次里所有这种时候都数出来。" })}</p>`;
+  }
+  if (run >= 5 && n < CAP1) {
+    out += `<p class="big">${t({ en: `${hot(run + " tails in a row")}. If you were betting, which side would you pick for flip ${n + 1}?`, zh: `${hot("连着 " + run + " 次反面")}。要是你来押，第 ${n + 1} 次押哪一面？` })}</p>
+      <div class="choices"><button data-bet="1">${t({ en: "Heads: it's due", zh: "正面：该轮到了" })}</button><button data-bet="0">${t({ en: "Tails: on a streak", zh: "反面：手气正旺" })}</button></div>`;
+  } else if (after) {
+    // reveal already shown
+  } else if (n >= CAP1) {
+    out += `<p>${t({ en: "Twenty flips are enough here. Step 02 keeps flipping, up to a thousand.", zh: "这里抛二十次就够了。第 02 步接着抛，一直抛到一千次。" })}</p>`;
+  } else if (!n) {
+    out += `<p>${t({ en: "Click the coins or press Flip 1.", zh: "点一下硬币区，或按「抛 1 次」。" })}</p>`;
+  }
+  return out + `<div class="legend"><span><span class="sw" style="background:var(--a)"></span>${t({ en: "heads", zh: "正面" })}</span><span><span class="sw" style="background:var(--b)"></span>${t({ en: "tails", zh: "反面" })}</span><span><span class="sw" style="border:2px dashed var(--no)"></span>${t({ en: "tails in a row", zh: "连着的反面" })}</span></div>`;
+}
+function explain2() {
+  const k = Math.floor(nD), h = main().cum[k];
+  let out = `<div class="kicker">${t({ en: "Step 02 · flip more", zh: "观察 02 / 多抛几次" })}</div>
+    <h2>${t({ en: "Draw the share of heads after each flip as a line", zh: "把每次之后正面的比例画成折线" })}</h2>
+    <p>${t({ en: "Across is the number of flips so far; up is heads ÷ flips. At first, the line jumps up and down.", zh: "横轴是抛了几次，竖轴是正面次数 ÷ 抛的次数。开头几次，折线上下乱跳。" })}</p>`;
+  if (k) out += `<div class="mathline">${h} ÷ ${k} = <b>${fmt(h / k, 3)}</b></div>`;
+  const rows = [10, 100, 1000].filter((c) => c <= k).map((c) => `<tr><td>${c}</td><td>${main().cum[c]}</td><td>${fmt(main().cum[c] / c, 3)}</td><td>${fmt(Math.abs(main().cum[c] / c - 0.5), 3)}</td></tr>`);
+  if (rows.length) out += tbl([t({ en: "flips", zh: "次数" }), t({ en: "heads", zh: "正面" }), t({ en: "share", zh: "频率" }), t({ en: "off 1/2 by", zh: "离 1/2" })], rows);
+  if (n2 === 100 && k === 100 && pick == null) {
+    out += `<p class="big">${t({ en: "By a thousand flips, where will the line be?", zh: "抛到一千次，折线会落到什么位置？" })}</p>
+      <div class="choices"><button data-pick="0">${t({ en: "Close to 1/2", zh: "贴近 1/2" })}</button><button data-pick="1">${t({ en: "Still jumping all over", zh: "还是到处乱跳" })}</button><button data-pick="2">${t({ en: "Pushed the other way, to make up", zh: "往反方向偏，把前面补回来" })}</button></div>`;
+  } else if (k === N) {
+    const f = main().cum[N] / N;
+    out += `<p class="big">${t({ en: `At a thousand flips: ${main().cum[N]} heads, a frequency of ${hot(fmt(f, 3))}, close to one half.`, zh: `到一千次，正面 ${main().cum[N]} 次，频率 ${hot(fmt(f, 3))}，贴近二分之一。` })}
+      ${pick === 0 ? `<span class="ok-t">${t({ en: "As you guessed.", zh: "你猜对了。" })}</span>` : pick === 1 ? `<span class="no-t">${t({ en: "It stopped jumping.", zh: "它不怎么跳了。" })}</span>` : pick === 2 ? `<span class="no-t">${t({ en: "No pushing back needed: step 03 shows why.", zh: "不用往回补：第 03 步看为什么。" })}</span>` : ""}</p>`;
+  } else if (k < n2) out += `<p>${t({ en: "Flipping…", zh: "正在抛……" })}</p>`;
+  return out;
+}
+function explain3() {
+  const at = (j, c) => R[j].cum[c] - c / 2;
+  const rows = [10, 100, 1000].map((c) => `<tr><td>${c}</td><td>${main().cum[c]}</td><td>${fmt(main().cum[c] / c, 3)}</td><td>${sgnN(at(0, c))}</td></tr>`);
+  const grew = [0, 1, 2, 3, 4].filter((j) => Math.abs(at(j, 1000)) > Math.abs(at(j, 100))).length;
+  const far = Math.max(...R.map((r) => Math.abs(r.cum[N] / N - 0.5)));
+  return `<span class="tag-demo">${t(D.demo)}</span><div class="kicker">${t({ en: "Step 03 · five coins", zh: "观察 03 / 五枚硬币" })}</div>
+    <h2>${t({ en: "The more flips, the narrower the lines are squeezed", zh: "次数越多，折线被夹得越窄" })}</h2>
+    <p>${t({ en: "Four more coins, a thousand flips each: they all jump around at first and all crowd near one half later.", zh: "再换四枚硬币各抛一千次，开头都乱跳，后来都挤到一半附近。" })}</p>
+    ${tbl([t({ en: "flips", zh: "次数" }), t({ en: "heads", zh: "正面" }), t({ en: "share", zh: "频率" }), t({ en: "heads − half", zh: "正面 − 一半" })], rows)}
+    <p class="big">${t({ en: `The count gap “heads − half” for coin 1 goes ${sgnN(at(0, 10))}, ${sgnN(at(0, 100))}, ${sgnN(at(0, 1000))}. For ${hot(grew + " of 5")} coins it is bigger at 1000 than at 100, yet all five shares end within ${fmt(far, 3)} of 1/2.`,
+                           zh: `硬币 1 的“正面 − 一半”依次是 ${sgnN(at(0, 10))}、${sgnN(at(0, 100))}、${sgnN(at(0, 1000))}。五枚里有 ${hot(grew + " 枚")}在一千次时比一百次时差得更多，可五个频率最后都在 1/2 ± ${fmt(far, 3)} 以内。` })}</p>
+    <p>${t({ en: "Later flips don't pay back earlier ones. Dividing by more and more flips dilutes the early jumps.", zh: "后面的抛掷并没有去补前面。是除以越来越多的次数，把前面的乱跳冲淡了。" })}</p>
+    <div class="legend"><span><span class="ln" style="border-color:var(--a)"></span>${t({ en: "coin 1", zh: "硬币 1" })}</span><span><span class="ln" style="border-color:var(--c);opacity:.6"></span>${t({ en: "coins 2–5", zh: "硬币 2–5" })}</span><span><span class="sw" style="background:var(--c);opacity:.25"></span>1/2 ± 1/√k</span><span><span class="dsh"></span>1/2</span></div>`;
+}
+function explain4() {
+  const f = main().f, rows = [1, 2, 3, 4, 5, 6].map((l) => {
+    const p = streaks(f, l), hN = p.filter((i) => f[i]).length;
+    return `<tr class="${l === L ? "sel" : ""}"><td>${l}</td><td>${p.length}</td><td>${hN}</td><td>${p.length ? fmt(hN / p.length, 2) : "—"}</td></tr>`;
+  });
+  const p = streaks(f, L), hN = p.filter((i) => f[i]).length;
+  return `<span class="tag-demo">${t(D.demo)}</span><div class="kicker">${t({ en: "Step 04 · the coin has no memory", zh: "观察 04 / 硬币没有记性" })}</div>
+    <h2>${t({ en: "Look at the times tails came up five in a row", zh: "看连着五次反面的时候" })}</h2>
+    <p>${t({ en: "Every small square is one of the thousand flips, read left to right. Bold squares are the flips right after a run of tails; overlapping runs count too.", zh: "每个小方块是一千次里的一次，从左往右读。粗框的方块是刚连着出了几次反面之后的那一次；重叠的也算。" })}</p>
+    <div class="mathline">${p.length ? `${hN} ÷ ${p.length} = <b>${fmt(hN / p.length, 3)}</b>` : "—"}</div>
+    ${tbl([t({ en: "tails in a row", zh: "连着反面" }), t({ en: "times", zh: "回数" }), t({ en: "next heads", zh: "下一次正面" }), t({ en: "share", zh: "比例" })], rows)}
+    <p class="big">${t({ en: "After any run of tails, the next flip is heads about half the time: <span class='no-t'>heads is never “due”</span>. The coin doesn't remember what came before.", zh: "不管前面连着几次反面，下一次是正面的都差不多一半：<span class='no-t'>没有“该轮到正面”这回事</span>。硬币不记得前面出过什么。" })}</p>
+    <div class="legend"><span><span class="sw" style="background:var(--a);outline:1px solid var(--fg)"></span>${t({ en: "next: heads", zh: "下一次正面" })}</span><span><span class="sw" style="background:var(--b);outline:1px solid var(--fg)"></span>${t({ en: "next: tails", zh: "下一次反面" })}</span><span><span class="sw" style="background:var(--b);opacity:.5"></span>${t({ en: "the run of tails", zh: "连着的反面" })}</span></div>`;
+}
+
+// ---------- render ----------
+let shown = "";
+function render() {
+  const html = ({ 1: explain1, 2: explain2, 3: explain3, 4: explain4 })[step]();
+  if (html !== shown) { el("explain").innerHTML = html; shown = html; }
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3, 4].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("seedV").textContent = t({ en: "seed ", zh: "种子 " }) + seed;
+  el("f1").disabled = el("f10").disabled = n1 >= CAP1; el("undo").disabled = !n1;
+  el("add1").disabled = n2 >= N;
+  document.querySelectorAll("[data-to]").forEach((b) => b.classList.toggle("on", +b.dataset.to === n2));
+  el("play").hidden = Play.reduced || nD >= n2;
+  el("play").textContent = t(playing ? D.pause : D.playB);
+  el("lBtns").innerHTML = [1, 2, 3, 4, 5, 6].map((l) => `<button data-l="${l}" class="${l === L ? "on" : ""}" aria-pressed="${l === L}">${l}</button>`).join(" ");
+  dirty = true;
+}
+
+// ---------- actions ----------
+function flip(k, bet) { if (n1 >= CAP1) return; if (bet != null) bets[n1] = bet; n1 = Math.min(CAP1, n1 + k); render(); }
+function undo() { if (!n1) return; n1--; delete bets[n1]; render(); }
+function setN(v) {
+  n2 = clamp(v, 0, N); cursor = null;
+  if (Play.reduced || n2 < nD || n2 - nD <= 1) nD = n2; else playing = true;
+  render();
+}
+function setL(v) { L = clamp(v, 1, 6); render(); }
+function moveCursor(d) { const top = step === 3 ? N : Math.floor(nD); if (!top) return; cursor = clamp((cursor == null ? top : cursor) + d, 1, top); dirty = true; }
+
+let cvO = null;
+Play.drag(cvEl, {
+  down(px) {
+    if (step === 1) { flip(1); return false; }
+    if (step === 4) return false;
+    cursorAt(px); return true;
+  },
+  move(px) { cursorAt(px); },
+  hover(px, py, e) { if (e.pointerType === "mouse" && (step === 2 || step === 3)) cursorAt(px); },
+});
+function cursorAt(px) {
+  const V = chartView(cvO.w, cvO.h, step === 3 ? N : SCALES.find((s) => s >= Math.max(10, n2))), top = step === 3 ? N : Math.floor(nD);
+  if (!top) return;
+  cursor = clamp(Math.round(V.k(px)), 1, top); dirty = true;
+}
+cvEl.addEventListener("pointerleave", () => { if (step === 2 || step === 3) { cursor = null; dirty = true; } });
+const arrow = (d) => (e) => {
+  if (step === 1) d > 0 ? flip(1) : undo();
+  else if (step === 4) setL(L + d);
+  else moveCursor(d * (e.shiftKey ? 10 : 1));
+};
+Play.keys(cvEl, { ArrowLeft: arrow(-1), ArrowRight: arrow(1), ArrowDown: arrow(-1), ArrowUp: arrow(1), " ": arrow(1),
+  Home: () => { if (step === 2 || step === 3) { cursor = 1; dirty = true; } }, End: () => { cursor = null; dirty = true; } });
+
+el("f1").onclick = () => flip(1);
+el("f10").onclick = () => flip(10);
+el("undo").onclick = undo;
+el("add1").onclick = () => setN(n2 + 1);
+document.querySelectorAll("[data-to]").forEach((b) => (b.onclick = () => setN(+b.dataset.to)));
+el("play").onclick = () => { playing = !playing; render(); };
+el("runs").onchange = el("band").onchange = () => (dirty = true);
+el("lBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-l]"); if (b) setL(+b.dataset.l); });
+el("explain").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-bet]"); if (b) flip(1, +b.dataset.bet);
+  const p = e.target.closest("[data-pick]"); if (p) { pick = +p.dataset.pick; setN(N); }
+});
+el("newset").onclick = () => { load(seed + 5); cursor = null; render(); };
+el("reset").onclick = () => { init(SEED0); el("runs").checked = true; el("band").checked = false; nav.set(1); };
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; cursor = null; if (s === 2 && !n2) setN(10); render(); });
+cvO = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (nD < n2 && playing) {
+    nD = Math.min(n2, nD + Math.max(8, n2 / 2.5) * dt);
+    if (step === 2) render();
+  }
+  if (dirty) { dirty = false; cvO.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

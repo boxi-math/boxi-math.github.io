@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Mean Levels the Peaks and Fills the Valleys · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 20px; min-width: 1.6em; text-align: center; color: var(--fg); }
+  .controls { font-size: 15px; }
+  .controls button { min-height: 44px; min-width: 44px; font-size: 17px; }
+  .controls .big { font-weight: 700; padding: 8px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 46px; min-width: 64px; font-weight: 700; font-size: 17px; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cC { color: var(--c); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .explain h2 { font-size: 21px; }
+  .explain p { font-size: 15px; }
+  .mathline { font-size: 19px; overflow-wrap: anywhere; }
+  .mathline b { color: var(--fg); }
+  .slide { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; }
+  .slide input { flex: 1 1 auto; min-width: 0; }
+  .myth { display: inline-block; font-size: 14px; border: 1px solid var(--no); color: var(--no); border-radius: 999px; padding: 2px 12px; margin-bottom: 8px; }
+  .myth s { text-decoration-thickness: 2px; }
+  .ok { display: inline-block; font-size: 14px; font-weight: 700; border: 1px solid var(--a); color: var(--a); border-radius: 999px; padding: 2px 12px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="bars of blocks"></canvas>
+      <div class="controls" id="c1">
+        <span data-t="pickW"></span>
+        <span class="stepper" id="picks"></span>
+        <span class="stepper"><button data-d="L-" aria-label="line down">−</button><b id="lVal"></b><button data-d="L+" aria-label="line up">+</button></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="big" id="auto2"></button>
+        <button id="undo2" data-t="undo"></button>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><span data-t="zW"></span><button data-d="z-" aria-label="fewer for Zheng">−</button><b id="zVal"></b><button data-d="z+" aria-label="more for Zheng">+</button></span>
+        <button class="big" id="play3"></button>
+        <span class="slide"><span data-t="bumpy"></span><input id="lv3" type="range" min="0" max="100" value="0" aria-label="level"><span data-t="flat"></span></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <span class="stepper"><span data-t="colsW"></span><button data-d="n-" aria-label="fewer bars">−</button><b id="nVal"></b><button data-d="n+" aria-label="more bars">+</button></span>
+        <span class="stepper" id="presets"></span>
+        <button class="big" id="play4"></button>
+        <span class="slide"><span data-t="bumpy"></span><input id="lv4" type="range" min="0" max="100" value="0" aria-label="level"><span data-t="flat"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math" data-t="law"></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-th="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "The Mean Levels the Peaks and Fills the Valleys", zh: "平均数就是「削峰填谷」" },
+  eyebrow: { en: "Boxi Math · Try it · #35", zh: "Boxi Math · 动手试试 · #35" },
+  intro: { en: "Four classmates fold paper cranes: five, two, six and three. One number, cranes per person on average. Whose number is that?",
+           zh: "四个同学折纸鹤：五只、两只、六只、三只。报一个「平均每人几只」，这个数代表谁呢？" },
+  s1: { en: "One of them?", zh: "是其中一个？" }, s2: { en: "Level it", zh: "削峰填谷" }, s3: { en: "One big number", zh: "来了个大数" }, s4: { en: "Your turn", zh: "自己摆" },
+  reset: { en: "Reset", zh: "重置" }, undo: { en: "Undo", zh: "撤回" },
+  levelB: { en: "Level it for me", zh: "帮我匀" }, pause: { en: "Pause", zh: "暂停" }, levelPlay: { en: "Level", zh: "削平" },
+  pickW: { en: "Try:", zh: "试试：" }, zW: { en: "Zheng", zh: "小郑" }, colsW: { en: "bars", zh: "列数" },
+  bumpy: { en: "bumpy", zh: "高低" }, flat: { en: "level", zh: "齐平" },
+  v1: { en: "Draw a line at one of their numbers", zh: "在某人的数上画一条线" }, v2: { en: "One block = one crane", zh: "一块积木 = 一只纸鹤" },
+  v3: { en: "A fifth classmate joins", zh: "又来了一个人" }, v4: { en: "Build your own bars", zh: "自己摆积木" },
+  tag1: { en: "drag the line", zh: "上下拖线" }, tag2: { en: "drag a top block", zh: "拖最上面的积木" },
+  tag3: { en: "slide to level", zh: "拖滑块削平" }, tag4: { en: "drag a bar's top", zh: "拖列顶改高度" },
+  law: { en: "mean = total ÷ count", zh: "平均数 = 总数 ÷ 个数" },
+  resT: { en: "Level the peaks and fill the valleys: the height everyone reaches is the mean.", zh: "削峰填谷，大家一样高的那个高度就是平均数。" },
+  resN: { en: "The mean need not be one of the numbers. And one very large number can pull it away all by itself.",
+          zh: "平均数不一定是出现过的数。一个特别大的数，一个人就能把它拉走。" },
+  moreS: { en: "Why is the level height always total ÷ count?", zh: "为什么齐平的高度总是总数 ÷ 个数？" },
+  moreP: { en: "Moving a block from one bar to another never adds or loses a block, so the total stays the same the whole time. When the bars are level, there are <b>count</b> bars, each of the same height, so total = count × height, and the height is total ÷ count. The height doesn't have to be a whole number either: 4, 4, 4, 4 and 7 level out at 23 ÷ 5 = 4.6, where each block is cut into pieces. Nothing in this says the height must match one of the bars.",
+           zh: "积木从一列挪到另一列，一块没多，一块没少，所以总数一直不变。齐平以后，有<b>个数</b>那么多列，每列一样高，所以总数 = 个数 × 高度，高度就是总数 ÷ 个数。这个高度也不一定是整数：4、4、4、4、7 齐平后是 23 ÷ 5 = 4.6，积木要切开来分。这里没有任何一步要求它等于某一列。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then use the arrow keys (01: ↑ ↓ move the line · 02: → move one block, ← undo · 03: ↑ ↓ Zheng, ← → level · 04: ← → pick a bar, ↑ ↓ change it).",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键（01：↑ ↓ 移线 · 02：→ 挪一块，← 撤回 · 03：↑ ↓ 改小郑，← → 削平 · 04：← → 选列，↑ ↓ 改高度）。" },
+};
+const KICK = {
+  1: { en: "Step 01 · is it one of them?", zh: "第 1 步 · 是其中一个？" },
+  2: { en: "Step 02 · level the peaks", zh: "第 2 步 · 削峰填谷" },
+  3: { en: "Step 03 · one very large number", zh: "第 3 步 · 一个特别大的数" },
+  4: { en: "Step 04 · total ÷ count", zh: "第 4 步 · 总数 ÷ 个数" },
+};
+const NAMES = { en: ["Lin", "Zhou", "Chen", "Wu", "Zheng"], zh: ["小林", "小周", "小陈", "小吴", "小郑"] }[Play.lang];
+Play.i18n(D);
+
+const cv = document.getElementById("main"), $ = (id) => document.getElementById(id);
+let step = 1, dirty = true, G = null;
+
+// ---- state ----
+const H0 = [5, 2, 6, 3], CAP = 7;
+let L = 3;                                                     // step 1 line
+let h2 = H0.slice(), hist = [], guess = null, anim = null, autoRun = false, held = null;   // step 2
+const Z0 = 9, ZMAX = 12, NB = 52; let z = Z0, lv3 = 0, play3 = false;             // step 3
+const P4 = [[7, 3, 5], [5, 2, 6, 3], [1, 2, 9]], CAP4 = 10;
+let h4 = P4[0].slice(), lv4 = 0, play4 = false, sel4 = 0;     // step 4
+
+const sum = (a) => a.reduce((s, x) => s + x, 0);
+const isFlat = (a) => a.every((x) => x === a[0]);
+function easeT(x) { return x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2; }
+const h3 = () => [...H0.map(() => sum(H0) / H0.length), z];   // the levelled four, plus Zheng
+
+// ---- geometry (same look as #29) ----
+function geom(w, h, n, maxH, padB) {
+  const padT = 44, padL = 14, padR = 66;
+  const s = Math.max(4, Math.min(56, (w - padL - padR) / n, (h - padT - padB) / Math.max(1, maxH)));
+  return { s, n, x0: padL + (w - padL - padR - n * s) / 2, base: h - padB, w, h };
+}
+const colAt = (x) => (G ? Math.floor((x - G.x0) / G.s) : -1);
+function rect(x, g, i, from, to, fill) {
+  if (to <= from) return;
+  const gap = g.s >= 10 ? 1.5 : 0.5;
+  x.fillStyle = fill; x.fillRect(g.x0 + i * g.s + gap / 2, g.base - to * g.s, g.s - gap, (to - from) * g.s);
+}
+function grid(x, g, i, top) {
+  if (g.s < 10) return;
+  x.strokeStyle = rgba(color("--surface"), 0.85); x.lineWidth = 1.2; x.beginPath();
+  for (let k = 1; k < top - 1e-6; k++) { const y = g.base - k * g.s; x.moveTo(g.x0 + i * g.s, y); x.lineTo(g.x0 + (i + 1) * g.s, y); }
+  x.stroke();
+}
+function ghost(x, g, i, from, to) {
+  if (to - from < 1e-3) return;
+  const gap = g.s >= 10 ? 1.5 : 0.5;
+  x.strokeStyle = rgba(color("--muted"), 0.8); x.lineWidth = 1; x.setLineDash([4, 3]);
+  x.strokeRect(g.x0 + i * g.s + gap / 2 + 0.5, g.base - to * g.s + 0.5, g.s - gap - 1, (to - from) * g.s - 1);
+  x.setLineDash([]);
+}
+function hline(x, g, m, col, dash) {
+  const y = g.base - m * g.s;
+  x.strokeStyle = col; x.lineWidth = 2.4; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(g.x0 - 6, y); x.lineTo(g.x0 + g.n * g.s + 4, y); x.stroke(); x.setLineDash([]);
+  return y;
+}
+function sideLabels(x, g, items) {
+  items.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < 20) items[i].y = items[i - 1].y + 20;
+  items.forEach((it) => Play.text(x, it.s, g.x0 + g.n * g.s + 10, clamp(it.y, 14, g.h - 8), { color: it.col, size: 15, weight: 700, align: "left" }));
+}
+function names(x, g, n) {
+  x.font = "650 14px " + getComputedStyle(document.body).fontFamily;
+  const wide = NAMES.slice(0, n).some((s) => x.measureText(s).width > g.s - 2);   // too narrow: stagger two rows
+  for (let i = 0; i < n; i++) Play.text(x, NAMES[i], g.x0 + (i + 0.5) * g.s, g.base + 16 + (wide && i % 2 ? 18 : 0), { size: 14, weight: 650, color: color(i === 4 ? "--no" : "--muted") });
+}
+function counts(x, g, hs) {
+  hs.forEach((v, i) => Play.text(x, fmt(v), g.x0 + (i + 0.5) * g.s, g.base - v * g.s - 12, { size: 15, weight: 700, color: color("--fg") }));
+}
+// bars of heights hs pouring towards level m by t (blue = blocks on the move, dashed = still missing / already gone)
+function bars(x, g, hs, m, t, base) {
+  hs.forEach((h, i) => {
+    const c = h + (m - h) * t, lo = Math.min(h, m);
+    rect(x, g, i, 0, Math.min(lo, c), base ? base(i) : color("--a"));
+    rect(x, g, i, lo, c, color("--c"));
+    if (h > m) ghost(x, g, i, c, h); else ghost(x, g, i, c, m);
+    grid(x, g, i, c);
+  });
+}
+const over = (hs, m) => sum(hs.map((v) => Math.max(0, v - m)));
+const under = (hs, m) => sum(hs.map((v) => Math.max(0, m - v)));
+
+// ---- drawing ----
+function draw(x, w, h) {
+  if (step === 1) {
+    const g = (G = geom(w, h, 4, CAP, NB));
+    H0.forEach((v, i) => {
+      rect(x, g, i, 0, Math.min(v, L), color("--a"));
+      rect(x, g, i, L, v, rgba(color("--no"), 0.85));
+      ghost(x, g, i, v, L);
+      grid(x, g, i, v);
+    });
+    counts(x, g, H0); names(x, g, 4);
+    const ok = over(H0, L) === under(H0, L);
+    const y = hline(x, g, L, color(ok ? "--hl" : "--no"), ok ? null : [8, 5]);
+    sideLabels(x, g, [
+      { y: y - 1, s: L + (ok ? "" : "?"), col: color(ok ? "--hl" : "--no") },
+      { y: y - 22, s: "+" + over(H0, L), col: color("--no") },
+      { y: y + 22, s: "−" + under(H0, L), col: color("--muted") },
+    ]);
+  } else if (step === 2) drawLevel(x, w, h);
+  else if (step === 3) {
+    const a = h3(), m = sum(a) / a.length, e = easeT(lv3);
+    const g = (G = geom(w, h, 5, Math.max(CAP, z + 0.7), NB));
+    bars(x, g, a, m, e, (i) => color(i === 4 ? "--no" : "--a"));
+    if (lv3 === 0) counts(x, g, a);
+    names(x, g, 5);
+    const y = hline(x, g, m, color("--hl"));
+    sideLabels(x, g, [{ y: y - 1, s: fmt(m), col: color("--hl") }]);
+  } else {
+    const n = h4.length, m = sum(h4) / n;
+    const g = (G = geom(w, h, n, CAP4 + 1, 14));
+    bars(x, g, h4, m, easeT(lv4));
+    if (lv4 === 0) counts(x, g, h4);
+    const y = hline(x, g, m, color("--hl"));
+    sideLabels(x, g, [{ y: y - 1, s: fmt(m), col: color("--hl") }]);
+    if (document.activeElement === cv) {
+      x.strokeStyle = color("--fg"); x.lineWidth = 1.5; x.setLineDash([3, 3]);
+      x.strokeRect(g.x0 + sel4 * g.s + 1, g.base - CAP4 * g.s, g.s - 2, CAP4 * g.s); x.setLineDash([]);
+    }
+  }
+}
+function drawLevel(x, w, h) {
+  const g = (G = geom(w, h, 4, CAP, NB));
+  h2.forEach((v, i) => { rect(x, g, i, 0, v, color("--a")); grid(x, g, i, v); });
+  const blk = (cx, cy) => { x.fillStyle = color("--c"); x.fillRect(cx - g.s / 2 + 1, cy - g.s / 2 + 1, g.s - 2, g.s - 2); };
+  if (anim) {
+    const p = easeT(anim.p), sx = g.x0 + (anim.from + 0.5) * g.s, sy = g.base - (h2[anim.from] + 0.5) * g.s;
+    const ex = g.x0 + (anim.to + 0.5) * g.s, ey = g.base - (h2[anim.to] + 0.5) * g.s;
+    blk(sx + (ex - sx) * p, sy + (ey - sy) * p - Math.sin(Math.PI * p) * g.s * 1.4);
+  }
+  if (held) {
+    blk(held.x, held.y);
+    const to = colAt(held.x);
+    if (to >= 0 && to < 4 && h2[to] < CAP) ghost(x, g, to, h2[to], h2[to] + 1);
+  }
+  if (!anim && !held) counts(x, g, h2);
+  names(x, g, 4);
+  if (isFlat(h2) && !anim && !held) {
+    const y = hline(x, g, h2[0], color("--hl"));
+    sideLabels(x, g, [{ y, s: String(h2[0]), col: color("--hl") }]);
+  }
+}
+const view = Play.canvas(cv, draw);
+
+// ---- step 2 actions (tallest gives to the shortest, as in the video) ----
+function nextMove() {
+  if (anim || held || isFlat(h2)) return false;
+  let src = 0, dst = 0;
+  h2.forEach((v, i) => { if (v > h2[src]) src = i; if (v < h2[dst]) dst = i; });
+  if (h2[src] - h2[dst] < 2) return false;
+  h2[src]--; hist.push([src, dst]);
+  anim = { from: src, to: dst, p: Play.reduced ? 1 : 0 };
+  dirty = true; return true;
+}
+function land() { h2[anim.to]++; anim = null; render(); }
+function undo() {
+  if (anim || held || !hist.length) return;
+  const [s, d] = hist.pop(); h2[d]--; h2[s]++; autoRun = false; render();
+}
+
+// ---- explain ----
+function render() {
+  const ex = $("explain");
+  let html = `<div class="kicker">${t(KICK[step])}</div>`;
+  if (step === 1) {
+    const o = over(H0, L), u = under(H0, L), ok = o === u, inList = H0.includes(L);
+    html += `<div><span class="myth">${t({ en: "The mean must be one of the numbers?", zh: "平均数一定是其中一个？" })}</span></div>`;
+    html += `<h2>${t({ en: `Try ${L}: draw a line ${L} blocks high.`, zh: `试试 ${L}：在 ${L} 块高处画一条线。` })}</h2>`;
+    html += `<div class="mathline"><span class="cN">${t({ en: "extra above", zh: "线上多" })} ${o}</span><br><span>${t({ en: "missing below", zh: "线下缺" })} ${u}</span></div>`;
+    if (!ok) html += `<p><span class="tag-no">${t({ en: "They don't match.", zh: "对不上。" })}</span> ${o > u ? t({ en: "Too low: the line should go up.", zh: "线太低，该往上挪。" }) : t({ en: "Too high: the line should go down.", zh: "线太高，该往下挪。" })}</p>`;
+    else html += `<p><span class="ok">${t({ en: "They match!", zh: "对上了！" })}</span> ${inList ? "" : t({ en: `But nobody folded ${L}.`, zh: `可是没有人折了 ${L} 只。` })}</p>`;
+    html += `<p class="note">${t({ en: "Red blocks stick out above the line; dashed boxes are gaps below it.", zh: "红色是线上多出来的，虚线框是线下缺的。" })}</p>`;
+  } else if (step === 2) {
+    const flat = isFlat(h2) && !anim && !held, tot = sum(h2) + (anim || held ? 1 : 0);
+    html += `<h2>${t({ en: "Shave the tall ones, fill the short ones. Can they all end up the same height?", zh: "把高的削下来，填到矮的上面，最后能一样高吗？" })}</h2>`;
+    html += `<div class="choices">${[[1, { en: "Yes", zh: "能" }], [0, { en: "No", zh: "不能" }]].map(([k, s]) => `<button data-g="${k}" class="${guess === k && flat ? (k ? "right" : "wrong") : guess === k ? "on" : ""}">${t(s)}</button>`).join("")}</div>`;
+    html += `<div class="mathline">${h2.join(" + ")}${anim || held ? " + 1" : ""} = <b>${tot}</b> ${t({ en: "blocks", zh: "块" })}</div>`;
+    if (flat) {
+      const S = sum(H0), n = H0.length, m = S / n;
+      html += `<p>${t({ en: `All four bars are the same: <strong>${fmt(m)} blocks each</strong>. Not one block was added or lost.`, zh: `四列一样高了，<strong>都是 ${fmt(m)} 块</strong>。一块没多，一块没少。` })}</p>`;
+      html += `<div class="mathline cH">(${H0.join(" + ")}) ÷ ${n} = ${S} ÷ ${n} = ${fmt(m)}</div>`;
+      if (!H0.includes(m)) html += `<p>${t({ en: `${fmt(m)} isn't in the list ${H0.join(", ")}.`, zh: `${fmt(m)} 不在 ${H0.join("、")} 里面。` })}</p>`;
+    } else html += `<p class="note">${t({ en: `Moves: ${hist.length}. The total never changes.`, zh: `挪了 ${hist.length} 块。总数一直不变。` })}</p>`;
+  } else if (step === 3) {
+    const a = h3(), S = sum(a), n = a.length, m = S / n, four = a[0];
+    const below = m > four + 1e-9, same = Math.abs(m - four) < 1e-9;
+    html += `<h2>${t({ en: `What if Zheng folded ${z} cranes all alone?`, zh: `要是小郑一个人就折了 ${z} 只呢？` })}</h2>`;
+    html += `<div class="mathline">(${a.map((v) => fmt(v)).join(" + ")}) ÷ ${n}<br>= ${fmt(S)} ÷ ${n} = <span class="cH">${fmt(m)}</span></div>`;
+    html += `<p>${below ? t({ en: `<span class='tag-no'>All four original people are below the line.</span> Shave ${fmt(z - m)} off Zheng's bar and share it out: ${fmt((z - m) / 4)} each.`, zh: `<span class='tag-no'>原来的四个人，全都在线下面。</span>从小郑那里削下 ${fmt(z - m)} 块，四个人每人分 ${fmt((z - m) / 4)} 块。` })
+      : same ? t({ en: "Zheng folded the same as everyone, so the mean stays put.", zh: "小郑和大家一样多，平均数不动。" })
+      : t({ en: "Now Zheng is short, and the mean goes down.", zh: "这回小郑少，平均数被拉低了。" })}</p>`;
+    html += `<p class="note">${t({ en: "One very large number can pull the mean away all by itself.", zh: "一个特别大的数，一个人就能把平均数拉走。" })}</p>`;
+  } else {
+    const n = h4.length, S = sum(h4), m = S / n, inList = h4.some((v) => Math.abs(v - m) < 1e-9);
+    html += `<h2>${t({ en: "The total is the blocks, the count is the bars.", zh: "总数就是积木的块数，个数就是有几列。" })}</h2>`;
+    html += `<div class="mathline">${t({ en: "total", zh: "总数" })}: ${h4.join(" + ")} = <b>${S}</b><br>${t({ en: "count", zh: "个数" })}: <b>${n}</b><br><span class="cH">${S} ÷ ${n} = ${fmt(m)}</span></div>`;
+    html += `<p>${inList ? t({ en: `This time ${fmt(m)} is in the list. It can be, but it doesn't have to be.`, zh: `这次 ${fmt(m)} 正好在里面。可以在，但不一定在。` })
+      : `<span class='ok'>${t({ en: `${fmt(m)} is not in the list`, zh: `${fmt(m)} 不在这组数里` })}</span>`}</p>`;
+    html += `<p class="note">${t({ en: "Drag a bar's top to change it, then press Level.", zh: "拖列顶改高度，再按「削平」。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  ex.querySelectorAll("[data-g]").forEach((b) => (b.onclick = () => { guess = +b.dataset.g; render(); }));
+  $("lVal").textContent = L;
+  document.querySelectorAll("[data-pick]").forEach((b) => b.classList.toggle("on", +b.dataset.pick === L));
+  $("auto2").textContent = t(autoRun ? D.pause : D.levelB);
+  $("auto2").disabled = isFlat(h2) && !anim;
+  $("undo2").disabled = !hist.length;
+  $("zVal").textContent = z; $("nVal").textContent = h4.length;
+  $("play3").textContent = t(play3 ? D.pause : D.levelPlay);
+  $("play4").textContent = t(play4 ? D.pause : D.levelPlay);
+  $("lv3").value = Math.round(lv3 * 100); $("lv4").value = Math.round(lv4 * 100);
+  document.querySelectorAll("[data-p]").forEach((b) => b.classList.toggle("on", P4[+b.dataset.p].join() === h4.join()));
+  dirty = true;
+}
+
+function setStep(n) {
+  step = n; play3 = play4 = false; autoRun = false;
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== n));
+  $("vtitle").textContent = t(D["v" + n]); $("vtag").textContent = t(D["tag" + n]);
+  sizeCanvas(); render();
+}
+function sizeCanvas() {
+  const mobile = matchMedia("(max-width: 560px)").matches;
+  cv.style.height = mobile ? (step === 3 ? "400px" : "310px") : (step === 3 ? "420px" : "350px");
+  dirty = true;
+}
+const nav = Play.steps(document.querySelector(".steps"), setStep);
+
+// ---- controls ----
+$("picks").innerHTML = H0.map((v) => `<button class="big" data-pick="${v}">${v}</button>`).join("");
+document.querySelectorAll("[data-pick]").forEach((b) => (b.onclick = () => { L = +b.dataset.pick; render(); }));
+$("auto2").onclick = () => { autoRun = !autoRun; if (autoRun && !anim) nextMove(); render(); };
+$("undo2").onclick = undo;
+$("presets").innerHTML = P4.map((p, i) => `<button class="small" data-p="${i}">${p.join(Play.lang === "zh" ? "、" : ", ")}</button>`).join("");
+document.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { h4 = P4[+b.dataset.p].slice(); sel4 = 0; lv4 = 0; play4 = false; render(); }));
+document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => {
+  const k = b.dataset.d;
+  if (k === "L-") L = Math.max(0, L - 1); if (k === "L+") L = Math.min(CAP, L + 1);
+  if (k === "z-") { z = Math.max(0, z - 1); lv3 = 0; } if (k === "z+") { z = Math.min(ZMAX, z + 1); lv3 = 0; }
+  if (k === "n-" && h4.length > 2) { h4.pop(); sel4 = Math.min(sel4, h4.length - 1); lv4 = 0; }
+  if (k === "n+" && h4.length < 6) { h4.push(3); lv4 = 0; }
+  render();
+}));
+$("lv3").oninput = (e) => { lv3 = e.target.value / 100; play3 = false; render(); };
+$("lv4").oninput = (e) => { lv4 = e.target.value / 100; play4 = false; render(); };
+$("play3").onclick = () => { play3 = !play3; if (play3 && lv3 >= 1) lv3 = 0; if (play3 && Play.reduced) { lv3 = 1; play3 = false; } render(); };
+$("play4").onclick = () => { play4 = !play4; if (play4 && lv4 >= 1) lv4 = 0; if (play4 && Play.reduced) { lv4 = 1; play4 = false; } render(); };
+$("reset").onclick = () => {
+  L = 3; h2 = H0.slice(); hist = []; guess = null; anim = null; held = null; autoRun = false;
+  z = Z0; lv3 = 0; h4 = P4[0].slice(); lv4 = 0; sel4 = 0;
+  nav.set(1);
+};
+
+function setL(y) { if (!G) return; const v = clamp(Math.round((G.base - y) / G.s), 0, CAP); if (v !== L) { L = v; render(); } }
+function setH4(y) { if (!G) return; h4[sel4] = clamp(Math.round((G.base - y) / G.s), 0, CAP4); lv4 = 0; play4 = false; render(); }
+Play.drag(cv, {
+  down(px, py) {
+    if (!G) return false;
+    const c = colAt(px);
+    if (step === 1) { setL(py); return true; }
+    if (step === 2) {
+      if (anim || c < 0 || c >= 4 || h2[c] < 1 || py > G.base) return false;
+      autoRun = false; h2[c]--; held = { from: c, x: px, y: py }; render(); return true;
+    }
+    if (step === 4) {
+      if (c < 0 || c >= h4.length) return false;
+      sel4 = c; setH4(py); return true;
+    }
+    return false;
+  },
+  move(px, py) {
+    if (step === 1) setL(py);
+    else if (step === 2 && held) { held.x = px; held.y = py; dirty = true; }
+    else if (step === 4) setH4(py);
+  },
+  up() {
+    if (step === 2 && held) {
+      let to = colAt(held.x);
+      if (to < 0 || to >= 4 || h2[to] >= CAP) to = held.from;
+      h2[to]++; if (to !== held.from) hist.push([held.from, to]);
+      held = null; render();
+    }
+  },
+});
+Play.keys(cv, {
+  ArrowRight: () => {
+    if (step === 2) nextMove();
+    else if (step === 3) { lv3 = Math.min(1, lv3 + 0.1); play3 = false; render(); }
+    else if (step === 4) { sel4 = Math.min(h4.length - 1, sel4 + 1); dirty = true; }
+  },
+  ArrowLeft: () => {
+    if (step === 2) undo();
+    else if (step === 3) { lv3 = Math.max(0, lv3 - 0.1); play3 = false; render(); }
+    else if (step === 4) { sel4 = Math.max(0, sel4 - 1); dirty = true; }
+  },
+  ArrowUp: () => {
+    if (step === 1) { L = Math.min(CAP, L + 1); render(); }
+    else if (step === 3) { z = Math.min(ZMAX, z + 1); lv3 = 0; render(); }
+    else if (step === 4) { h4[sel4] = Math.min(CAP4, h4[sel4] + 1); lv4 = 0; render(); }
+  },
+  ArrowDown: () => {
+    if (step === 1) { L = Math.max(0, L - 1); render(); }
+    else if (step === 3) { z = Math.max(0, z - 1); lv3 = 0; render(); }
+    else if (step === 4) { h4[sel4] = Math.max(0, h4[sel4] - 1); lv4 = 0; render(); }
+  },
+  Enter: () => { if (step === 2) nextMove(); },
+});
+cv.addEventListener("focus", () => (dirty = true));
+cv.addEventListener("blur", () => (dirty = true));
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", sizeCanvas);
+
+Play.loop((dt) => {
+  if (anim) { anim.p += dt / 0.45; dirty = true; if (anim.p >= 1) { land(); if (autoRun && !nextMove()) { autoRun = false; render(); } } }
+  if (step === 3 && play3) { lv3 = Math.min(1, lv3 + dt / 2.2); if (lv3 >= 1) play3 = false; $("lv3").value = Math.round(lv3 * 100); if (!play3) render(); dirty = true; }
+  if (step === 4 && play4) { lv4 = Math.min(1, lv4 + dt / 2.2); if (lv4 >= 1) play4 = false; $("lv4").value = Math.round(lv4 * 100); if (!play4) render(); dirty = true; }
+  if (dirty) { dirty = false; view.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
