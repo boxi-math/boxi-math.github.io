@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Where Is the Vertex of a Parabola? · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1 1 140px; }
+  .controls .grp input[type=range] { flex: 1 1 90px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 19px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 2px 0; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .choices button { font-family: var(--math); font-size: 16px; min-height: 38px; padding: 4px 14px; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); margin-right: 5px; vertical-align: 3px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="coordinate grid with a parabola"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span>x</span><input id="tR" type="range" min="-1.5" max="3.5" step="0.5" aria-label="x"><span class="val" id="tV"></span></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span data-t="setA"></span><span id="aBtns"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><span>b</span><input id="bR" type="range" min="-4" max="4" step="1" aria-label="b"><span class="val" id="bV"></span></span>
+        <span class="grp"><span>c</span><input id="cR" type="range" min="-2" max="6" step="1" aria-label="c"><span class="val" id="cV"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><i>y</i> = <i>a</i>(<i>x</i> − <i>h</i>)² + <i>k</i> ⇒ <span data-t="vtxW"></span> (<i>h</i>, <i>k</i>)</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Where Is the Vertex of a Parabola?", zh: "抛物线的顶点在哪" },
+  eyebrow: { en: "Boxi Math · Try it · #24", zh: "Boxi Math · 动手试试 · #24" },
+  intro: { en: "A skate ramp's cross-section looks like y = (x − 1)². A friend sees the minus one and says the bottom is at x = −1. Test that guess, move the vertex yourself, then find it when the formula is written another way.",
+           zh: "滑板场 U 形池的截面像 y = (x − 1)²。朋友看到减一，就说池底在 x = −1。先试试这个说法，再亲手挪动顶点，最后在换了写法的式子里把它找出来。" },
+  s1: { en: "x = −1?", zh: "在 x = −1？" }, s2: { en: "Add k, times a", zh: "加 k、乘 a" }, s3: { en: "Expanded form", zh: "换个写法" },
+  reset: { en: "Reset", zh: "重置" },
+  setA: { en: "Multiply by a:", zh: "前面乘 a：" },
+  v1: { en: "a skate ramp's cross-section", zh: "U 形池的截面" }, v2: { en: "vertex form a(x − h)² + k", zh: "顶点式 a(x − h)² + k" }, v3: { en: "expanded form x² + bx + c", zh: "展开式 x² + bx + c" },
+  vtxW: { en: "vertex", zh: "顶点" },
+  tag1: { en: "drag the gold point along the curve", zh: "沿曲线拖动金色的点" },
+  tag2: { en: "drag the vertex", zh: "拖动顶点" },
+  tag3: { en: "drag the vertex, or use b and c", zh: "拖动顶点，或调 b、c" },
+  resT: { en: "The vertex is where the bracket is zero", zh: "顶点在括号等于零的地方" },
+  resN: { en: "h is the x that makes the bracket zero, and k is the y at that moment. The a only changes how wide it opens. It never moves the vertex.",
+          zh: "h 是让括号等于零的那个 x，k 是这时候的 y 值。a 只管开口的宽窄，不会挪动顶点的位置。" },
+  moreS: { en: "Why is (h, k) really the lowest point?", zh: "为什么 (h, k) 一定是最低点？" },
+  moreP: { en: "x minus h, squared, is at least zero, and equals zero only at x equals h. Multiply by a positive a: a(x − h)² is still at least zero, and zero only at x = h. Add k: y is at least k, and equals k only at x = h. So for positive a, the smallest y is k, and the vertex is (h, k). For negative a everything flips: a(x − h)² is at most zero, so y is at most k and (h, k) is the highest point. Any y = x² + bx + c can be completed into this form (#23): h = −b ÷ 2 and k = c − (b ÷ 2)².",
+           zh: "x 减 h 的平方大于等于零，只在 x 等于 h 时等于零。乘上一个正数 a，a(x − h)² 仍然大于等于零，也只在 x = h 时等于零。再加 k：y 大于等于 k，只在 x = h 时等于 k。所以 a 大于零时 y 最小是 k，顶点是 (h, k)。a 是负数时反过来：a(x − h)² 小于等于零，y 最大是 k，(h, k) 是最高点。任何 y = x² + bx + c 都能配方成这个样子（#23）：h = −b ÷ 2，k = c − (b ÷ 2)²。" },
+  moreQ: { en: "Next: then why does replacing x with x plus two move the graph to the left?", zh: "下一集：那为什么把 x 换成 x 加二，图像反而往左移？" },
+  foot: { en: "Green is the parabola, gold is what you move and the vertex, red is the guess that isn't the vertex, blue is the bracket or the height above the vertex, brown arrows show what adding k does. On a focused picture, arrow keys work too (step 1: ← → move the point; step 2: arrows move the vertex; step 3: ← → move the vertex sideways, ↑ ↓ change c).",
+          zh: "绿色是抛物线，金色是你能拖的点和顶点，红色是猜错的「顶点」，蓝色是括号的值或离顶点的高度，棕色箭头表示加 k 的效果。选中图后也能用方向键（第 1 步：← → 移动点；第 2 步：方向键移动顶点；第 3 步：← → 左右移动顶点，↑ ↓ 改 c）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const snap = (v, s) => Math.round(v / s) * s;
+const par = (v) => (v < -EPS ? `(${fmt(v)})` : fmt(v));
+const hot = (s) => `<span class="hot">${s}</span>`;
+const sgn = (v) => (Math.abs(v) < EPS ? "" : (v > 0 ? " + " : " − ") + fmt(Math.abs(v)));
+
+// ---------- state ----------
+let t1, minY, found;                 // step 1: point at x = t1 on y = (x − 1)²
+let a2, h2, k2, aD, hD, kD, pick;    // step 2: targets and displayed (tweened) values; pick = prediction
+let b3, c3;                          // step 3: y = x² + b x + c
+function init() {
+  t1 = -1; minY = 4; found = false;
+  a2 = 1; h2 = 1; k2 = 0; aD = 1; hD = 1; kD = 0; pick = null;
+  b3 = -2; c3 = 3;                   // x² − 2x + 3 = (x − 1)² + 2
+}
+init();
+let step = 1, dirty = true, grab = null, frozen = null;
+const h3 = () => -b3 / 2, k3 = () => c3 - (b3 * b3) / 4;
+
+// ---------- view: equal units; fits a world rectangle below a 30 px title strip ----------
+const TOP = 30;
+function rect() {
+  const R = { x0: -2.5, x1: 4.5, y0: -1, y1: 5.5 };
+  if (step === 3) {
+    for (const [x, y, lo] of [[h3(), k3(), 2], [0, c3, 1.4], [-b3, c3, 1.4]]) {
+      R.x0 = Math.min(R.x0, x - 1.4); R.x1 = Math.max(R.x1, x + 1.4);
+      R.y0 = Math.min(R.y0, y - lo); R.y1 = Math.max(R.y1, y + 1.4);
+    }
+  }
+  return R;
+}
+function vw() {
+  if (grab && frozen) return frozen;
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360, R = rect();
+  const u = Math.max(14, Math.min(W / (R.x1 - R.x0), (H - TOP) / (R.y1 - R.y0)));
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2, my = TOP + (H - TOP) / 2;
+  const V = { W, H, u, X: (x) => W / 2 + (x - cx) * u, Y: (y) => my - (y - cy) * u,
+    wx: (px) => cx + (px - W / 2) / u, wy: (py) => cy - (py - my) / u };
+  V.xmin = V.wx(0); V.xmax = V.wx(W); V.ymin = V.wy(H); V.ymax = V.wy(0);
+  return V;
+}
+function bnd(V, s = 0.5) {
+  const m = 0.45, top = 34 / V.u;
+  return { x0: Math.ceil((V.xmin + m) / s) * s, x1: Math.floor((V.xmax - m) / s) * s,
+           y0: Math.ceil((V.ymin + m) / s) * s, y1: Math.floor((V.ymax - m - top) / s) * s };
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - h / 2, l + w, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick0 = null;
+  for (const c of cands) {
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { pick0 = c; break; }
+  }
+  if (!pick0) { if (o.optional) return; pick0 = cands[0]; }
+  boxes.push(boxOf(x, s, pick0[0], pick0[1], size, pick0[2] || "center"));
+  Play.text(x, s, pick0[0], pick0[1], { weight: 700, ...o, size, align: pick0[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+// around a point: right-below, left-below, right-above, left-above, below, above (first = preferred side)
+function around(p, side, below, d = 14) {
+  const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
+  const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
+  const S = side >= 0 ? [r, l] : [l, r];
+  return [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
+          [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4]];
+}
+
+// ---------- drawing ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 30 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (bx[0] < 2 || bx[2] > V.W - 2 || bx[1] < 2 || bx[3] > V.H - 2 || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+  put("x", V.W - 12, V.Y(0) - 13, "center");
+  put("y", V.X(0) + 13, 40, "center");
+}
+const f = (a, h, k) => (xx) => a * (xx - h) * (xx - h) + k;
+function parab(x, V, a, h, k, col, w, dash) {
+  const g = f(a, h, k);
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.lineJoin = "round";
+  x.beginPath();
+  for (let px = -2; px <= V.W + 2; px += 2) {
+    const py = clamp(V.Y(g(V.wx(px))), -80, V.H + 80);
+    px === -2 ? x.moveTo(px, py) : x.lineTo(px, py);
+  }
+  x.stroke(); x.setLineDash([]);
+}
+function curveBoxes(V, a, h, k) {      // keep labels off the curve
+  const g = f(a, h, k);
+  for (let px = 0; px <= V.W; px += 6) { const py = V.Y(g(V.wx(px))); if (py > -10 && py < V.H + 10) reserve(px, py, 4); }
+}
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, px, py, ring) {
+  if (ring) dot(x, px, py, 16, null, rgba(color("--hl"), 0.85), 2.5);
+  dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
+  reserve(px, py, ring ? 17 : 11);
+}
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]);
+}
+function arrow(x, p, q, col) {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  if (L < 12) return;
+  seg(x, p, q, col, 2.2);
+  const ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L;
+  x.fillStyle = col; x.beginPath(); x.moveTo(...q);
+  x.lineTo(q[0] - ux * 9 - uy * 5, q[1] - uy * 9 + ux * 5); x.lineTo(q[0] - ux * 9 + uy * 5, q[1] - uy * 9 - ux * 5); x.closePath(); x.fill();
+}
+const vtxLabel = (h, k) => `${t(D.vtxW)} (${fmt(h)}, ${fmt(k)})`;
+const eqCorner = (x, V, s) => place(x, s, [[V.W - 14, 48, "right"], [14, 48, "left"], [V.W - 14, V.H - 18, "right"], [14, V.H - 18, "left"]], { color: color("--a"), size: 16 });
+
+function draw(x, w, h) {
+  const V = vw(); W0 = w; H0 = h;
+  boxes = [[0, 0, w, TOP]];
+  grid(x, V);
+  ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
+  ticks(x, V);
+}
+
+function draw1(x, V) {
+  const A = color("--a"), C = color("--c"), NO = color("--no"), MU = color("--muted");
+  parab(x, V, 1, 1, 0, A, 3.5);
+  curveBoxes(V, 1, 1, 0);
+  eqCorner(x, V, "y = (x − 1)²");
+  const y = (t1 - 1) ** 2, P = [V.X(t1), V.Y(y)], O = [V.X(t1), V.Y(0)], one = [V.X(1), V.Y(0)];
+  if (Math.abs(t1 - 1) > EPS) {
+    seg(x, O, P, rgba(MU, 0.9), 1.5, [4, 4]);
+    seg(x, one, O, C, 4);
+    [one, O].forEach((p) => seg(x, [p[0], p[1] - 6], [p[0], p[1] + 6], C, 2));
+  }
+  const G = [V.X(-1), V.Y(4)];
+  dot(x, ...G, 7, NO, color("--surface"), 2); reserve(...G, 10);
+  if (found) { dot(x, V.X(1), V.Y(0), 20, null, color("--hl"), 3); reserve(V.X(1), V.Y(0), 21); }
+  handle(x, ...P, false);
+  place(x, "(−1, 4)?", around(G, -1, false), { color: NO });
+  if (Math.abs(t1 - 1) > EPS) {
+    place(x, "x − 1 = " + fmt(t1 - 1), [[(one[0] + O[0]) / 2, one[1] + 20], [(one[0] + O[0]) / 2, one[1] - 18], [(one[0] + O[0]) / 2, one[1] + 38]], { color: C, size: 14 });
+    if (Math.abs(t1 + 1) > EPS) place(x, `(${fmt(t1)}, ${fmt(y)})`, around(P, t1 > 1 ? 1 : -1, true), { size: 14 });
+  }
+  if (found) place(x, vtxLabel(1, 0), [[V.X(1), V.Y(0) + 36], [V.X(1) + 24, V.Y(0) + 32, "left"], [V.X(1) - 24, V.Y(0) + 32, "right"], [V.X(1) + 26, V.Y(0) - 20, "left"]], { size: 15 });
+}
+
+function draw2(x, V) {
+  const A = color("--a"), C = color("--c"), Bc = color("--b"), MU = color("--muted");
+  const a = aD, h = hD, k = kD, g = f(a, h, k);
+  const lift = Math.abs(k) > 0.04;
+  if (lift) parab(x, V, a, h, 0, rgba(MU, 0.8), 2, [6, 5]);
+  parab(x, V, a, h, k, A, 3.5);
+  curveBoxes(V, a, h, k);
+  eqCorner(x, V, vtxEq(a2, h2, k2));
+  const s = V.X(h + 1) > V.W - 50 ? -1 : 1;     // side of the "one step away" marker
+  if (lift) {
+    curveBoxes(V, a, h, 0);
+    const g0 = f(a, h, 0), cands = [], dx = Math.min(1.6, Math.sqrt(1.5 / Math.max(Math.abs(a), 0.05)));
+    [h - s * dx, h].forEach((xx) => {
+      const p = [V.X(xx), V.Y(g0(xx))], q = [V.X(xx), V.Y(g(xx))];
+      if (xx === h) q[1] -= Math.sign(q[1] - p[1]) * 18;   // stop short of the vertex ring
+      if ((q[1] - p[1]) * (g(xx) - g0(xx)) > 0) return;    // too short to show
+      arrow(x, p, q, Bc);
+      boxes.push([p[0] - 5, Math.min(p[1], q[1]), p[0] + 5, Math.max(p[1], q[1])]);
+      if (Math.abs(q[1] - p[1]) > 18) for (const fr of [0.5, 0.3, 0.7]) {
+        const yy = p[1] + (q[1] - p[1]) * fr;
+        cands.push([p[0] - s * 9, yy, s > 0 ? "right" : "left"], [p[0] + s * 9, yy, s > 0 ? "left" : "right"]);
+      }
+    });
+    if (cands.length) place(x, (k > 0 ? "+ " : "− ") + fmt(Math.abs(k)), cands, { color: Bc, size: 14, optional: true });
+  }
+  const vx = [V.X(h), V.Y(k)], base = [V.X(h + s), V.Y(k)], q = [V.X(h + s), V.Y(k + a)];
+  seg(x, vx, base, rgba(MU, 0.9), 1.5, [4, 4]);
+  seg(x, base, q, C, 3.5);
+  dot(x, ...q, 5.5, C);
+  handle(x, ...vx, true);
+  const mid = (base[1] + q[1]) / 2;
+  if (Math.abs(q[1] - base[1]) > 12) place(x, `${fmt(a)} × 1² = ${fmt(a)}`, [[base[0] + s * 9, mid, s > 0 ? "left" : "right"], [base[0] - s * 9, mid, s > 0 ? "right" : "left"], [base[0] + s * 9, q[1], s > 0 ? "left" : "right"]], { color: C, size: 14, optional: true });
+  const below = a > 0, d = below ? 1 : -1;
+  place(x, vtxLabel(h, k), [[vx[0], vx[1] + d * 32], [vx[0] + 22, vx[1] + d * 28, "left"], [vx[0] - 22, vx[1] + d * 28, "right"], [vx[0] + 24, vx[1] + d * 8, "left"], [vx[0] - 24, vx[1] + d * 8, "right"], [vx[0] - 22, vx[1] - d * 22, "right"], [vx[0] + 22, vx[1] - d * 22, "left"]], { size: 15 });
+}
+
+function draw3(x, V) {
+  const A = color("--a"), NO = color("--no"), MU = color("--muted");
+  const h = h3(), k = k3();
+  seg(x, [V.X(h), 0], [V.X(h), V.H], rgba(MU, 0.7), 1.5, [3, 5]);
+  const Z = [V.X(0), V.Y(c3)], M = [V.X(-b3), V.Y(c3)], vx = [V.X(h), V.Y(k)];
+  if (b3) seg(x, Z, M, rgba(MU, 0.9), 1.5, [6, 4]);
+  parab(x, V, 1, h, k, A, 3.5);
+  curveBoxes(V, 1, h, k);
+  eqCorner(x, V, "y = " + poly(b3, c3));
+  if (b3) {
+    dot(x, ...Z, 5.5, MU, color("--surface"), 1.5); reserve(...Z, 8);
+    dot(x, ...M, 7, NO, color("--surface"), 2); reserve(...M, 10);
+  }
+  handle(x, ...vx, true);
+  if (b3) {
+    const side = -b3 > 0 ? 1 : -1;
+    place(x, `(${fmt(-b3)}, ${fmt(c3)})?`, around(M, side, true), { color: NO });
+    place(x, `(0, ${fmt(c3)})`, around(Z, -side, true), { color: MU, size: 13 });
+  }
+  place(x, vtxLabel(h, k), [[vx[0], vx[1] + 32], [vx[0] + 22, vx[1] + 28, "left"], [vx[0] - 22, vx[1] + 28, "right"], [vx[0] + 24, vx[1] + 8, "left"], [vx[0] - 24, vx[1] + 8, "right"], [vx[0] + 24, vx[1] - 10, "left"], [vx[0] - 24, vx[1] - 10, "right"]], { size: 15 });
+}
+
+// ---------- formulas ----------
+function vtxEq(a, h, k) {
+  const aa = fmt(a), co = aa === "1" ? "" : aa === "−1" ? "−" : aa;
+  const sq = Math.abs(h) < EPS ? "x²" : `(x ${h > 0 ? "−" : "+"} ${fmt(Math.abs(h))})²`;
+  return "y = " + co + sq + sgn(k);
+}
+function poly(b, c) {
+  let s = "x²";
+  if (b) s += (b > 0 ? " + " : " − ") + (Math.abs(b) === 1 ? "" : fmt(Math.abs(b))) + "x";
+  return s + sgn(c);
+}
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+
+function explain1() {
+  const y = (t1 - 1) ** 2;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试猜想" })}</div>
+    <h2>${t({ en: "Is the bottom of y = (x − 1)² at x = −1?", zh: "y = (x − 1)² 的最低点在 x = −1 吗？" })}</h2>
+    <p>${t({ en: "A friend glances at the minus one and says the bottom is at x = −1. Let's try it: drag the gold point along the curve and watch the bracket.",
+              zh: "朋友瞄了一眼减一，就说池底在 x = −1。我们代进去看看：沿曲线拖动金色的点，盯住括号里的数。" })}</p>
+    <div class="mathline">x = ${fmt(t1)}<br>x − 1 = ${fmt(t1)} − 1 = ${fmt(t1 - 1)}<br>y = ${par(t1 - 1)}² = ${hot(fmt(y))}</div>
+    <div class="rows">
+      <div><span class="dot" style="background:var(--no)"></span>${t({ en: "the guess x = −1", zh: "猜的 x = −1" })}: <span class="m">(−1 − 1)² = 4</span></div>
+      <div><span class="dot" style="background:var(--hl)"></span>${t({ en: "lowest y you've found", zh: "你找到的最小 y" })}: <span class="m">${fmt(minY)}</span></div>
+    </div>
+    ${chk(minY < 4 - EPS, { en: "The vertex is at x = −1?", zh: "顶点在 x = −1？" }, { en: "There are lower points to its right.", zh: "它右边还有更低的点。" })}`;
+  if (found) out += `<div class="mathline" style="margin-top:8px">(x − 1)² ≥ 0</div>
+    <p class="big">${t({ en: "A square is never negative. Its smallest value is zero, so we need the bracket to be zero. x minus one equals zero means x equals one, so the vertex is at (1, 0).",
+                          zh: "平方不会是负数，最小就是零，所以要括号里等于零才行。x − 1 = 0，就是 x = 1，顶点是 (1, 0)。" })}</p>`;
+  else if (minY < 4 - EPS) out += `<p class="note" style="margin-top:8px">${t({ en: "That's not the lowest point: the curve keeps going down to its right. Keep going. Where does the bracket become zero?",
+                                                          zh: "(−1, 4) 可不是最低点，曲线在它右边还一路往下走。接着拖：括号什么时候等于零？" })}</p>`;
+  else out += `<p class="note" style="margin-top:8px">${t({ en: "Before you drag: choose a point in your head. Where is the lowest point?", zh: "拖之前，先在心里选一个点：最低点在哪？" })}</p>`;
+  return out + legend([dotI("--no", { en: "the guess", zh: "猜的点" }), dotI("--c", { en: "the bracket x − 1", zh: "括号 x − 1" }), dotI("--hl", { en: "point you drag", zh: "你拖的点" })]);
+}
+
+const CH = [[1, 2], [3, 0], [-1, 2]];
+function explain2() {
+  if (pick === null) {
+    return `<div class="kicker">${t({ en: "Step 02 · predict", zh: "第 2 步 · 先预测" })}</div>
+      <h2>${t({ en: "Now add two at the end. Where will the vertex go?", zh: "在后面再加上二，顶点会跑到哪里去？" })}</h2>
+      <div class="mathline">y = (x − 1)² ${hot("+ 2")}</div>
+      <p>${t({ en: "The vertex of y = (x − 1)² is at (1, 0). Decide first, then tap your answer.", zh: "y = (x − 1)² 的顶点在 (1, 0)。先想好，再点你的答案。" })}</p>
+      <div class="choices">${CH.map((c, i) => `<button data-pick="${i}">(${fmt(c[0])}, ${fmt(c[1])})</button>`).join("")}</div>`;
+  }
+  const a = a2, h = h2, k = k2, s = 1;
+  const right = pick === 0;
+  let out = `<div class="kicker">${t({ en: "Step 02 · add k, multiply by a", zh: "第 2 步 · 加 k、乘 a" })}</div>
+    <h2>${t({ en: "The vertex stays where the bracket is zero", zh: "顶点一直在括号等于零的地方" })}</h2>
+    <p>${right ? `<span class="ok-t">${t({ en: "You chose (1, 2). Right.", zh: "你选了 (1, 2)，对。" })}</span> ` : `<span class="no-t">${t({ en: "Not quite: it's (1, 2).", zh: "不对，是 (1, 2)。" })}</span> `}${t({ en: "Adding two raises every y by two, so the whole curve lifts up two units. The lowest point is still where the bracket is zero: x is still one, and y is now two.",
+              zh: "加二，就是每个 y 都多二，整条曲线往上抬两格。最低点还在括号等于零的地方，横坐标还是一，纵坐标变成二。" })}</p>
+    <div class="mathline">${vtxEq(a, h, k)}<br>x = ${fmt(h)}: ${fmt(a)} × 0² ${sgn(k) || " + 0"} = ${hot(fmt(k))}<br>x = ${fmt(h + s)}: ${fmt(a)} × 1² ${sgn(k) || " + 0"} = ${fmt(a + k)}</div>`;
+  let aTxt;
+  if (a < 0) aTxt = { en: `a is ${fmt(a)}, negative: every point is now below the vertex, the parabola opens downward, and (${fmt(h)}, ${fmt(k)}) is the highest point. It's still where the bracket is zero.`,
+                      zh: `a 是 ${fmt(a)}，是负数：每一点都在顶点下面，抛物线开口朝下，(${fmt(h)}, ${fmt(k)}) 变成最高点。它还是在括号等于零的地方。` };
+  else if (Math.abs(a - 1) < EPS) aTxt = { en: "Now multiply by a in front. One step from the vertex, the curve is a × 1² = a above it. Try a = 2: every point's height above the vertex doubles, and the curve gets narrower.",
+                      zh: "现在在前面乘 a。离顶点横走一格，曲线比顶点高 a × 1² = a。试试 a = 2：每一点离顶点的高度都翻倍，曲线变窄。" };
+  else aTxt = { en: `a is ${fmt(a)}: every point's height above the vertex is ${fmt(a)} times as much, so the curve gets ${a > 1 ? "narrower" : "wider"}. Where the bracket is zero, times ${fmt(a)} is still zero, so the vertex stays put.`,
+                zh: `a 是 ${fmt(a)}：每一点离顶点的高度都变成 ${fmt(a)} 倍，曲线变${a > 1 ? "窄" : "宽"}了。括号等于零的地方，乘 ${fmt(a)} 还是零，所以顶点不动。` };
+  out += `<p class="big">${t(aTxt)}</p>
+    <p class="note">${t({ en: "Drag the vertex anywhere: h and k in the formula follow it.", zh: "把顶点拖到任何地方，式子里的 h 和 k 跟着变。" })}</p>`;
+  return out + legend([dotI("--hl", { en: "vertex (h, k)", zh: "顶点 (h, k)" }), dotI("--c", { en: "height one step away", zh: "横走一格的高度" }), dotI("--b", { en: "+ k lifts every y", zh: "+ k 把每个 y 抬高" })]);
+}
+
+function explain3() {
+  const b = b3, c = c3, h = h3(), k = k3(), q = (b / 2) ** 2;
+  let out = `<div class="kicker">${t({ en: "Step 03 · the expanded form", zh: "第 3 步 · 换个写法" })}</div>
+    <h2>${t({ en: `What if the formula is written as ${poly(b, c)}? Where is the vertex?`, zh: `要是式子写成 ${poly(b, c)}，顶点在哪？` })}</h2>`;
+  if (b) {
+    out += `<p>${t({ en: `Reading off the numbers, you'd guess x is ${fmt(-b)} and y is ${fmt(c)}. That point is on the curve, but only halfway up the side:`,
+                       zh: `照数字去读，会以为横坐标 ${fmt(-b)}、纵坐标 ${fmt(c)}。那个点在曲线上，可只在半山腰：` })}</p>
+      <div class="mathline">${par(-b)}² ${b < 0 ? "−" : "+"} ${fmt(Math.abs(b))} × ${par(-b)}${sgn(c)} = ${fmt(c)}</div>
+      ${chk(true, { en: `The vertex is (${fmt(-b)}, ${fmt(c)})?`, zh: `顶点是 (${fmt(-b)}, ${fmt(c)})？` }, { en: "On the curve, but not the lowest.", zh: "在曲线上，但不是最低。" })}
+      <p style="margin-top:8px">${t({ en: "Remember completing the square (#23)? Add and take away the same number:", zh: "还记得配方吗（#23）？加一个数再减掉同一个数：" })}</p>
+      <div class="mathline">y = ${poly(b, c)}<br>&nbsp;&nbsp;= (${poly(b, q)}) − ${fmt(q)}${sgn(c)}<br>&nbsp;&nbsp;= ${vtxEq(1, h, k).slice(4)}</div>
+      <p class="big">${t({ en: `So the vertex is ${hot("(" + fmt(h) + ", " + fmt(k) + ")")}: the bracket is zero at x = ${fmt(h)}. It sits exactly halfway between (0, ${fmt(c)}) and (${fmt(-b)}, ${fmt(c)}), the two points at the same height.`,
+                               zh: `所以顶点是 ${hot("(" + fmt(h) + ", " + fmt(k) + ")")}：x = ${fmt(h)} 时括号等于零。它正好在 (0, ${fmt(c)}) 和 (${fmt(-b)}, ${fmt(c)}) 这两个一样高的点的正中间。` })}</p>`;
+  } else {
+    out += `<div class="mathline">y = ${poly(0, c)} = ${hot("(x − 0)²" + (sgn(c) || " + 0"))}</div>
+      <p class="big">${t({ en: `With b = 0 there is nothing to complete: the bracket is zero at x = 0, so the vertex is (0, ${fmt(c)}). Only here do the numbers give the vertex directly. Move b and see.`,
+                           zh: `b = 0 时不用配方：x = 0 时括号等于零，顶点就是 (0, ${fmt(c)})。只有这时，照数字读出来的才是顶点。动一动 b 看看。` })}</p>`;
+  }
+  return out + legend([dotI("--hl", { en: "vertex", zh: "顶点" }), dotI("--no", { en: "read off the numbers", zh: "照数字读的点" }), `<span><span class="dsh"></span>${t({ en: "same height", zh: "一样高" })}</span>`]);
+}
+
+// ---------- render ----------
+const half = (v) => (v === 0.5 ? "½" : fmt(v));
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3 })[step]();
+  el("vtitle").textContent = t(D["v" + step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  [1, 2, 3].forEach((i) => (el("c" + i).hidden = step !== i));
+  el("tR").value = t1; el("tV").textContent = "x = " + fmt(t1);
+  el("aBtns").innerHTML = [0.5, 1, 2, -1].map((v) => { const on = Math.abs(v - a2) < EPS; return `<button data-a="${v}" class="${on ? "on" : ""}" aria-pressed="${on}">${half(v)}</button>`; }).join(" ");
+  el("bR").value = b3; el("bV").textContent = "b = " + fmt(b3);
+  el("cR").value = c3; el("cV").textContent = "c = " + fmt(c3);
+  dirty = true;
+}
+
+// ---------- actions ----------
+function setT(v) {
+  const V = vw(), B = bnd(V), r = Math.sqrt(Math.max(0, B.y1));
+  const n = clamp(snap(v, 0.5), Math.max(B.x0, Math.ceil((1 - r) * 2) / 2), Math.min(B.x1, Math.floor((1 + r) * 2) / 2));
+  if (n === t1) return;
+  t1 = n; const y = (t1 - 1) ** 2; minY = Math.min(minY, y);
+  if (Math.abs(t1 - 1) < EPS) found = true;
+  render();
+}
+function setVtx(nh, nk) {
+  const B = bnd(vw());
+  h2 = hD = clamp(snap(nh, 0.5), B.x0, B.x1); k2 = kD = clamp(snap(nk, 0.5), B.y0, B.y1);
+  render();
+}
+function setA(v) { a2 = v; if (Play.reduced) aD = v; render(); }
+function choose(i) {
+  pick = i; a2 = aD = 1; h2 = hD = 1; kD = 0; k2 = 2;
+  if (Play.reduced) kD = 2;
+  render();
+}
+function set3(b, c) { b3 = clamp(Math.round(b), -4, 4); c3 = clamp(Math.round(c), -2, 6); render(); }
+
+// ---------- pointer + keys ----------
+Play.drag(cvEl, {
+  down(px, py) {
+    const V = vw();
+    if (step === 1) { grab = "t"; frozen = V; return true; }
+    const vx = step === 2 ? [V.X(hD), V.Y(kD)] : [V.X(h3()), V.Y(k3())];
+    if (Math.hypot(vx[0] - px, vx[1] - py) > 40) return false;
+    grab = "v"; frozen = V; return true;
+  },
+  move(px, py) {
+    if (!grab) return;
+    const V = vw(), wx = V.wx(px), wy = V.wy(py);
+    if (step === 1) setT(wx);
+    else if (step === 2) setVtx(wx, wy);
+    else { const h = clamp(snap(wx, 0.5), -2, 2); set3(-2 * h, wy + h * h); }
+  },
+  up() { grab = null; frozen = null; dirty = true; },
+});
+const key = (dx, dy) => () => {
+  if (step === 1) { if (dx) setT(t1 + dx * 0.5); }
+  else if (step === 2) setVtx(h2 + dx * 0.5, k2 + dy * 0.5);
+  else set3(b3 - dx, c3 + dy);
+};
+Play.keys(cvEl, { ArrowLeft: key(-1, 0), ArrowRight: key(1, 0), ArrowUp: key(0, 1), ArrowDown: key(0, -1) });
+
+el("tR").addEventListener("input", (e) => setT(+e.target.value));
+el("aBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-a]"); if (b) setA(+b.dataset.a); });
+el("bR").addEventListener("input", (e) => set3(+e.target.value, c3));
+el("cR").addEventListener("input", (e) => set3(b3, +e.target.value));
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) choose(+b.dataset.pick); });
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => { step = s; grab = null; frozen = null; render(); });
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  const r = Play.reduced ? 1 : Math.min(1, dt * 6);
+  for (const [cur, tgt] of [["aD", a2], ["kD", k2], ["hD", h2]]) {
+    const v = { aD, kD, hD }[cur], d = tgt - v;
+    if (Math.abs(d) < 1e-3) { if (d) { if (cur === "aD") aD = tgt; else if (cur === "kD") kD = tgt; else hD = tgt; dirty = true; } continue; }
+    const nv = v + d * r;
+    if (cur === "aD") aD = nv; else if (cur === "kD") kD = nv; else hD = nv;
+    dirty = true;
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

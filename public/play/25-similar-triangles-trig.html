@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why sin 30° Is Always One Half · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 42px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .controls .grow { flex: 1 1 160px; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .controls .grow input { flex: 1 1 auto; }
+  .controls .grow > span { white-space: nowrap; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .no-t { color: var(--no); font-weight: 700; }
+  .explain .mathline { font-size: 18px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .tbl td, .tbl th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .tbl th { color: var(--muted); font-weight: 600; }
+  .tbl td:first-child, .tbl th:first-child { text-align: left; white-space: normal; }
+  .tbl tr.r td { color: var(--fg); font-weight: 700; }
+  .tbl tr.r td.k { color: var(--a); }
+  .tbl tr.ar td.k { color: var(--no); font-weight: 700; }
+  .tbl tr.cur td { background: var(--soft); }
+  .chk { margin: 2px 0 8px; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .picks { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
+  .picks button { font-size: 13px; padding: 6px 11px; }
+  .picks button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 5px; vertical-align: 3px; }
+  .ln.d { border-top-style: dashed; border-top-width: 2px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" data-t="drag"></div>
+      <canvas class="main" id="main"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span data-t="size"></span><span id="kBtns"></span></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <button class="small" id="flip"></button>
+        <span class="grow"><span data-t="flat"></span><input id="fold" type="range" min="0" max="100" value="0" aria-label="flip"><span data-t="over"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grow"><span data-t="angle"></span><input id="thR" type="range" min="10" max="80" step="1" value="30" aria-label="angle"><span class="val" id="thV"></span></span>
+        <span class="grp" id="thBtns"></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">sin 30° = <span class="frac"><span>1</span><span>2</span></span></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "Why sin 30° Is Always One Half", zh: "sin30° 为什么永远是 1/2" },
+  eyebrow: { en: "Boxi Math · Try it · #25", zh: "Boxi Math · 动手试试 · #25" },
+  intro: { en: "Two classmates each draw a thirty-degree right triangle, one small and one big. Does the big one have a bigger sine? Enlarge and shrink a triangle, flip a copy over to see why the answer is exactly one half, then try other angles.",
+           zh: "两个同学各画了一个三十度的直角三角形，一小一大。大的那个，sin 会更大吗？先把三角形放大缩小，再翻过来拼一拼，看为什么正好是二分之一，最后换几个角度试试。" },
+  s1: { en: "Bigger, bigger sine?", zh: "越大越大？" }, s2: { en: "Why one half", zh: "为什么是一半" }, s3: { en: "Other angles", zh: "换个角度" },
+  reset: { en: "Reset", zh: "重置" }, drag: { en: "drag the gold corner", zh: "拖金色的角" },
+  size: { en: "Size:", zh: "大小：" }, flat: { en: "together", zh: "重合" }, over: { en: "flipped", zh: "翻过去" },
+  angle: { en: "Angle", zh: "角度" },
+  flipB: { en: "Flip", zh: "翻过去" }, backB: { en: "Flip back", zh: "翻回来" }, pauseB: { en: "Pause", zh: "暂停" },
+  v1: { en: "Two 30° right triangles", zh: "两个 30° 直角三角形" }, v2: { en: "Copy, flip, put together", zh: "复制、翻过去、拼起来" }, v3: { en: "Any angle, any size", zh: "任意角度、任意大小" },
+  resT: { en: "Opposite ÷ hypotenuse depends on the angle, not on the size.", zh: "对边 ÷ 斜边只看角度，不看大小。" },
+  resN: { en: "It's a ratio: it depends on shape, not size, and scaling never changes it. Area is a different story: double the sides and the area becomes four times as big.",
+          zh: "它是一个比值，只看形状，不看大小，放大缩小都一样。面积就不一样了：边长放大两倍，面积变成四倍。" },
+  moreS: { en: "Why do all right triangles with the same angle give the same ratio?", zh: "为什么角度一样的直角三角形，比值都一样？" },
+  moreP: { en: "Two right triangles that both have a 30° angle also share the third angle (180° − 90° − 30° = 60°), so they have the same shape: they are similar. One is the other enlarged by some factor k, so every side gets multiplied by k, and k cancels in opposite ÷ hypotenuse. That's why sin 30° is a number that belongs to the angle alone.",
+           zh: "两个直角三角形都有一个 30° 角，第三个角也都是 180° − 90° − 30° = 60°，形状一样，是相似三角形。一个是另一个放大 k 倍，每条边都乘 k，对边 ÷ 斜边里 k 约掉了。所以 sin30° 是只属于这个角的一个数。" },
+  moreQ: { en: "The same goes for any angle θ: sin θ = opposite ÷ hypotenuse is fixed by θ. The flip trick gives the exact value only for some angles, like 30°; step 3 shows the others.",
+           zh: "任何角 θ 都一样：sin θ = 对边 ÷ 斜边由 θ 决定。翻过来拼的办法只能算出某些角的准确值，比如 30°；其他角在第 3 步里看。" },
+  foot: { en: "Brown is the opposite side, blue is the hypotenuse, gold is what you can drag. With the picture focused: ← → change the size; in step 2 ↑ ↓ flip and Space plays; in step 3 ↑ ↓ change the angle.",
+          zh: "棕色是对边，蓝色是斜边，金色的角可以拖。选中图以后：← → 改大小；第 2 步 ↑ ↓ 翻转、空格播放；第 3 步 ↑ ↓ 改角度。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const R30 = Math.PI / 6, SQ3 = Math.sqrt(3), C0 = 2, CMIN = 1, C2MIN = 3, C2MAX = 6, CMAX = 8, EPS = 1e-9;   // step 2 stays big enough to read
+const snap = (v, s) => Math.round(v / s) * s;
+const hot = (s) => `<span class="hot">${s}</span>`;
+const frac = (a, b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const area = (c, r) => (c * Math.cos(r) * c * Math.sin(r)) / 2;
+
+// ---------- state ----------
+let c1, fold, playing, target, wait, th, c3, hist, pick, tried, step = 1, dirty = true, done2 = false;
+function init() { c1 = 4; fold = 0; playing = false; target = 1; wait = 0; th = 30; c3 = 4; hist = []; pick = null; tried = false; }
+init();
+
+// ---------- view for steps 1 and 3: one fixed grid ----------
+const BX0 = -0.8, BX1 = 8.4, BY0 = -1, BY1 = 4.6;
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  const u = Math.min((W - 12) / (BX1 - BX0), (H - 38) / (BY1 - BY0));
+  const ox = (W - (BX1 - BX0) * u) / 2 - BX0 * u, oy = H - 6 + BY0 * u;
+  const wx = (px) => (px - ox) / u, wy = (py) => (oy - py) / u;
+  return { W, H, u, X: (x) => ox + x * u, Y: (y) => oy - y * u, wx, wy, xmin: wx(0), xmax: wx(W), ymin: wy(H), ymax: wy(0) };
+}
+// biggest hypotenuse (multiple of 0.5) that keeps the triangle inside the grid
+const cmax = (deg) => { const r = deg * Math.PI / 180; return Math.max(CMIN, Math.floor(Math.min(CMAX, 7.9 / Math.cos(r), 4 / Math.sin(r)) * 2) / 2); };
+
+// ---------- view for step 2 ----------
+function vw2() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 400;
+  const aMax = C2MAX * Math.cos(R30), u = Math.min((W - 160) / aMax, (H - 32 - 56) / C2MAX);
+  const L = (W - (aMax * u + 160)) / 2 + 36, cy = 32 + (H - 32) / 2;
+  return { W, H, u, X: (x) => L + x * u, Y: (y) => cy - y * u, wx: (px) => (px - L) / u };
+}
+
+function sizeCanvas() {
+  const w = cvEl.getBoundingClientRect().width || 600;
+  const h = step === 2 ? clamp(Math.round(w * 0.62), 300, 420) : clamp(Math.round((w - 12) / (BX1 - BX0) * (BY1 - BY0) + 44), 240, 400);
+  if (cvEl.style.height !== h + "px") cvEl.style.height = h + "px";
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, h = size + 6;
+  return [px - w / 2, py - h / 2, px + w / 2, py + h / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick = null;
+  for (const c of cands) { const bx = boxOf(x, s, c[0], c[1], size); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pick = c; break; } }
+  if (!pick) { if (o.optional) return false; pick = cands[0]; }
+  boxes.push(boxOf(x, s, pick[0], pick[1], size));
+  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size });
+  return true;
+}
+// label beside segment p–q, pushed along the unit normal n far enough to clear the segment
+function sideLabel(x, s, p, q, n, o = {}) {
+  const size = o.size || 15, b = boxOf(x, s, 0, 0, size), w = b[2] - b[0], h = b[3] - b[1];
+  const m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], d = (o.gap ?? 5) + Math.abs(n[0]) * w / 2 + Math.abs(n[1]) * h / 2;
+  place(x, s, [[m[0] + n[0] * d, m[1] + n[1] * d], [m[0] - n[0] * d, m[1] - n[1] * d]], o);
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+
+// ---------- drawing helpers ----------
+function seg(x, p, q, col, w, dash) {
+  x.strokeStyle = col; x.lineWidth = w; x.lineCap = "round"; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
+}
+function poly(x, pts, fill, stroke, w, dash) {
+  x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(...p) : x.moveTo(...p))); x.closePath();
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = w || 1.5; x.setLineDash(dash || []); x.lineJoin = "round"; x.stroke(); x.setLineDash([]); }
+}
+function handle(x, px, py) {
+  x.beginPath(); x.arc(px, py, 15, 0, 7); x.strokeStyle = rgba(color("--hl"), 0.8); x.lineWidth = 2.5; x.stroke();
+  x.beginPath(); x.arc(px, py, 9, 0, 7); x.fillStyle = color("--hl"); x.fill(); x.strokeStyle = color("--fg"); x.lineWidth = 1.5; x.stroke();
+  reserve(px, py, 16);
+}
+// right-angle mark at corner q, legs pointing along unit pixel directions d1, d2
+function rightMark(x, q, d1, d2, s) {
+  x.strokeStyle = color("--muted"); x.lineWidth = 1.3; x.beginPath();
+  x.moveTo(q[0] + d1[0] * s, q[1] + d1[1] * s); x.lineTo(q[0] + (d1[0] + d2[0]) * s, q[1] + (d1[1] + d2[1]) * s); x.lineTo(q[0] + d2[0] * s, q[1] + d2[1] * s); x.stroke();
+}
+// angle label inside the wedge at A between directions a0 and a1 (canvas angles), clear of both sides
+function angleLabel(x, A, a0, a1, rArc, s, maxD, fallback) {
+  const half = Math.abs(a1 - a0) / 2, mid = (a0 + a1) / 2, b = boxOf(x, s, 0, 0, 14), w = b[2] - b[0], h = b[3] - b[1];
+  // distance from the wedge's sides of a box centred on the bisector at distance d is d·sin(half); need it to cover the box
+  const need = (ang) => Math.abs(Math.sin(ang)) * w / 2 + Math.abs(Math.cos(ang)) * h / 2 + 3;
+  const d = Math.max(rArc + 12, need(a0) / Math.sin(half), need(a1) / Math.sin(half));
+  const cands = d + Math.max(w, h) / 2 < maxD ? [[A[0] + d * Math.cos(mid), A[1] + d * Math.sin(mid)]] : [];
+  place(x, s, cands.concat(fallback), { size: 14 });
+}
+function arc(x, A, r, a0, a1, col) { x.beginPath(); x.arc(A[0], A[1], r, Math.min(a0, a1), Math.max(a0, a1)); x.strokeStyle = col; x.lineWidth = 2; x.stroke(); }
+
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 34 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py) => { const bx = boxOf(x, s, px, py, 13); if (inside(bx) && !boxes.some((b) => hit(b, bx))) Play.text(x, s, px, py, { size: 13, color: mu, weight: 500 }); };
+  for (let i = st; i <= V.xmax - 0.3; i += st) put(fmt(i), V.X(i), V.Y(0) + 13);
+  for (let j = st; j <= V.ymax - 0.3; j += st) put(fmt(j), V.X(0) - 12, V.Y(j));
+}
+
+// right triangle with angle `deg` at the origin and hypotenuse c, on the grid
+function triangle(x, V, deg, c) {
+  const r = deg * Math.PI / 180, a = c * Math.cos(r), o = c * Math.sin(r);
+  const A = [V.X(0), V.Y(0)], C = [V.X(a), V.Y(0)], B = [V.X(a), V.Y(o)];
+  poly(x, [A, C, B], rgba(color("--c"), 0.1));
+  seg(x, A, C, color("--muted"), 2.5);
+  seg(x, C, B, color("--b"), 4);
+  seg(x, A, B, color("--c"), 4);
+  const legX = C[0] - A[0], legY = C[1] - B[1];
+  rightMark(x, C, [-1, 0], [0, -1], Math.min(11, legX * 0.3, legY * 0.3));
+  const rA = Math.min(32, legX * 0.4);
+  arc(x, A, rA, -r, 0, color("--hl"));
+  handle(x, ...B);
+  // side lengths: opposite to the right, hypotenuse up-left, adjacent below the axis
+  sideLabel(x, fmt(o), C, B, [1, 0], { color: color("--b"), gap: 8 });
+  sideLabel(x, fmt(c), A, B, [-Math.sin(r), -Math.cos(r)], { color: color("--c"), gap: 6 });
+  angleLabel(x, A, -r, 0, rA, deg + "°", legX - 6, [[A[0] + 20, A[1] + 15], [A[0] - 22, A[1] - 14]]);
+  place(x, fmt(a), [[(A[0] + C[0]) / 2, A[1] + 15], [(A[0] + C[0]) / 2, A[1] + 32]], { color: color("--muted"), size: 14, optional: true });
+  return { A, B, C };
+}
+
+function draw(x, w, h) {
+  W0 = w; H0 = h; boxes = [[0, 0, w, 30]];
+  if (step === 2) return draw2(x, w, h);
+  const V = vw();
+  grid(x, V);
+  if (step === 1) {
+    const g = [[V.X(0), V.Y(0)], [V.X(C0 * Math.cos(R30)), V.Y(0)], [V.X(C0 * Math.cos(R30)), V.Y(C0 / 2)]];
+    poly(x, g, rgba(color("--fg"), 0.07), rgba(color("--fg"), 0.55), 1.8, [5, 4]);
+    triangle(x, V, 30, c1);
+    if (Math.abs(c1 - C0) > EPS) poly(x, g, null, rgba(color("--fg"), 0.55), 1.8, [5, 4]);
+  } else {
+    if (th !== 30) {
+      const g = [[V.X(0), V.Y(0)], [V.X(c3 * Math.cos(R30)), V.Y(0)], [V.X(c3 * Math.cos(R30)), V.Y(c3 / 2)]];
+      poly(x, g, null, rgba(color("--fg"), 0.4), 1.5, [5, 4]);
+    }
+    triangle(x, V, th, c3);
+  }
+  ticks(x, V);
+}
+
+function draw2(x, w, h) {
+  const V = vw2(), c = c1, a = c * Math.cos(R30), o = c / 2, ff = clamp(fold, 0, 1), yb = o * Math.cos(Math.PI * ff), full = ff > 0.999;
+  const A = [V.X(0), V.Y(0)], C = [V.X(a), V.Y(0)], B = [V.X(a), V.Y(o)], Bf = [V.X(a), V.Y(yb)];
+  const BRN = color("--b"), BLU = color("--c"), HL = color("--hl");
+  if (full) poly(x, [A, B, Bf], null, rgba(HL, 0.75), 9);
+  poly(x, [A, C, Bf], rgba(color("--h"), 0.16));
+  poly(x, [A, C, B], rgba(color("--a"), 0.18));
+  seg(x, A, C, color("--muted"), 2.5);
+  seg(x, C, Bf, BRN, 4, full ? null : [7, 5]); seg(x, A, Bf, BLU, 4, full ? null : [7, 5]);
+  seg(x, C, B, BRN, 4); seg(x, A, B, BLU, 4);
+  const s = Math.min(11, (C[0] - A[0]) * 0.3, (C[1] - B[1]) * 0.3);
+  rightMark(x, C, [-1, 0], [0, -1], s);
+  if (full) rightMark(x, C, [-1, 0], [0, 1], s);
+  const rA = Math.min(30, (C[0] - A[0]) * 0.4);
+  arc(x, A, rA, -R30, 0, HL);
+  if (ff > 0.5) arc(x, A, rA + 4, 0, Math.atan2(Bf[1] - A[1], Bf[0] - A[0]), HL);
+  handle(x, ...B);
+  // vertex names
+  place(x, "A", [[A[0] - 16, A[1]]], { italic: true, size: 16 });
+  place(x, "B", [[B[0], B[1] - 22], [B[0] + 22, B[1] - 14]], { italic: true, size: 16 });
+  place(x, "C", [[C[0] - 26, C[1] - 14], [C[0] + 14, C[1] + 1]], { italic: true, size: 16 });
+  if (ff > 0.5) place(x, "B′", [[Bf[0], Bf[1] + 18], [Bf[0] + 22, Bf[1] + 12]], { italic: true, size: 16 });
+  // bracket for BB′
+  if (full) {
+    const bx = C[0] + 46;
+    x.strokeStyle = HL; x.lineWidth = 2.5; x.beginPath();
+    x.moveTo(bx - 7, B[1]); x.lineTo(bx, B[1]); x.lineTo(bx, Bf[1]); x.lineTo(bx - 7, Bf[1]); x.stroke();
+    boxes.push([bx - 8, B[1], bx + 2, Bf[1]]);
+    place(x, "BB′ = " + fmt(2 * o), [[bx + 8 + boxW(x, "BB′ = " + fmt(2 * o), 14) / 2, C[1]]], { size: 14 });
+  }
+  // side lengths
+  sideLabel(x, fmt(o), C, B, [1, 0], { color: BRN, gap: 8 });
+  sideLabel(x, fmt(c), A, B, [-Math.sin(R30), -Math.cos(R30)], { color: BLU, gap: 6 });
+  if (full) {
+    sideLabel(x, fmt(o), C, Bf, [1, 0], { color: BRN, gap: 8 });
+    sideLabel(x, fmt(c), A, Bf, [-Math.sin(R30), Math.cos(R30)], { color: BLU, gap: 6 });
+  }
+  const leg = C[0] - A[0];
+  angleLabel(x, A, -R30, 0, rA, "30°", leg - 4, [[A[0] - 22, A[1] - 22]]);
+  if (full) {
+    angleLabel(x, A, 0, R30, rA + 4, "30°", leg - 4, [[A[0] - 22, A[1] + 22]]);
+    // 60° inside the corners at B and B′ (bisector points at the midpoint of the far side)
+    const m1 = [(A[0] + Bf[0]) / 2, (A[1] + Bf[1]) / 2], m2 = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+    const dir = (p, q) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; return [(q[0] - p[0]) / d, (q[1] - p[1]) / d]; };
+    const dd = Math.min(46, (C[1] - B[1]) * 0.75);
+    [[B, m1], [Bf, m2]].forEach(([p, q]) => { const d = dir(p, q); place(x, "60°", [[p[0] + d[0] * dd, p[1] + d[1] * dd]], { size: 14, optional: true }); });
+  }
+}
+function boxW(x, s, size) { const b = boxOf(x, s, 0, 0, size); return b[2] - b[0]; }
+
+// ---------- text ----------
+const lineI = (v, o, dash) => `<span><span class="ln${dash ? " d" : ""}" style="border-color:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const ratioTxt = (o, c) => { const q = o / c, ex = Math.abs(q * 1000 - Math.round(q * 1000)) < 1e-6; return `${fmt(o)} ÷ ${fmt(c)} ${ex ? "=" : "≈"} ${fmt(q, 3)}`; };
+
+function explain1() {
+  const k = c1 / C0, o0 = C0 / 2, o = c1 / 2, A0 = area(C0, R30), A1 = area(c1, R30);
+  const kk = (v) => "×" + fmt(v, 3);
+  const PICK = [{ en: "It gets bigger", zh: "变大" }, { en: "It stays the same", zh: "不变" }, { en: "It gets smaller", zh: "变小" }];
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试猜想" })}</div>
+    <h2>${t({ en: "The bigger triangle has longer sides. Does sin 30° get bigger?", zh: "大三角形的边更长，sin30° 也更大吗？" })}</h2>
+    <p>${t({ en: "Sine of thirty degrees is the opposite side (faces the 30° angle) divided by the hypotenuse (the longest side). Drag the gold corner to enlarge or shrink the big triangle; the dashed one is the small triangle.",
+              zh: "sin30° 是对边（30° 角对着的那条）除以斜边（最长的那条）。拖金色的角，把大三角形放大或缩小；虚线的是小三角形。" })}</p>`;
+  if (!tried) {
+    out += `<p class="big">${t({ en: "Predict: enlarge the triangle to three times the size. Does opposite over hypotenuse change?", zh: "先预测：把三角形放大到三倍，对边除以斜边会变吗？" })}</p>
+      <div class="picks">${PICK.map((p, i) => `<button data-pick="${i}" class="${pick === i ? "on" : ""}" aria-pressed="${pick === i}">${t(p)}</button>`).join("")}</div>`;
+    if (pick != null) out += `<p class="note">${t({ en: "Now press ×3 below the picture, or drag the corner until the hypotenuse is 6.", zh: "现在点图下面的 ×3，或者拖到斜边是 6。" })}</p>`;
+  }
+  out += `<table class="tbl"><tr><th></th><th>${t({ en: "small", zh: "小的" })}</th><th>${t({ en: "big", zh: "大的" })}</th><th>${t({ en: "big ÷ small", zh: "大 ÷ 小" })}</th></tr>
+    <tr><td><span class="dot" style="background:var(--b)"></span>${t({ en: "opposite", zh: "对边" })}</td><td>${fmt(o0)}</td><td>${fmt(o)}</td><td>${kk(k)}</td></tr>
+    <tr><td><span class="dot" style="background:var(--c)"></span>${t({ en: "hypotenuse", zh: "斜边" })}</td><td>${fmt(C0)}</td><td>${fmt(c1)}</td><td>${kk(k)}</td></tr>
+    <tr class="r"><td>${t({ en: "opposite ÷ hypotenuse", zh: "对边 ÷ 斜边" })}</td><td>${fmt(o0 / C0, 3)}</td><td>${fmt(o / c1, 3)}</td><td class="k">×1</td></tr>
+    <tr class="ar"><td><span class="dot" style="background:var(--no)"></span>${t({ en: "area", zh: "面积" })}</td><td>${fmt(A0)}</td><td>${fmt(A1)}</td><td class="k">${kk(A1 / A0)}</td></tr></table>
+    <div class="mathline">sin 30° = ${fmt(o)} ÷ ${fmt(c1)} = ${hot(fmt(o / c1, 3))}</div>`;
+  if (tried) {
+    out += `<div class="chk"><span class="x">✗</span><s>${t({ en: "The bigger you draw the triangle, the bigger sin 30° gets.", zh: "三角形画得越大，sin30° 也越大。" })}</s></div>`;
+    if (pick != null) out += `<p class="big">${pick === 1 ? t({ en: "Your prediction was right: it didn't budge.", zh: "你预测对了：比值一点不动。" }) : `<span class="no-t">${t({ en: "Not quite: it didn't budge.", zh: "不对：比值一点没动。" })}</span>`}</p>`;
+    out += `<p>${t({ en: `The opposite side and the hypotenuse grow by the same factor (×${fmt(k, 3)}), so the ratio stays at one half: same shape, different size. These triangles are all similar. <span class="no-t">Area is a different story:</span> ×${fmt(k, 3)}² = ×${fmt(k * k, 3)}.`,
+                   zh: `对边和斜边按同一倍数变长（都是 ×${fmt(k, 3)}），比值一直停在二分之一：形状没变，只是大小变了，这些三角形都是相似的。<span class="no-t">面积就不一样了：</span>×${fmt(k, 3)}² = ×${fmt(k * k, 3)}。` })}</p>`;
+  }
+  return out + legend([lineI("--b", { en: "opposite", zh: "对边" }), lineI("--c", { en: "hypotenuse", zh: "斜边" }), lineI("--fg", { en: "the small triangle", zh: "小三角形" }, true)]);
+}
+
+function explain2() {
+  const o = c1 / 2;
+  let out = `<div class="kicker">${t({ en: "Step 02 · why exactly one half", zh: "第 2 步 · 为什么正好是一半" })}</div>
+    <h2>${t({ en: "Copy the triangle and flip it over the adjacent side", zh: "把三角形复制一个，沿着邻边翻过去" })}</h2>
+    <p>${t({ en: "The green triangle has its 30° angle at A. Its copy (pink) turns over the adjacent side AC. Press Flip or move the slider; drag the gold corner to change the size.",
+              zh: "绿色三角形的 30° 角在 A。粉色是它的复制品，绕邻边 AC 翻过去。点「翻过去」或拖滑块；拖金色的角可以改大小。" })}</p>`;
+  if (fold < 0.999) return out + `<p class="note">${t({ en: "Flip it all the way over to see the shape the two pieces make.", zh: "翻到底，看看两块拼成了什么形状。" })}</p>`;
+  out += `<div class="mathline">∠BAB′ = 30° + 30° = 60°<br>∠B = ∠B′ = 180° − 90° − 30° = 60°</div>
+    <p class="big">${t({ en: "All three angles are sixty: it's an equilateral triangle, so all three sides are equal.", zh: "三个角都是六十度，是等边三角形，三条边一样长。" })}</p>
+    <div class="mathline">BB′ = 2 × ${t({ en: "opp", zh: "对边" })} = 2 × ${fmt(o)} = ${fmt(2 * o)}<br>BB′ = AB = ${t({ en: "hyp", zh: "斜边" })} = ${fmt(c1)}<br>${t({ en: "opp ÷ hyp", zh: "对边 ÷ 斜边" })} = ${fmt(o)} ÷ ${fmt(c1)} = ${hot(frac(1, 2))}</div>
+    <p>${t({ en: "This vertical side is twice the opposite side, and it's as long as the hypotenuse. So the opposite side is exactly half the hypotenuse, however big the triangle is: drag the corner and the argument doesn't change.",
+              zh: "竖着的这条边是对边的两倍，又和斜边一样长。所以对边正好是斜边的一半，不管三角形画多大：拖动角改大小，道理一点不变。" })}</p>`;
+  return out + legend([lineI("--b", { en: "opposite", zh: "对边" }), lineI("--c", { en: "hypotenuse", zh: "斜边" }), lineI("--hl", { en: "equilateral triangle", zh: "等边三角形" })]);
+}
+
+function explain3() {
+  const r = th * Math.PI / 180, o = c3 * Math.sin(r);
+  let out = `<div class="kicker">${t({ en: "Step 03 · only the angle matters", zh: "第 3 步 · 只看角度" })}</div>
+    <h2>${t({ en: "Change the size: the ratio stays. Change the angle: it moves.", zh: "改大小，比值不动；改角度，比值才变" })}</h2>
+    <p>${t({ en: "Drag the gold corner to scale the triangle, and use the slider to change the angle θ. Each triangle you try is listed below.",
+              zh: "拖金色的角放大缩小，用滑块改角度 θ。你试过的三角形会列在下面。" })}</p>
+    <div class="mathline">sin ${th}° = ${t({ en: "opp ÷ hyp", zh: "对边 ÷ 斜边" })}<br>= ${hot(ratioTxt(o, c3))}</div>`;
+  if (hist.length > 1) {
+    out += `<table class="tbl"><tr><th>θ</th><th>${t({ en: "hyp", zh: "斜边" })}</th><th>${t({ en: "opp", zh: "对边" })}</th><th>${t({ en: "opp ÷ hyp", zh: "对边 ÷ 斜边" })}</th></tr>${hist.slice().reverse().map((e) => {
+      const oo = e.c * Math.sin(e.th * Math.PI / 180);
+      return `<tr class="r${e.th === th ? " cur" : ""}"><td>${e.th}°</td><td>${fmt(e.c)}</td><td>${fmt(oo)}</td><td class="k">${fmt(oo / e.c, 3)}</td></tr>`;
+    }).join("")}</table>`;
+  } else out += `<p class="note">${t({ en: "Try two sizes at the same angle, then a different angle.", zh: "同一个角度试两个大小，再换一个角度。" })}</p>`;
+  const NOTE = {
+    30: { en: "Thirty degrees: one half, exactly as the flip showed.", zh: "三十度：二分之一，和翻过来拼的结果一样。" },
+    60: { en: "Sixty degrees: now the opposite side is the height of the equilateral triangle from step 2, so the ratio is √3 ÷ 2 ≈ 0.866.", zh: "六十度：这时对边是第 2 步那个等边三角形的高，比值是 √3 ÷ 2 ≈ 0.866。" },
+    45: { en: "Forty-five degrees: the two legs are equal, and the ratio is √2 ÷ 2 ≈ 0.707.", zh: "四十五度：两条直角边一样长，比值是 √2 ÷ 2 ≈ 0.707。" },
+  };
+  out += `<p class="big">${NOTE[th] ? t(NOTE[th]) : t({ en: "Bigger angle, bigger ratio; any size at this angle gives the same number.", zh: "角越大，比值越大；同一个角度，画多大都是这个数。" })}</p>`;
+  return out + legend([lineI("--b", { en: "opposite", zh: "对边" }), lineI("--c", { en: "hypotenuse", zh: "斜边" }), ...(th !== 30 ? [lineI("--fg", { en: "30° for comparison", zh: "30° 作对照" }, true)] : [])]);
+}
+
+// ---------- controls ----------
+const KS = [0.5, 1, 2, 3, 4];
+el("kBtns").innerHTML = KS.map((k) => `<button class="small" data-k="${k}">×${fmt(k)}</button>`).join("");
+el("thBtns").innerHTML = [30, 45, 60].map((d) => `<button class="small" data-th="${d}">${d}°</button>`).join("");
+
+function render() {
+  sizeCanvas();
+  el("explain").innerHTML = step === 1 ? explain1() : step === 2 ? explain2() : explain3();
+  el("vtitle").textContent = t(D["v" + step]);
+  ["c1", "c2", "c3"].forEach((id, i) => (el(id).hidden = i + 1 !== step));
+  document.querySelectorAll("#kBtns [data-k]").forEach((b) => b.classList.toggle("on", Math.abs(+b.dataset.k * C0 - c1) < EPS));
+  document.querySelectorAll("#thBtns [data-th]").forEach((b) => b.classList.toggle("on", +b.dataset.th === th));
+  el("thR").value = th; el("thV").textContent = "θ = " + th + "°";
+  el("fold").value = Math.round(fold * 100);
+  flipLabel();
+  cvEl.setAttribute("aria-label", step === 2
+    ? t({ en: `A 30° right triangle with hypotenuse ${fmt(c1)} and a flipped copy`, zh: `斜边 ${fmt(c1)} 的 30° 直角三角形和翻过去的复制品` })
+    : t({ en: `Right triangle with a ${step === 1 ? 30 : th}° angle and hypotenuse ${fmt(step === 1 ? c1 : c3)}`, zh: `${step === 1 ? 30 : th}° 角、斜边 ${fmt(step === 1 ? c1 : c3)} 的直角三角形` }));
+  dirty = true;
+}
+function flipLabel() { el("flip").textContent = t(playing ? D.pauseB : fold > 0.999 ? D.backB : D.flipB); }
+
+function setC(v) {
+  const lim = step === 3 ? cmax(th) : step === 2 ? C2MAX : CMAX, c = clamp(snap(v, 0.5), step === 2 ? C2MIN : CMIN, lim);
+  if (step === 3) c3 = c; else c1 = c;
+  if (step === 1 && c1 >= 3 * C0 - EPS) tried = true;
+  render();
+}
+function setTh(d) { th = clamp(Math.round(d), 10, 80); c3 = Math.min(c3, cmax(th)); render(); }
+function record() {
+  if (step !== 3) return;
+  hist = hist.filter((e) => !(e.th === th && e.c === c3));
+  hist.push({ th, c: c3 });
+  if (hist.length > 6) hist.shift();
+  render();
+}
+function setFold(f) { fold = clamp(f, 0, 1); playing = false; check2(); render(); }
+function check2() { const d = fold > 0.999; if (d !== done2) { done2 = d; return true; } return false; }
+
+el("kBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) setC(+b.dataset.k * C0); });
+el("thBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-th]"); if (b) { setTh(+b.dataset.th); record(); } });
+el("thR").addEventListener("input", (e) => setTh(+e.target.value));
+el("thR").addEventListener("change", record);
+el("fold").addEventListener("input", (e) => setFold(e.target.value / 100));
+el("flip").onclick = () => {
+  if (playing) playing = false;
+  else { target = fold > 0.999 ? 0 : 1; playing = true; wait = 0; }
+  flipLabel();
+};
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) { pick = +b.dataset.pick; render(); } });
+
+// ---------- pointer + keys ----------
+let grab = false, off = 0;
+function proj(px, py) {
+  if (step === 2) return vw2().wx(px) / Math.cos(R30);
+  const V = vw(), r = (step === 1 ? 30 : th) * Math.PI / 180;
+  return V.wx(px) * Math.cos(r) + V.wy(py) * Math.sin(r);
+}
+Play.drag(cvEl, {
+  down(px, py) { grab = true; off = (step === 3 ? c3 : c1) - proj(px, py); if (step === 2) playing = false; return true; },
+  move(px, py) { if (grab) setC(proj(px, py) + off); },
+  up() { if (grab) record(); grab = false; },
+});
+Play.keys(cvEl, {
+  ArrowLeft: () => { setC((step === 3 ? c3 : c1) - 0.5); record(); },
+  ArrowRight: () => { setC((step === 3 ? c3 : c1) + 0.5); record(); },
+  ArrowUp: () => { if (step === 1) setC(c1 + 0.5); else if (step === 2) setFold(fold + 0.1); else { setTh(th + 1); record(); } },
+  ArrowDown: () => { if (step === 1) setC(c1 - 0.5); else if (step === 2) setFold(fold - 0.1); else { setTh(th - 1); record(); } },
+  " ": () => { if (step === 2) el("flip").click(); },
+});
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; grab = false;
+  if (s === 2) { c1 = clamp(c1, C2MIN, C2MAX); fold = 0; done2 = false; playing = !Play.reduced; target = 1; wait = 0.6; }
+  else playing = false;
+  if (s === 3) { c3 = Math.min(c3, cmax(th)); if (!hist.length) hist.push({ th, c: c3 }); }
+  render();
+});
+el("reset").onclick = () => { init(); done2 = false; nav.set(1); };
+addEventListener("resize", () => { sizeCanvas(); dirty = true; });
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+Play.loop((dt) => {
+  if (step === 2 && playing) {
+    if (wait > 0) wait -= dt;
+    else {
+      fold = clamp(fold + Math.sign(target - fold) * dt / 1.8, 0, 1);
+      if (Math.abs(fold - target) < 1e-3) { fold = target; playing = false; flipLabel(); }
+      el("fold").value = Math.round(fold * 100);
+      if (check2()) { el("explain").innerHTML = explain2(); flipLabel(); }
+      dirty = true;
+    }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
