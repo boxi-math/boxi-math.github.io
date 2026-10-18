@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Summing an Arithmetic Series: Flip It and Add · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stepper { display: inline-flex; align-items: center; gap: 5px; }
+  .stepper b { font-family: var(--math); font-size: 18px; min-width: 1.6em; text-align: center; color: var(--fg); }
+  .controls button { min-height: 38px; min-width: 38px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 6px 14px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; font-family: var(--math); font-size: 17px; }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .cA { color: var(--a); font-weight: 700; }
+  .cC { color: var(--c); font-weight: 700; }
+  .cH { color: var(--hl); font-weight: 700; }
+  .cN { color: var(--no); font-weight: 700; }
+  .cP { color: var(--h); font-weight: 700; }
+  .mathline { font-size: 17px; overflow-wrap: anywhere; }
+  .mathline b { color: var(--fg); }
+  .slide { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; }
+  .slide input { flex: 1 1 auto; min-width: 0; }
+  .myth { display: inline-block; font-size: 13px; border: 1px solid var(--no); color: var(--no); border-radius: 999px; padding: 1px 10px; margin-bottom: 8px; }
+  .myth s { text-decoration-thickness: 2px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0" aria-label="columns of blocks"></canvas>
+      <div class="controls" id="c1">
+        <button class="big" id="auto1"></button>
+        <button id="undo1" data-t="undo"></button>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="stepper"><span data-t="firstW"></span><button data-d="a-" aria-label="first term minus">−</button><b id="aVal"></b><button data-d="a+" aria-label="first term plus">+</button></span>
+        <span class="stepper"><span data-t="stepW"></span><button data-d="d-" aria-label="step minus">−</button><b id="dVal"></b><button data-d="d+" aria-label="step plus">+</button></span>
+        <span class="stepper"><span data-t="termsW"></span><b id="nVal"></b></span>
+        <input id="nRange" type="range" min="2" max="100" value="5" aria-label="number of terms">
+        <span class="stepper"><button class="small" data-p="1,1,5">1…5</button><button class="small" data-p="3,2,5">3…11</button><button class="small" data-p="1,1,100">1…100</button></span>
+        <button class="big" id="play2"></button>
+        <span class="slide"><span data-t="stairs"></span><input id="lv2" type="range" min="0" max="100" value="0" aria-label="level"><span data-t="wall"></span></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="stepper"><button class="small" data-q="0">1, 2, 4, 8</button><button class="small" data-q="1">1, 3, 5, 7</button></span>
+        <span class="stepper"><span data-t="colsW"></span><button data-d="n3-" aria-label="fewer columns">−</button><b id="n3Val"></b><button data-d="n3+" aria-label="more columns">+</button></span>
+        <button class="big" id="play3"></button>
+        <span class="slide"><span data-t="stairs"></span><input id="lv3" type="range" min="0" max="100" value="0" aria-label="level"><span data-t="wall"></span></span>
+      </div>
+      <div class="controls" id="c4" hidden>
+        <button class="big" id="play4"></button>
+        <span class="slide"><span data-t="oneW"></span><input id="rot" type="range" min="0" max="100" value="0" aria-label="turn the copy"><span data-t="halfW"></span></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">S = n(a<sub>1</sub> + a<sub>n</sub>) ÷ 2</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-th="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Summing an Arithmetic Series: Flip It and Add", zh: "等差数列求和：倒过来再加一遍" },
+  eyebrow: { en: "Boxi Math · Try it · #29", zh: "Boxi Math · 动手试试 · #29" },
+  intro: { en: "A teacher told the class to add up every number from one to a hundred, and one boy called out 5050 almost at once. Stack each number as a column of blocks, level the staircase, and see why.",
+           zh: "老师让全班从一加到一百，一个孩子很快就报出 5050。把每个数摞成一列积木，把台阶摊平，看看为什么。" },
+  s1: { en: "Level it", zh: "削峰填谷" }, s2: { en: "Not from 1", zh: "不从 1 开始" }, s3: { en: "Uneven steps", zh: "每级不一样" }, s4: { en: "Flip and add", zh: "倒过来拼" },
+  reset: { en: "Reset", zh: "重置" }, undo: { en: "Undo", zh: "撤回" },
+  levelB: { en: "Level it for me", zh: "帮我摊平" }, pause: { en: "Pause", zh: "暂停" }, playB: { en: "Play", zh: "播放" },
+  levelPlay: { en: "Level", zh: "摊平" }, flipPlay: { en: "Turn the copy", zh: "转过来" },
+  firstW: { en: "first", zh: "首项" }, stepW: { en: "step", zh: "每级多" }, termsW: { en: "terms", zh: "项数" }, colsW: { en: "columns", zh: "列数" },
+  stairs: { en: "stairs", zh: "台阶" }, wall: { en: "wall", zh: "平墙" }, oneW: { en: "copy", zh: "复制" }, halfW: { en: "half turn", zh: "转半圈" },
+  v1: { en: "One to five as a staircase", zh: "一到五摞成台阶" }, v2: { en: "Any start, same step", zh: "从哪开始都行，每级一样多" },
+  v3: { en: "Steps that grow by different amounts", zh: "每级多得不一样" }, v4: { en: "Two staircases make a rectangle", zh: "两份台阶拼成长方形" },
+  tag1: { en: "drag a top block", zh: "拖动最上面的积木" }, tag2: { en: "slide to level", zh: "拖滑块摊平" },
+  tag3: { en: "drag a column top", zh: "拖动列顶改高度" }, tag4: { en: "uses the series from 02", zh: "用第 2 步的数列" },
+  resT: { en: "An arithmetic series adds up to the number of terms times first plus last, divided by two.", zh: "等差数列的和，是项数乘首项加末项，再除以二。" },
+  resN: { en: "What it needs is that every step grows by the same amount, not a start at one. With 1, 2, 4, 8 the levelled wall is lower than the first-and-last average.",
+          zh: "要的是每级多得一样，不是从一开始。一、二、四、八摊平后，比首尾的平均矮。" },
+  moreS: { en: "Why is the levelled height exactly the average of first and last?", zh: "为什么摊平的高度正好是首尾的平均？" },
+  moreP: { en: "Pair the columns from the two ends: first with last, second with second-to-last, and so on. In an arithmetic series each pair is the same distance below and above the middle height (a₁ + aₙ) ÷ 2, because one is k steps up from the first and the other is k steps down from the last. So in every pair, what sticks out exactly fills what's missing, and with an odd number of terms the middle column already sits at that height. That is a proof, not just a picture: the sum is n columns of height (a₁ + aₙ) ÷ 2. Flipping a second copy onto the first shows the same thing: every column becomes a₁ + aₙ.",
+           zh: "从两头配对：第一列配最后一列，第二列配倒数第二列……等差数列里，每一对一个比中间高度 (a₁ + aₙ) ÷ 2 矮多少，另一个就高多少，因为一个是从首项往上走 k 级，另一个是从末项往下走 k 级。所以每一对里，高出来的正好填上缺的；项数是奇数时，正中那一列本来就是这个高度。这是证明，不只是图：和就是 n 列、每列高 (a₁ + aₙ) ÷ 2。把另一份台阶倒过来拼上，也是同一个道理：每列都变成 a₁ + aₙ。" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then use the arrow keys (01: → levels one block, ← undoes · 02: ← → level, ↑ ↓ terms · 03: ← → pick a column, ↑ ↓ change it · 04: ← → turn).",
+          zh: "鼠标、触屏、键盘都能用：选中图后用方向键（01：→ 挪一块，← 撤回 · 02：← → 摊平，↑ ↓ 改项数 · 03：← → 选列，↑ ↓ 改高度 · 04：← → 转动）。" },
+};
+const KICK = {
+  1: { en: "Step 01 · level the staircase", zh: "第 1 步 · 削峰填谷" },
+  2: { en: "Step 02 · not from one", zh: "第 2 步 · 不从一开始" },
+  3: { en: "Step 03 · when it fails", zh: "第 3 步 · 不行的时候" },
+  4: { en: "Step 04 · flip it and add", zh: "第 4 步 · 倒过来再加一遍" },
+};
+Play.i18n(D);
+
+const cv = document.getElementById("main"), $ = (id) => document.getElementById(id);
+let step = 1, dirty = true, G = null;
+
+// ---- state ----
+const H0 = [1, 2, 3, 4, 5], CAP1 = 7;
+let h1 = H0.slice(), hist = [], guess = null, anim = null, autoRun = false, held = null;
+let A = 3, Dd = 2, N = 5, lv2 = 0, play2 = false;
+const P3 = [[1, 2, 4, 8], [1, 3, 5, 7]], CAP3 = 12;
+let h3 = P3[0].slice(), lv3 = 0, play3 = false, sel3 = 0;
+let rot = 0, play4 = false;
+
+const terms = () => Array.from({ length: N }, (_, i) => A + i * Dd);
+const sum = (a) => a.reduce((s, x) => s + x, 0);
+const isFlat = (a) => a.every((x) => x === a[0]);
+function list(a) { return a.length <= 6 ? a.join(" + ") : `${a[0]} + ${a[1]} + ${a[2]} + … + ${a[a.length - 1]}`; }
+function easeT(x) { return x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2; }
+
+// ---- geometry ----
+function geom(w, h, n, maxH) {
+  const padT = 40, padB = 30, padL = 14, padR = 64;
+  const s = Math.max(0.5, Math.min(56, (w - padL - padR) / n, (h - padT - padB) / Math.max(1, maxH)));
+  return { s, n, x0: padL + (w - padL - padR - n * s) / 2, base: h - padB, w, h };
+}
+const colAt = (x) => (G ? Math.floor((x - G.x0) / G.s) : -1);
+function rect(x, g, i, from, to, fill) {
+  if (to <= from) return;
+  const gap = g.s >= 10 ? 1.5 : g.s >= 3 ? 0.5 : 0;
+  x.fillStyle = fill; x.fillRect(g.x0 + i * g.s + gap / 2, g.base - to * g.s, g.s - gap, (to - from) * g.s);
+}
+function grid(x, g, i, top) {
+  if (g.s < 10) return;
+  x.strokeStyle = rgba(color("--surface"), 0.85); x.lineWidth = 1.2; x.beginPath();
+  for (let k = 1; k < top - 1e-6; k++) { const y = g.base - k * g.s; x.moveTo(g.x0 + i * g.s, y); x.lineTo(g.x0 + (i + 1) * g.s, y); }
+  x.stroke();
+}
+function ghost(x, g, i, from, to) {
+  if (to - from < 1e-3) return;
+  if (g.s < 8) { x.fillStyle = rgba(color("--muted"), 0.2); x.fillRect(g.x0 + i * g.s, g.base - to * g.s, g.s, (to - from) * g.s); return; }
+  const gap = g.s >= 10 ? 1.5 : 0.5;
+  x.strokeStyle = rgba(color("--muted"), 0.8); x.lineWidth = 1; x.setLineDash([4, 3]);
+  x.strokeRect(g.x0 + i * g.s + gap / 2 + 0.5, g.base - to * g.s + 0.5, g.s - gap - 1, (to - from) * g.s - 1);
+  x.setLineDash([]);
+}
+function hline(x, g, m, col, dash) {
+  const y = g.base - m * g.s;
+  x.strokeStyle = col; x.lineWidth = 2.2; x.setLineDash(dash || []);
+  x.beginPath(); x.moveTo(g.x0 - 6, y); x.lineTo(g.x0 + g.n * g.s + 4, y); x.stroke(); x.setLineDash([]);
+  return y;
+}
+function sideLabels(x, g, items) { // items: [{y, s, col}] placed in the right margin without overlap
+  items.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < 18) items[i].y = items[i - 1].y + 18;
+  items.forEach((it) => Play.text(x, it.s, g.x0 + g.n * g.s + 10, clamp(it.y, 14, g.h - 8), { color: it.col, size: 15, weight: 700, align: "left" }));
+}
+function underLabels(x, g, vals) {
+  const y = g.base + 15;
+  if (g.s >= 22) vals.forEach((v, i) => Play.text(x, fmt(v), g.x0 + (i + 0.5) * g.s, y, { size: 14, weight: 650, color: color("--muted") }));
+  else {
+    Play.text(x, fmt(vals[0]), g.x0, y, { size: 14, weight: 650, color: color("--muted"), align: "left" });
+    Play.text(x, fmt(vals[vals.length - 1]), g.x0 + g.n * g.s, y, { size: 14, weight: 650, color: color("--muted"), align: "right" });
+  }
+}
+// columns of heights hs pouring towards level m by t (blue = blocks that move, dashed = still missing or already gone)
+function bars(x, g, hs, m, t) {
+  hs.forEach((h, i) => {
+    const c = h + (m - h) * t, lo = Math.min(h, m);
+    rect(x, g, i, 0, Math.min(lo, c), color("--a"));
+    rect(x, g, i, lo, c, color("--c"));
+    if (h > m) ghost(x, g, i, c, h); else ghost(x, g, i, c, m);
+    grid(x, g, i, c);
+  });
+}
+
+// ---- drawing ----
+function draw(x, w, h) {
+  if (step === 1) drawLevel(x, w, h);
+  else if (step === 2) {
+    const a = terms(), m = (a[0] + a[N - 1]) / 2;
+    G = geom(w, h, N, Math.max(1, a[N - 1]));
+    bars(x, G, a, m, easeT(lv2));
+    const y = hline(x, G, m, color("--hl"));
+    sideLabels(x, G, [{ y: y - 1, s: fmt(m), col: color("--hl") }]);
+    underLabels(x, G, a);
+  } else if (step === 3) {
+    const m = sum(h3) / h3.length, fl = (h3[0] + h3[h3.length - 1]) / 2;
+    G = geom(w, h, h3.length, CAP3);
+    bars(x, G, h3, m, easeT(lv3));
+    const yr = hline(x, G, fl, color("--no"), [7, 5]), yg = hline(x, G, m, color("--hl"));
+    sideLabels(x, G, [{ y: yr, s: fmt(fl), col: color("--no") }, { y: yg, s: fmt(m), col: color("--hl") }]);
+    underLabels(x, G, h3);
+    if (document.activeElement === cv) {
+      x.strokeStyle = color("--fg"); x.lineWidth = 1.5; x.setLineDash([3, 3]);
+      x.strokeRect(G.x0 + sel3 * G.s + 1, G.base - CAP3 * G.s, G.s - 2, CAP3 * G.s); x.setLineDash([]);
+    }
+  } else drawFlip(x, w, h);
+}
+
+function drawLevel(x, w, h) {
+  G = geom(w, h, 5, CAP1);
+  const g = G;
+  h1.forEach((v, i) => { rect(x, g, i, 0, v, color("--a")); grid(x, g, i, v); });
+  const blk = (cx, cy) => { x.fillStyle = color("--c"); x.fillRect(cx - g.s / 2 + 1, cy - g.s / 2 + 1, g.s - 2, g.s - 2); };
+  if (anim) {
+    const p = easeT(anim.p), sx = g.x0 + (anim.from + 0.5) * g.s, sy = g.base - (h1[anim.from] + 0.5) * g.s;
+    const ex = g.x0 + (anim.to + 0.5) * g.s, ey = g.base - (h1[anim.to] + 0.5) * g.s;
+    blk(sx + (ex - sx) * p, sy + (ey - sy) * p - Math.sin(Math.PI * p) * g.s * 1.6);
+  }
+  if (held) {
+    blk(held.x, held.y);
+    const to = colAt(held.x);
+    if (to >= 0 && to < 5 && h1[to] < CAP1) ghost(x, g, to, h1[to], h1[to] + 1);
+  }
+  underLabels(x, g, h1);
+  if (isFlat(h1) && !anim && !held) {
+    const y = hline(x, g, h1[0], color("--hl"));
+    sideLabels(x, g, [{ y, s: String(h1[0]), col: color("--hl") }]);
+  }
+}
+
+function drawFlip(x, w, h) {
+  const a = terms(), L = a[0] + a[N - 1], Dg = Math.hypot(N, L);
+  const padT = 38, padB = 30, padL = 14, padR = 70;
+  const s = Math.max(0.3, Math.min(56, (w - padL - padR) / Dg, (h - padT - padB) / Dg));
+  const cx = padL + (w - padL - padR) / 2, cy = padT + (h - padT - padB) / 2;
+  const g = { s, n: N, x0: cx - N * s / 2, base: cy + L * s / 2, w, h };
+  G = g;
+  x.strokeStyle = rgba(color("--muted"), 0.7); x.setLineDash([4, 4]); x.lineWidth = 1;
+  x.strokeRect(g.x0, g.base - L * s, N * s, L * s); x.setLineDash([]);
+  a.forEach((v, i) => { rect(x, g, i, 0, v, color("--a")); grid(x, g, i, v); });
+  const r = easeT(rot);
+  x.save(); x.translate(cx, cy); x.rotate(Math.PI * r); x.translate(-cx, -cy);
+  x.globalAlpha = 0.82;
+  a.forEach((v, i) => { rect(x, g, i, 0, v, color("--c")); grid(x, g, i, v); });
+  x.restore();
+  underLabels(x, g, a);
+  if (rot > 0.98) {
+    const rx = g.x0 + N * s + 8, top = g.base - L * s;
+    x.strokeStyle = color("--h"); x.lineWidth = 2; x.beginPath();
+    x.moveTo(rx - 3, top); x.lineTo(rx + 3, top); x.moveTo(rx, top); x.lineTo(rx, g.base); x.moveTo(rx - 3, g.base); x.lineTo(rx + 3, g.base); x.stroke();
+    const my = (top + g.base) / 2;
+    Play.text(x, "a₁ + aₙ", rx + 8, my - 10, { color: color("--h"), size: 14, weight: 700, align: "left" });
+    Play.text(x, "= " + L, rx + 8, my + 10, { color: color("--h"), size: 14, weight: 700, align: "left" });
+    Play.text(x, `n = ${N}`, cx, Math.max(16, top - 12), { color: color("--h"), size: 14, weight: 700 });
+  }
+}
+const view = Play.canvas(cv, draw);
+
+// ---- step 1 actions ----
+function nextMove() {
+  if (anim || held || isFlat(h1)) return false;
+  let src = 0, dst = 0;
+  h1.forEach((v, i) => { if (v >= h1[src]) src = i; if (v < h1[dst]) dst = i; });
+  if (h1[src] - h1[dst] < 2) return false;
+  h1[src]--; hist.push([src, dst]);
+  anim = { from: src, to: dst, p: Play.reduced ? 1 : 0 };
+  dirty = true; return true;
+}
+function land() { h1[anim.to]++; anim = null; render(); }
+function undo() {
+  if (anim || held || !hist.length) return;
+  const [s, d] = hist.pop(); h1[d]--; h1[s]++; autoRun = false; render();
+}
+
+// ---- explain ----
+function render() {
+  const ex = $("explain");
+  let html = `<div class="kicker">${t(KICK[step])}</div>`;
+  if (step === 1) {
+    const flat = isFlat(h1) && !anim && !held, tot = sum(h1) + (anim || held ? 1 : 0);
+    html += `<h2>${t({ en: "Pour the tall end into the short end until it's flat. How high will it be?", zh: "把高的那头往矮的那头匀，最后摊平，会有多高？" })}</h2>`;
+    html += `<p>${t({ en: "Remember levelling peaks into valleys? Shave the tall ones, fill the short ones, and the flat height is the mean. Guess first, then drag a top block from a tall column onto a short one.", zh: "还记得削峰填谷吗？高的削下来填到矮的上，摊平的高度就是平均数。先猜一猜，再把高列最上面的积木拖到矮列上。" })}</p>`;
+    html += `<div class="choices">${[2, 3, 4].map((k) => `<button data-g="${k}" class="${guess === k && flat ? (k === 3 ? "right" : "wrong") : guess === k ? "on" : ""}">${k}</button>`).join("")}</div>`;
+    html += `<div class="mathline">${t({ en: "heights: ", zh: "各列：" })}${h1.join(", ")} · ${t({ en: "blocks", zh: "积木" })} <b>${tot}</b></div>`;
+    if (flat) {
+      const m = h1[0], big = 100, mb = (1 + big) / 2;
+      html += `<p>${t({ en: `The staircase becomes a flat wall, <strong>${m} blocks</strong> in every column. ${m} is exactly the average of one and five: what sticks out exactly fills what's missing.`, zh: `台阶变成了一面平墙，每列都是 <strong>${m} 块</strong>。${m} 正好是一和五的平均：高出来的，正好填上缺的。` })}${guess != null ? " " + (guess === m ? t({ en: "Your guess was right.", zh: "你猜对了。" }) : t({ en: `You guessed ${guess}.`, zh: `你猜的是 ${guess}。` })) : ""}</p>`;
+      html += `<div class="mathline"><span class="cH">(1 + 5) ÷ 2 = ${fmt((H0[0] + H0[4]) / 2)}</span><br>${H0.join(" + ")} = 5 × ${m} = <b>${5 * m}</b></div>`;
+      html += `<p>${t({ en: "One to a hundred works the same way: a hundred columns, levelled to fifty and a half.", zh: "一加到一百也一样：一百列，摊平后高五十点五。" })}</p>`;
+      html += `<div class="mathline">1 + 2 + … + ${big} = ${big} × ${fmt(mb)} = <b>${fmt(big * mb)}</b></div>`;
+    } else html += `<p class="note">${t({ en: `Moves so far: ${hist.length}. The tallest gives to the shortest.`, zh: `已经挪了 ${hist.length} 块。最高的分给最矮的。` })}</p>`;
+  } else if (step === 2) {
+    const a = terms(), an = a[N - 1], m = (a[0] + an) / 2, S = sum(a);
+    let over = 0, under = 0; a.forEach((v) => { over += Math.max(0, v - m); under += Math.max(0, m - v); });
+    html += `<div><span class="myth">${A !== 1 ? "<s>" : ""}${t({ en: "Only works from 1?", zh: "只对从 1 开始管用？" })}${A !== 1 ? "</s> ✗" : ""}</span></div>`;
+    html += `<h2>${t({ en: "What if we don't start at one?", zh: "那不从一开始呢？" })}</h2>`;
+    html += `<p>${t({ en: "Pick any first term and any step, then slide from stairs to wall. <span class='cC'>Blue</span> blocks move; dashed or grey boxes are what's still missing.", zh: "首项、每级多几都随便选，再把滑块从台阶拖到平墙。<span class='cC'>蓝色</span>的积木在挪，虚线框或灰色是还缺的。" })}</p>`;
+    html += `<div class="mathline">${list(a)}<br>= ${N} × (${a[0]} + ${an}) ÷ 2<br>= ${N} × <span class="cH">${fmt(m)}</span> = <b>${fmt(S)}</b></div>`;
+    html += `<p class="note">${t({ en: `What sticks out above ${fmt(m)}: ${fmt(over)} blocks. What's missing below it: ${fmt(under)}. They always match, so the wall is ${fmt(m)} high, the average of first and last.`, zh: `高出 ${fmt(m)} 的：${fmt(over)} 块；低于它缺的：${fmt(under)} 块。两边总是一样多，所以平墙高 ${fmt(m)}，正是首尾的平均。` })}</p>`;
+  } else if (step === 3) {
+    const n = h3.length, S = sum(h3), m = S / n, fl = (h3[0] + h3[n - 1]) / 2;
+    const diffs = h3.slice(1).map((v, i) => v - h3[i]), same = diffs.every((d) => d === diffs[0]), match = Math.abs(m - fl) < 1e-9;
+    html += `<h2>${t({ en: "But what about one, two, four, eight, where the steps grow by different amounts?", zh: "可要是一、二、四、八，每级多得不一样呢？" })}</h2>`;
+    html += `<p>${t({ en: "Drag any column top to change it, then level. The <span class='cN'>red dashed</span> line is the first-and-last average; the <span class='cH'>gold</span> line is where the wall really ends up.", zh: "拖动列顶改高度，再摊平。<span class='cN'>红色虚线</span>是首尾的平均，<span class='cH'>金色</span>线是真正摊平的高度。" })}</p>`;
+    html += `<div class="mathline">${t({ en: "steps: ", zh: "每级多：" })}${diffs.map((d) => (d >= 0 ? "+" : "−") + Math.abs(d)).join(", ")}<br><span class="cN">(${h3[0]} + ${h3[n - 1]}) ÷ 2 = ${fmt(fl)}</span><br><span class="cH">${S} ÷ ${n} = ${fmt(m, 3)}</span></div>`;
+    html += `<p>${same ? t({ en: "Every step is the same, so the two lines coincide: the wall is the first-and-last average.", zh: "每级多得一样，两条线重合：平墙就是首尾的平均。" })
+      : match ? t({ en: "<span class='tag-no'>Lucky this time.</span> The lines meet, but the steps aren't equal, so first-and-last is no rule here.", zh: "<span class='tag-no'>这次是碰巧。</span>两条线重合了，可每级并不一样多，首尾平均在这里不是规律。" })
+      : t({ en: `<span class='tag-no'>No match.</span> The first-and-last average is ${fmt(fl)}, but there are ${S} blocks, so the level is only ${fmt(m, 3)}.`, zh: `<span class='tag-no'>对不上。</span>首尾平均是 ${fmt(fl)}，可一共 ${S} 块，摊平只有 ${fmt(m, 3)}。` })}</p>`;
+  } else {
+    const a = terms(), an = a[N - 1], L = a[0] + an, S = sum(a);
+    const ok = a.every((v, i) => v + a[N - 1 - i] === L);
+    html += `<h2>${t({ en: "Flip a second staircase onto the first and every column is first plus last", zh: "两份台阶倒过来一拼，每列都是首项加末项" })}</h2>`;
+    html += `<p>${t({ en: "Turn the <span class='cC'>blue</span> copy half a turn. It fits exactly on top of the <span class='cA'>green</span> staircase: the same idea as levelling, seen another way.", zh: "把<span class='cC'>蓝色</span>那份转半圈，正好扣在<span class='cA'>绿色</span>台阶上：和削峰填谷是同一个道理，换个看法。" })}</p>`;
+    html += `<div class="mathline">S = ${list(a)} = <b>${fmt(S)}</b><br><span class="cP">${t({ en: "every column: ", zh: "每列：" })}${a[0]} + ${an} = ${L}</span>${ok ? "" : " ✗"}<br>2S = ${N} × ${L} = ${fmt(N * L)}<br>S = ${fmt(N * L)} ÷ 2 = <b>${fmt(N * L / 2)}</b></div>`;
+    html += `<p class="note">${t({ en: "Change the series in step 02 and come back: it always fits.", zh: "去第 2 步换个数列再回来：总能拼上。" })}</p>`;
+  }
+  ex.innerHTML = html;
+  ex.querySelectorAll("[data-g]").forEach((b) => (b.onclick = () => { guess = +b.dataset.g; render(); }));
+  $("auto1").textContent = t(autoRun ? D.pause : D.levelB);
+  $("auto1").disabled = isFlat(h1) && !anim;
+  $("aVal").textContent = A; $("dVal").textContent = Dd; $("nVal").textContent = N; $("nRange").value = N;
+  $("n3Val").textContent = h3.length;
+  $("play2").textContent = t(play2 ? D.pause : D.levelPlay);
+  $("play3").textContent = t(play3 ? D.pause : D.levelPlay);
+  $("play4").textContent = t(play4 ? D.pause : D.flipPlay);
+  $("lv2").value = Math.round(lv2 * 100); $("lv3").value = Math.round(lv3 * 100); $("rot").value = Math.round(rot * 100);
+  document.querySelectorAll("[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === `${A},${Dd},${N}`));
+  document.querySelectorAll("[data-q]").forEach((b) => b.classList.toggle("on", P3[+b.dataset.q].join() === h3.join()));
+  dirty = true;
+}
+
+function setStep(n) {
+  step = n; play2 = play3 = play4 = false; autoRun = false;
+  ["c1", "c2", "c3", "c4"].forEach((id, i) => ($(id).hidden = i + 1 !== n));
+  $("vtitle").textContent = t(D["v" + n]); $("vtag").textContent = t(D["tag" + n]);
+  sizeCanvas(); render();
+}
+function sizeCanvas() {
+  const mobile = matchMedia("(max-width: 560px)").matches;
+  cv.style.height = mobile ? (step === 1 ? "280px" : "") : ({ 1: "320px", 2: "360px", 3: "360px", 4: "380px" })[step];
+  dirty = true;
+}
+const nav = Play.steps(document.querySelector(".steps"), setStep);
+
+// ---- controls ----
+$("auto1").onclick = () => { autoRun = !autoRun; if (autoRun && !anim) nextMove(); render(); };
+$("undo1").onclick = undo;
+document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => {
+  const k = b.dataset.d;
+  if (k === "a-") A = Math.max(0, A - 1); if (k === "a+") A = Math.min(20, A + 1);
+  if (k === "d-") Dd = Math.max(0, Dd - 1); if (k === "d+") Dd = Math.min(5, Dd + 1);
+  if (k === "n3-" && h3.length > 2) { h3.pop(); sel3 = Math.min(sel3, h3.length - 1); }
+  if (k === "n3+" && h3.length < 8) h3.push(Math.min(CAP3, h3[h3.length - 1] + 1));
+  render();
+}));
+$("nRange").oninput = (e) => { N = clamp(+e.target.value, 2, 100); render(); };
+document.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { [A, Dd, N] = b.dataset.p.split(",").map(Number); lv2 = 0; render(); }));
+document.querySelectorAll("[data-q]").forEach((b) => (b.onclick = () => { h3 = P3[+b.dataset.q].slice(); lv3 = 0; sel3 = 0; render(); }));
+$("lv2").oninput = (e) => { lv2 = e.target.value / 100; play2 = false; render(); };
+$("lv3").oninput = (e) => { lv3 = e.target.value / 100; play3 = false; render(); };
+$("rot").oninput = (e) => { rot = e.target.value / 100; play4 = false; render(); };
+$("play2").onclick = () => { play2 = !play2; if (play2 && lv2 >= 1) lv2 = 0; if (play2 && Play.reduced) { lv2 = 1; play2 = false; } render(); };
+$("play3").onclick = () => { play3 = !play3; if (play3 && lv3 >= 1) lv3 = 0; if (play3 && Play.reduced) { lv3 = 1; play3 = false; } render(); };
+$("play4").onclick = () => { play4 = !play4; if (play4 && rot >= 1) rot = 0; if (play4 && Play.reduced) { rot = 1; play4 = false; } render(); };
+$("reset").onclick = () => {
+  h1 = H0.slice(); hist = []; guess = null; anim = null; held = null; autoRun = false;
+  A = 3; Dd = 2; N = 5; lv2 = 0; h3 = P3[0].slice(); lv3 = 0; sel3 = 0; rot = 0;
+  nav.set(1);
+};
+
+function setH3(y) { if (!G) return; h3[sel3] = clamp(Math.round((G.base - y) / G.s), 1, CAP3); render(); }
+Play.drag(cv, {
+  down(px, py) {
+    if (!G) return false;
+    const c = colAt(px);
+    if (step === 1) {
+      if (anim || c < 0 || c >= 5 || h1[c] < 1 || py > G.base) return false;
+      autoRun = false; h1[c]--; held = { from: c, x: px, y: py }; render(); return true;
+    }
+    if (step === 3) {
+      if (c < 0 || c >= h3.length) return false;
+      sel3 = c; setH3(py); return true;
+    }
+    return false;
+  },
+  move(px, py) {
+    if (step === 1 && held) { held.x = px; held.y = py; dirty = true; }
+    else if (step === 3) setH3(py);
+  },
+  up() {
+    if (step === 1 && held) {
+      let to = colAt(held.x);
+      if (to < 0 || to >= 5 || h1[to] >= CAP1) to = held.from;
+      h1[to]++; if (to !== held.from) hist.push([held.from, to]);
+      held = null; render();
+    }
+  },
+});
+Play.keys(cv, {
+  ArrowRight: () => {
+    if (step === 1) nextMove();
+    else if (step === 2) { lv2 = Math.min(1, lv2 + 0.1); play2 = false; render(); }
+    else if (step === 3) { sel3 = Math.min(h3.length - 1, sel3 + 1); dirty = true; }
+    else { rot = Math.min(1, rot + 0.1); play4 = false; render(); }
+  },
+  ArrowLeft: () => {
+    if (step === 1) undo();
+    else if (step === 2) { lv2 = Math.max(0, lv2 - 0.1); play2 = false; render(); }
+    else if (step === 3) { sel3 = Math.max(0, sel3 - 1); dirty = true; }
+    else { rot = Math.max(0, rot - 0.1); play4 = false; render(); }
+  },
+  ArrowUp: () => {
+    if (step === 2) { N = Math.min(100, N + 1); render(); }
+    else if (step === 3) { h3[sel3] = Math.min(CAP3, h3[sel3] + 1); render(); }
+  },
+  ArrowDown: () => {
+    if (step === 2) { N = Math.max(2, N - 1); render(); }
+    else if (step === 3) { h3[sel3] = Math.max(1, h3[sel3] - 1); render(); }
+  },
+  Enter: () => { if (step === 1) nextMove(); },
+});
+cv.addEventListener("focus", () => (dirty = true));
+cv.addEventListener("blur", () => (dirty = true));
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", sizeCanvas);
+
+Play.loop((dt) => {
+  if (anim) { anim.p += dt / 0.45; dirty = true; if (anim.p >= 1) { land(); if (autoRun && !nextMove()) { autoRun = false; render(); } } }
+  if (step === 2 && play2) { lv2 = Math.min(1, lv2 + dt / 2.2); if (lv2 >= 1) play2 = false; $("lv2").value = Math.round(lv2 * 100); if (!play2) render(); dirty = true; }
+  if (step === 3 && play3) { lv3 = Math.min(1, lv3 + dt / 2.2); if (lv3 >= 1) play3 = false; $("lv3").value = Math.round(lv3 * 100); if (!play3) render(); dirty = true; }
+  if (step === 4 && play4) { rot = Math.min(1, rot + dt / 2.4); if (rot >= 1) play4 = false; $("rot").value = Math.round(rot * 100); if (!play4) render(); dirty = true; }
+  if (dirty) { dirty = false; view.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

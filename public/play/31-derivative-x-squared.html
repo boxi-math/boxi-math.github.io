@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why the Derivative of x² Is 2x · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .stage canvas.main { height: 400px; }
+  .stepper { display: inline-flex; align-items: center; gap: 6px; }
+  .stepper b { font-family: var(--math); font-size: 19px; min-width: 1.6em; text-align: center; color: var(--a); }
+  .controls button { min-height: 40px; min-width: 40px; font-size: 15px; }
+  .controls .big { font-weight: 700; padding: 7px 16px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls input[type=range] { accent-color: var(--c); }
+  .choices button { min-height: 40px; min-width: 52px; font-weight: 650; text-align: left; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choices button.right { border-color: var(--a); color: var(--a); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .ka { color: var(--a); font-weight: 700; }
+  .kb { color: var(--b); font-weight: 700; }
+  .kc { color: var(--c); font-weight: 700; }
+  .kh { color: var(--hl); font-weight: 700; }
+  .kn { color: var(--no); font-weight: 700; }
+  .mathline b { color: var(--fg); }
+  .mathline s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  table.tt { border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  table.tt th, table.tt td { padding: 3px 9px; text-align: right; border-bottom: 1px solid var(--line); }
+  table.tt th { font-weight: 650; color: var(--muted); font-size: 12px; }
+  table.tt tr.cur td { background: var(--soft); color: var(--fg); font-weight: 700; }
+  table.tt td:first-child, table.tt th:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" tabindex="0"></canvas>
+      <div class="controls">
+        <span class="stepper"><i class="ka">x</i><button data-d="-" aria-label="x smaller">−</button><b id="xVal"></b><button data-d="+" aria-label="x bigger">+</button></span>
+        <span id="c1"><button class="big" id="pushX"></button> <button id="ten" data-t="ten"></button></span>
+        <span id="c2"><button class="big" id="playBtn"></button> <button id="x3">x = 3</button> <button id="x5">x = 5</button></span>
+        <span id="c3" style="display:contents">
+          <label for="dxr" class="kc">dx</label><input type="range" id="dxr" min="-2" max="0" step="0.01" aria-label="dx">
+          <button data-dx="1">1</button><button data-dx="0.1">0.1</button><button data-dx="0.01">0.01</button>
+        </span>
+        <span id="c4"><button class="big" id="one" data-t="one"></button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math">(x²)′ = 2x</div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, clamp, fmt } = Play;
+const D = {
+  title: { en: "Why the Derivative of x² Is 2x", zh: "为什么 (x²)′=2x" },
+  eyebrow: { en: "Boxi Math · Try it · #31", zh: "Boxi Math · 动手试试 · #31" },
+  intro: { en: "x squared is the area of a square lawn with side x. Two rollers, each x long, push its right and top edges outward. Push them, zoom in on the corner, and see where two x comes from.",
+           zh: "x 的平方，就是一块边长为 x 的正方形草坪的面积。右边、上边各一把长 x 的滚筒刷把边往外推。推一推，放大角上那一块，看二 x 是怎么来的。" },
+  s1: { en: "Thrown away?", zh: "硬丢掉？" }, s2: { en: "Two rollers", zh: "两把滚筒刷" },
+  s3: { en: "The corner", zh: "角上那一块" }, s4: { en: "(x²)′ = 2x", zh: "(x²)′ = 2x" },
+  reset: { en: "Reset", zh: "重置" },
+  pushX: { en: "Push out by x", zh: "推出 x 那么远" }, pushBack: { en: "Push 1", zh: "推 1" },
+  ten: { en: "10 → 11", zh: "10 → 11" },
+  play: { en: "Push for 1 second", zh: "推 1 秒" }, pause: { en: "Pause", zh: "暂停" }, again: { en: "Again", zh: "再推一次" }, go: { en: "Go on", zh: "继续" },
+  one: { en: "x = 1 (last episode)", zh: "x = 1（上一集）" },
+  v1: { en: "Side x, pushed out by dx", zh: "边长 x，往外推 dx" }, v2: { en: "Rollers push 1 per second", zh: "刷子每秒往外推 1" },
+  v3: { en: "Zoom in on the corner", zh: "放大角上的小方块" }, v4: { en: "Lawn and parabola", zh: "草坪和抛物线" },
+  tag1: { en: "drag a roller", zh: "拖滚筒刷" }, tag2: { en: "drag a roller · press push", zh: "拖滚筒刷 · 按「推」" },
+  tag3: { en: "drag a roller · slider", zh: "拖滚筒刷 · 拖滑块" }, tag4: { en: "drag across the picture", zh: "在图上左右拖" },
+  resT: { en: "Two rollers, each x long, so they cover two x per second:", zh: "两把刷子，每把长 x，所以每秒刷二 x：" },
+  resN: { en: "The corner isn't thrown away: it just gets small much faster than the strips.", zh: "角块不是硬丢的，而是它比长条小得越来越快。" },
+  moreS: { en: "Why is this a proof? And what comes next?", zh: "为什么这算证明？下一步是什么？" },
+  moreP: { en: "Push a little dx: the two rollers sweep two strips of x times dx, plus a dx-by-dx corner, so (x + dx)² − x² = 2x·dx + dx² exactly, nothing dropped. The derivative asks for the growth per unit of push, so divide by dx: 2x + dx. The leftover dx is the corner's share, and it goes to 0 as dx goes to 0, so the limit is exactly 2x. It's the same two cuts as the distributive law (#4) and long multiplication (#5): 11 × 11 = 100 + 10 + 10 + 1, so a side of 10 growing by 1 adds 21, not 20. Staircases add step by step (#29), squares grow ring by ring: either way, we look at the piece that's added. A cube does the same with three slabs of x·x·dx, which gives (x³)′ = 3x². Next: if the side can only be a whole number, so dx is at least one, can we still drop the corner?",
+           zh: "推一小段 d x，两把刷子刷出两条 x 乘 d x，角上补一块 d x 乘 d x，所以 (x + dx)² − x² = 2x·dx + dx²，一点没丢。导数问的是每推一个单位长多少，所以除以 dx：2x + dx。剩下的 dx 就是角块的份额，dx 趋近于零时它趋近于零，所以极限正好是 2x。这和分配律切一刀（#4）、竖式乘法（#5）是同样的切法：11 × 11 = 100 + 10 + 10 + 1，所以边长 10 长 1，多出 21，不是 20。台阶一级一级地加（#29），正方形一圈一圈地长，看的都是多出来的那块。立方体也一样，三块 x·x·dx 的薄板，得到 (x³)′ = 3x²。下一集：如果边长只能取整数，d x 最小是一，角块还能丢吗？" },
+  foot: { en: "Mouse, touch or keyboard: focus the picture, then ← → push the rollers (step 4: move x), ↑ ↓ change x, Enter does the step's main button.",
+          zh: "鼠标、触屏、键盘都能用：选中图后 ← → 推刷子（第 4 步：挪 x），↑ ↓ 改 x，回车按这一步的主按钮。" },
+};
+const STEP = {
+  1: { kicker: { en: "Step 01 · marking homework", zh: "第 1 步 · 批改作业" },
+       h: { en: "When you work out the derivative of x squared, the last step simply throws away a little corner piece. If you were marking it, would that step get the mark?", zh: "推导 x 平方的导数，最后一步，角上一小块被直接扔掉了。要是你来批改，这一步给不给分？" },
+       p: { en: "Here is the working. Decide first, then drag the rollers.", zh: "作业是这样写的。先拿主意，再拖拖刷子。" } },
+  2: { kicker: { en: "Step 02 · two rollers", zh: "第 2 步 · 两把滚筒刷" },
+       h: { en: "The lawn's edges move out by one every second. Picture two paint rollers pushing the edges outward. How much do they cover each second?", zh: "草坪的边每秒往外长一。想象两把滚筒刷推着边往外走，每秒能刷多少？" },
+       p: { en: "One roller on the right, one on top, each exactly as long as the side: x. Pick an answer, then push.", zh: "右边一把，上边一把，每把刷子都和边一样长，是 x。先选一个答案，再推。" } },
+  3: { kicker: { en: "Step 03 · the corner", zh: "第 3 步 · 角上那一块" },
+       h: { en: "And the corner? Neither roller sweeps it, so a little square fills the gap.", zh: "那角上呢？两把刷子都没刷到，补出一个小方块。" },
+       p: { en: "Push only a little dx and it's dx by dx: the shorter the push, the faster it shrinks. Slide dx down to 0.01 and watch the zoom.", zh: "只推一小段 d x，它就是 d x 乘 d x，推得越短，小得越快。把 dx 滑到 0.01，看放大镜。" } },
+  4: { kicker: { en: "Step 04 · the derivative", zh: "第 4 步 · 导数" },
+       h: { en: "So how fast the area grows is just how long the two rollers are: two x.", zh: "所以面积长得有多快，就看两把刷子有多长，二 x。" },
+       p: { en: "So the derivative of x squared is two x. Drag across the picture: the rollers' length and the tangent's slope change together.", zh: "所以 x 平方的导数是二 x。在图上左右拖：刷子的长度和切线的斜率一起变。" } },
+};
+Play.i18n(D);
+
+// script numbers: side 3 → 2 × 3 = 6, side 5 → 2 × 5 = 10; push 0.1; dx = x non-example; x = 1 → 2 (#30); 10 → 11 adds 21
+const X0 = 3, XMAX = 10, X4MAX = 2.5, SECS = 2.4;   // SECS: real seconds for one simulated second
+let step = 1, x = X0, d1 = 1, tt = 0, playing = false, d3 = 0.1, x4 = 1;
+let mark = -1, guess = -1, grab = null, dirty = true, M = null, P = null;
+const $ = (id) => document.getElementById(id);
+const cv = $("main");
+const main = Play.canvas(cv, draw);
+const F = (v, d = 4) => fmt(v, d);
+
+// ---------- drawing ----------
+// map: px(u) = ox + u p, py(v) = oy − v p  (u right, v up; origin = lawn's bottom-left corner)
+function fit(L, T, W, H, E) {
+  const pl = 44, pr = 18, pt = 16, pb = 36;
+  const p = Math.max(1, Math.min((W - pl - pr) / E, (H - pt - pb) / E));
+  return { ox: L + pl + (W - pl - pr - E * p) / 2, oy: T + pt + (H - pt - pb + E * p) / 2, p };
+}
+function R(m, u, v, w, h) { return [m.ox + u * m.p, m.oy - (v + h) * m.p, w * m.p, h * m.p]; }
+function box(c, r, col, o = {}) {
+  const [X, Y, W, H] = r;
+  if (W <= 0.3 || H <= 0.3) return;
+  c.fillStyle = rgba(col, o.fa ?? 0.26); c.fillRect(X, Y, W, H);
+  c.strokeStyle = col; c.lineWidth = o.lw || 2; c.setLineDash(o.dash || []);
+  if (W > 3 && H > 3) c.strokeRect(X + 1, Y + 1, W - 2, H - 2); else c.strokeRect(X, Y, W, H);
+  c.setLineDash([]);
+}
+function label(c, r, lines, col) {
+  const [X, Y, W, H] = r, cx = X + W / 2, cy = Y + H / 2;
+  const tw = (s, z) => { c.font = `700 ${z}px Inter, system-ui, sans-serif`; return c.measureText(s).width; };
+  const o = { size: 16, weight: 700, color: col || color("--fg") };
+  if (lines.length > 1 && H >= 46 && Math.max(tw(lines[0], 16), tw(lines[1], 16)) + 10 <= W) {
+    Play.text(c, lines[0], cx, cy - 10, o); Play.text(c, lines[1], cx, cy + 11, o);
+  } else if (H >= 20 && tw(lines[0], 14) + 8 <= W) Play.text(c, lines[0], cx, cy, { ...o, size: 14 });
+}
+function grid(c, m, X, DX) {
+  if (m.p < 14) return;
+  const n = X + DX;
+  c.save(); c.beginPath(); c.rect(...R(m, 0, 0, X, X)); c.rect(...R(m, X, 0, DX, X)); c.rect(...R(m, 0, X, X, DX)); c.clip();
+  c.strokeStyle = rgba(color("--muted"), 0.28); c.lineWidth = 1; c.beginPath();
+  for (let k = 1; k < n; k++) { const a = m.ox + k * m.p, b = m.oy - k * m.p; c.moveTo(a, m.oy - n * m.p); c.lineTo(a, m.oy); c.moveTo(m.ox, b); c.lineTo(m.ox + n * m.p, b); }
+  c.stroke(); c.restore();
+}
+function roller(c, x0, y0, x1, y1) {   // a rounded bar with a grip
+  const HL = color("--hl"), th = 10, vert = x0 === x1;
+  const r = vert ? [x0, Math.min(y0, y1), th, Math.abs(y1 - y0)] : [Math.min(x0, x1), y0 - th, Math.abs(x1 - x0), th];
+  c.fillStyle = HL; c.strokeStyle = rgba(color("--fg"), 0.55); c.lineWidth = 1.2;
+  c.beginPath(); c.roundRect ? c.roundRect(...r, 5) : c.rect(...r); c.fill(); c.stroke();
+  const gx = vert ? x0 + th / 2 : (x0 + x1) / 2, gy = vert ? (y0 + y1) / 2 : y0 - th / 2;
+  c.fillStyle = color("--surface"); c.beginPath(); c.arc(gx, gy, 3, 0, 2 * Math.PI); c.fill();
+}
+// o: {corner: "fill"|"empty"|"no", labels: bool, rollers: bool}
+function lawn(c, m, X, DX, o = {}) {
+  const A = color("--a"), B = color("--b"), C = color("--c"), NO = color("--no");
+  const rL = R(m, 0, 0, X, X), rR = R(m, X, 0, DX, X), rT = R(m, 0, X, X, DX), rC = R(m, X, X, DX, DX);
+  box(c, rL, A, { fa: 0.2 });
+  if (DX > 0) {
+    box(c, rR, B, { fa: 0.32 }); box(c, rT, B, { fa: 0.32 });
+    const cc = o.corner === "no" ? NO : C;
+    if (o.corner === "empty") box(c, rC, C, { fa: 0.04, dash: [5, 4] });
+    else box(c, rC, cc, { fa: 0.4 });
+  }
+  grid(c, m, X, DX);
+  if (o.labels !== false) {
+    label(c, rL, ["x²", F(X * X)]);
+    if (DX > 0) {
+      label(c, rR, ["x·dx", F(X * DX)]); label(c, rT, ["x·dx", F(X * DX)]);
+      label(c, rC, o.corner === "empty" ? ["?"] : ["dx²", F(DX * DX)], o.corner === "empty" ? C : null);
+    }
+  }
+  if (o.rollers !== false) {
+    roller(c, m.ox + (X + DX) * m.p, m.oy, m.ox + (X + DX) * m.p, m.oy - X * m.p);
+    roller(c, m.ox, m.oy - (X + DX) * m.p, m.ox + X * m.p, m.oy - (X + DX) * m.p);
+  }
+}
+function dims(c, m, X, DX, w) {   // x under the lawn and on its left, dx under the right strip if it fits
+  const A = color("--a"), Cc = color("--c"), y = m.oy + 8, xl = m.ox - 8;
+  const br = (x1, x2, col) => { c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.moveTo(x1 + 2, y + 4); c.lineTo(x1 + 2, y); c.lineTo(x2 - 2, y); c.lineTo(x2 - 2, y + 4); c.stroke(); };
+  br(m.ox, m.ox + X * m.p, A);
+  Play.text(c, "x = " + F(X, 2), m.ox + X * m.p / 2, y + 16, { size: 15, weight: 700, color: A });
+  c.strokeStyle = A; c.beginPath(); c.moveTo(xl + 4, m.oy - 2); c.lineTo(xl, m.oy - 2); c.lineTo(xl, m.oy - X * m.p + 2); c.lineTo(xl + 4, m.oy - X * m.p + 2); c.stroke();
+  Play.text(c, "x", xl - 10, m.oy - X * m.p / 2, { size: 15, weight: 700, color: A, italic: true });
+  if (DX > 0) {
+    c.font = "700 14px Inter, system-ui, sans-serif";
+    const s = "dx = " + F(DX), sw = c.measureText(s).width, W = DX * m.p;
+    if (W >= 10) br(m.ox + X * m.p, m.ox + (X + DX) * m.p, Cc);
+    const cx = m.ox + (X + DX / 2) * m.p, xLab = m.ox + X * m.p / 2;
+    const xw = c.measureText("x = " + F(X, 2)).width;
+    if (cx - sw / 2 > xLab + xw / 2 + 8 && cx + sw / 2 < w - 4) Play.text(c, s, cx, y + 16, { size: 14, weight: 700, color: Cc });
+  }
+}
+function bottom(c, w, h, s, col) { Play.text(c, s, w / 2, h - 16, { size: 15, weight: 700, color: col || color("--fg") }); }
+
+function draw(c, w, h) {
+  if (step === 1) {
+    const E = 2 * x;
+    M = fit(0, 30, w, h - 64, E);
+    lawn(c, M, x, d1, { corner: Math.abs(d1 - x) < 1e-9 ? "no" : "fill" });
+    dims(c, M, x, d1, w);
+    const ex = (x + d1) ** 2 - x * x;
+    if (Math.abs(d1 - x) < 1e-9) bottom(c, w, h, `x·dx = dx² = ${F(d1 * d1)}`, color("--no"));
+    else bottom(c, w, h, `(${F(x)} + ${F(d1)})² − ${F(x)}² = ${F(ex)} = ${F(2 * x * d1)} + ${F(d1 * d1)}`);
+  } else if (step === 2) {
+    M = fit(0, 30, w, h - 64, x + 1);
+    lawn(c, M, x, tt, { corner: "empty" });
+    dims(c, M, x, tt, w);
+    bottom(c, w, h, `t = ${F(tt, 2)} s · 2 × ${F(x)} × ${F(tt, 2)} = ${F(2 * x * tt)}`);
+  } else if (step === 3) drawZoom(c, w, h);
+  else drawSlope(c, w, h);
+}
+
+function drawZoom(c, w, h) {
+  const barH = 74, I = Math.max(100, Math.min(190, (w - 40) * 0.36));
+  M = fit(0, 30, w - I - 16, h - 30 - barH, x + 1);
+  lawn(c, M, x, d3, { labels: d3 >= 0.5 });
+  dims(c, M, x, d3, w - I - 16);
+  // inset: window of side 2.6 dx around the corner, square I px
+  const ix = w - I - 14, iy = 30 + Math.max(0, (h - 30 - barH - I) / 2), Wd = 2.6 * d3, q = I / Wd;
+  const cx = x + d3 / 2, mi = { ox: ix + I / 2 - cx * q, oy: iy + I / 2 + cx * q, p: q };
+  // mark on the main picture + connector
+  const mb = Math.max(12, Wd * M.p), mx = M.ox + cx * M.p - mb / 2, my = M.oy - cx * M.p - mb / 2;
+  c.strokeStyle = color("--h"); c.lineWidth = 1.6; c.setLineDash([4, 3]);
+  c.strokeRect(mx, my, mb, mb);
+  c.beginPath(); c.moveTo(mx + mb, my); c.lineTo(ix, iy); c.moveTo(mx + mb, my + mb); c.lineTo(ix, iy + I); c.stroke(); c.setLineDash([]);
+  c.save(); c.beginPath(); c.rect(ix, iy, I, I); c.clip();
+  c.fillStyle = color("--surface"); c.fillRect(ix, iy, I, I);
+  lawn(c, mi, x, d3, { labels: false });
+  const rC = R(mi, x, x, d3, d3);
+  label(c, rC, ["dx²", F(d3 * d3)]);
+  const so = { size: 13, weight: 700, color: color("--b") };
+  Play.text(c, "x·dx", ix + I / 2, iy + I / 2 + 0.95 * d3 * q, so);
+  Play.text(c, "x·dx", ix + I / 2 - 0.95 * d3 * q, iy + I / 2, so);
+  c.restore();
+  c.strokeStyle = color("--h"); c.lineWidth = 2; c.strokeRect(ix, iy, I, I);
+  Play.text(c, "×" + Math.round(q / M.p), ix + I - 6, iy + 12, { size: 13, weight: 700, color: color("--h"), align: "right" });
+  Play.text(c, "dx = " + F(d3), ix + I / 2, iy + I + 14, { size: 14, weight: 700, color: color("--c") });
+  // bar: ÷ dx  →  2x + dx
+  const by = h - barH + 22, L = 20, BW = w - 40, u = BW / (2 * x + 1), bh = 18;
+  Play.text(c, t({ en: "per unit of push (÷ dx):", zh: "每推一单位（÷ dx）：" }) + `  2x + dx = ${F(2 * x + d3)}`, L, by - 12, { size: 14, weight: 650, align: "left" });
+  box(c, [L, by, 2 * x * u, bh], color("--b"), { fa: 0.4, lw: 1.5 });
+  box(c, [L + 2 * x * u, by, Math.max(1, d3 * u), bh], color("--c"), { fa: 0.6, lw: 1.5 });
+  Play.text(c, `2x = ${F(2 * x)}`, L + x * u, by + bh + 13, { size: 13, weight: 700, color: color("--b") });
+  Play.text(c, `dx = ${F(d3)}`, Math.min(L + 2 * x * u + d3 * u + 4, w - 70), by + bh + 13, { size: 13, weight: 700, color: color("--c"), align: "left" });
+}
+
+function drawSlope(c, w, h) {
+  const wide = w >= 560, LW = wide ? w * 0.46 : w, LH = wide ? h - 30 : (h - 30) * 0.48;
+  M = fit(0, 54, LW, LH - 24, X4MAX + 0.1);
+  lawn(c, M, x4, 0.1);
+  dims(c, M, x4, 0.1, LW);
+  Play.text(c, t({ en: "rollers: 2 × ", zh: "刷子：2 × " }) + F(x4, 2) + " = " + F(2 * x4, 2), M.ox, M.oy - (x4 + 0.1) * M.p - 24, { size: 14, weight: 700, color: color("--hl"), align: "left" });
+  // parabola panel
+  const L = wide ? LW + 10 : 10, T = wide ? 36 : 30 + LH + 14, W = wide ? w - LW - 24 : w - 24, H = wide ? h - 56 : h - T - 14;
+  const u0 = -0.3, u1 = 2.9, v0 = -0.6, v1 = 7.6;
+  const sx = (u) => L + 30 + (u - u0) / (u1 - u0) * (W - 40), sy = (v) => T + H - 20 - (v - v0) / (v1 - v0) * (H - 30);
+  P = { sx, sy, u0, u1, L, W };
+  const MU = color("--muted"), HL = color("--hl");
+  c.strokeStyle = rgba(MU, 0.6); c.lineWidth = 1.2; c.beginPath();
+  c.moveTo(sx(u0), sy(0)); c.lineTo(sx(u1), sy(0)); c.moveTo(sx(0), sy(v0)); c.lineTo(sx(0), sy(v1)); c.stroke();
+  for (let k = 1; k <= 2; k++) Play.text(c, String(k), sx(k), sy(0) + 12, { size: 13, color: MU });
+  c.strokeStyle = color("--a"); c.lineWidth = 2.4; c.beginPath();
+  for (let i = 0; i <= 80; i++) { const u = u0 + (Math.sqrt(v1) - u0) * i / 80; i ? c.lineTo(sx(u), sy(u * u)) : c.moveTo(sx(u), sy(u * u)); }
+  c.stroke();
+  Play.text(c, "y = x²", sx(Math.sqrt(v1)) - 6, sy(v1) + 8, { size: 14, weight: 700, color: color("--a"), align: "right", italic: true });
+  // tangent, clipped to the panel
+  const k = 2 * x4, y0 = x4 * x4;
+  c.save(); c.beginPath(); c.rect(sx(u0), sy(v1), sx(u1) - sx(u0), sy(v0) - sy(v1)); c.clip();
+  c.strokeStyle = HL; c.lineWidth = 2.4; c.beginPath();
+  c.moveTo(sx(x4 - 0.9), sy(y0 - 0.9 * k)); c.lineTo(sx(x4 + 0.9), sy(y0 + 0.9 * k)); c.stroke(); c.restore();
+  c.fillStyle = color("--h"); c.beginPath(); c.arc(sx(x4), sy(y0), 6, 0, 2 * Math.PI); c.fill();
+  const right = x4 < 1.6;
+  Play.text(c, `P (${F(x4, 2)}, ${F(y0, 2)})`, sx(x4) + (right ? 12 : -12), sy(y0) + (right ? 14 : -14), { size: 13, weight: 700, color: color("--h"), align: right ? "left" : "right" });
+  Play.text(c, t({ en: "slope", zh: "斜率" }) + ` 2x = ${F(k, 2)}`, sx(u0) + 6, sy(v1) + 4, { size: 15, weight: 700, color: HL, align: "left" });
+}
+
+// ---------- explain panel ----------
+const sp = (cls, s) => `<span class="${cls}">${s}</span>`;
+function render() {
+  const s = STEP[step], ex = $("explain");
+  let html = `<div class="kicker">${t(s.kicker)}</div><h2>${t(s.h)}</h2><p>${t(s.p)}</p>`;
+  if (step === 1) {
+    const e = (x + d1) ** 2 - x * x, nonex = Math.abs(d1 - x) < 1e-9;
+    html += `<div class="mathline">(x + dx)² − x² = ${sp("kb", "2x·dx")} + ${sp("kc", "dx²")}<br>÷ dx: &nbsp;${sp("kb", "2x")} + ${sp("kc", "dx")} &nbsp;→&nbsp; ${sp("kb", "2x")} <s>${sp("kc", "+ dx")}</s></div>`;
+    html += `<div class="choices">` + [{ en: "Give the mark", zh: "给分" }, { en: "No mark", zh: "不给分" }]
+      .map((o, i) => `<button data-m="${i}" class="${mark === i ? "on" : ""}">${t(o)}</button>`).join("") + `</div>`;
+    if (mark !== -1) {
+      html += `<p>${t({ en: "A classmate at the back objects: you threw a piece away and still call it equal, so two x is only an approximation.", zh: "后排同学不服：扔掉一块还说相等，二 x 只能算近似值。" })}</p>` +
+        `<p><span class="tag-no">${t({ en: "The corner is just thrown away?", zh: "角块是硬丢掉的？" })}</span></p>`;
+      html += `<div class="mathline">(${sp("ka", F(x))} + ${sp("kc", F(d1))})² − ${sp("ka", F(x))}² = <b>${F(e)}</b><br>${sp("kb", `2 × ${F(x)} × ${F(d1)} = ${F(2 * x * d1)}`)} &nbsp; ${sp("kc", `${F(d1)}² = ${F(d1 * d1)}`)}</div>`;
+      if (nonex) html += `<p><span class="tag-no">${t({ en: "When the push isn't short the corner can't be dropped: push out as far as x and the corner is as big as a strip.", zh: "推得不短的时候角块丢不得：推出 x 那么远，角块和一条一样大。" })}</span> ${t({ en: `Four equal squares of ${F(x * x)}: dropping the corner loses a quarter of the whole.`, zh: `四块一样大，各是 ${F(x * x)}：丢掉角块就丢了整整四分之一。` })}</p>`;
+      else if (d1 > 0) html += `<p>${t({ en: `Dropping the corner here loses ${F(d1 * d1)} out of ${F(e)}. So is the classmate right? It depends how far the rollers push. Press “Push out by x”, then go to step 02.`, zh: `这里丢掉角块，${F(e)} 里少了 ${F(d1 * d1)}。那后排同学说得对吗？要看刷子推多远。按「推出 x 那么远」，再去第 2 步。` })}</p>`;
+      else html += `<p>${t({ en: "Drag a roller outward to push the edges.", zh: "把刷子往外拖，推一推边。" })}</p>`;
+      if (x === 10 && d1 === 1) html += `<p class="note">${t({ en: "Like long multiplication: 11 × 11 = 100 + 10 + 10 + 1, so the lawn gains 21, not 20.", zh: "和竖式一样：11 × 11 = 100 + 10 + 10 + 1，草坪多出 21，不是 20。" })}</p>`;
+    }
+  } else if (step === 2) {
+    const opts = [...new Set([x, 2 * x, x * x])];
+    html += `<div class="choices">` + opts.map((v) => `<button data-g="${v}" class="${guess === v ? (tt >= 1 ? (v === 2 * x ? "right" : "wrong") : "on") : ""}">${t({ en: `${F(v)} per second`, zh: `每秒 ${F(v)}` })}</button>`).join("") + `</div>`;
+    html += `<p>${t({ en: "Push the rollers out, and whatever they sweep is the new lawn.", zh: "刷子往外推，刷过的地方，就是新长出来的草坪。" })}</p>`;
+    if (tt >= 1) {
+      html += `<div class="mathline">${t({ en: "each second: ", zh: "每秒刷 " })}${sp("kb", `2 × ${F(x)} = ${F(2 * x)}`)}</div>` +
+        `<p>${t({ en: `When the side is ${F(x)}, each roller sweeps ${F(x)}: ${F(2 * x)} per second.`, zh: `边长 ${F(x)} 的时候，两把各刷 ${F(x)}，每秒刷 ${F(2 * x)}。` })} ${x === 3 ? t({ en: "Now try x = 5.", zh: "再试试 x = 5。" }) : ""}</p>` +
+        `<p><strong>${t({ en: "Two rollers, each x long, so they cover two x per second.", zh: "两把刷子，每把长 x，所以每秒刷二 x。" })}</strong></p>` +
+        `<p class="note">${t({ en: `The dashed corner (1 × 1) is swept by neither roller. That's step 03.`, zh: `虚线角块（1 × 1）两把刷子都没刷到，第 3 步再看它。` })}</p>`;
+    } else html += `<div class="mathline">${t({ en: "swept so far: ", zh: "已经刷了：" })}${sp("kb", `2 × ${F(x)} × ${F(tt, 2)} = ${F(2 * x * tt)}`)}</div>`;
+  } else if (step === 3) {
+    const rows = [1, 0.1, 0.01];
+    if (!rows.some((r) => Math.abs(r - d3) < 1e-9)) rows.push(d3);
+    rows.sort((a, b) => b - a);
+    html += `<table class="tt"><tr><th>dx</th><th>${t({ en: "strips 2x·dx", zh: "长条 2x·dx" })}</th><th>${t({ en: "corner dx²", zh: "角块 dx²" })}</th><th>${t({ en: "corner share", zh: "角块占" })}</th></tr>` +
+      rows.map((r) => `<tr class="${Math.abs(r - d3) < 1e-9 ? "cur" : ""}"><td>${F(r)}</td><td class="kb">${F(2 * x * r)}</td><td class="kc">${F(r * r, 6)}</td><td>${F(100 * r / (2 * x + r), 2)}%</td></tr>`).join("") + `</table>`;
+    html += `<div class="mathline">(x + dx)² − x² = ${sp("kb", "2x·dx")} + ${sp("kc", "dx²")}<br>${F((x + d3) ** 2, 6)} − ${F(x * x)} = ${sp("kb", F(2 * x * d3))} + ${sp("kc", F(d3 * d3, 6))}</div>`;
+    html += `<p>${t({ en: "The strips are x times dx; next to them the corner is almost nothing. Push a tenth as far: the strips get 10 times smaller, the corner 100 times.", zh: "两条长条是 x 乘 d x，角块和它们一比，几乎没有。推的距离缩成十分之一，长条小十倍，角块小一百倍。" })}</p>`;
+  } else {
+    html += `<div class="mathline">(x + dx)² − x² = ${sp("kb", "2x·dx")} + ${sp("kc", "dx²")}<br>÷ dx: ${sp("kb", "2x")} + ${sp("kc", "dx")} &nbsp;→&nbsp; ${sp("kh", "2x")} &nbsp;(dx → 0)<br>x = ${F(x4, 2)}: ${sp("kh", `2 × ${F(x4, 2)} = ${F(2 * x4, 2)}`)}</div>`;
+    if (Math.abs(x4 - 1) < 1e-9) html += `<p><strong>${t({ en: "Put x equal to one and you get two, the slope we found last time.", zh: "代 x 等于一，正好就是上一集算出的斜率二。" })}</strong></p>`;
+    else html += `<p>${t({ en: "Press “x = 1” to compare with last episode's slope.", zh: "按「x = 1」，和上一集的斜率比一比。" })}</p>`;
+    html += `<p>${t({ en: "The corner isn't thrown away: it just gets small much faster than the strips.", zh: "角块不是硬丢的，而是它比长条小得越来越快。" })} <span class="tag-no" style="text-decoration:line-through">${t({ en: "The corner is just thrown away?", zh: "角块是硬丢掉的？" })}</span></p>`;
+  }
+  ex.innerHTML = html;
+  $("vtitle").textContent = t(D["v" + step]);
+  $("vtag").textContent = t(D["tag" + step]);
+  const xs = step === 4 ? x4 : x, dd = step === 1 ? d1 : step === 2 ? tt : step === 3 ? d3 : 0.1;
+  cv.setAttribute("aria-label", `x = ${F(xs)}, dx = ${F(dd)}: (x + dx)² − x² = ${F(2 * xs * dd)} + ${F(dd * dd)}`);
+  $("c1").hidden = step !== 1; $("c2").hidden = step !== 2; $("c4").hidden = step !== 4;
+  $("c3").style.display = step === 3 ? "contents" : "none";
+  $("xVal").textContent = F(xs, 2);
+  $("pushX").textContent = t(Math.abs(d1 - x) < 1e-9 ? D.pushBack : D.pushX);
+  $("ten").classList.toggle("on", x === 10 && d1 === 1);
+  $("playBtn").textContent = t(playing ? D.pause : tt >= 1 ? D.again : tt > 0 ? D.go : D.play);
+  $("x3").classList.toggle("on", x === 3); $("x5").classList.toggle("on", x === 5);
+  $("dxr").value = Math.log10(d3);
+  document.querySelectorAll("[data-dx]").forEach((b) => b.classList.toggle("on", Math.abs(+b.dataset.dx - d3) < 1e-9));
+  $("one").classList.toggle("on", Math.abs(x4 - 1) < 1e-9);
+  const narrow = cv.parentElement.getBoundingClientRect().width < 560;
+  cv.style.height = (step === 3 ? (narrow ? 400 : 440) : step === 4 ? (narrow ? 560 : 400) : (narrow ? 360 : 420)) + "px";
+  dirty = true;
+}
+$("explain").addEventListener("click", (ev) => {
+  const m = ev.target.closest("[data-m]"), g = ev.target.closest("[data-g]");
+  if (m) mark = +m.dataset.m;
+  if (g) guess = +g.dataset.g;
+  if (m || g) render();
+});
+
+// ---------- input ----------
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; playing = false; grab = null;
+  render();
+});
+function setX(v) {
+  if (step === 4) { x4 = clamp(Math.round(v * 10) / 10, 0.5, X4MAX); return render(); }
+  const nx = clamp(Math.round(v), 1, XMAX);
+  if (nx === x) return;
+  x = nx; d1 = Math.min(d1, x); tt = 0; playing = false; render();
+}
+const setD1 = (v) => { d1 = clamp(Math.round(v * 10) / 10, 0, x); render(); };
+const setT = (v) => { tt = clamp(Math.round(v * 100) / 100, 0, 1); playing = false; render(); };
+const setD3 = (v) => { d3 = clamp(+(+v).toPrecision(2), 0.01, 1); render(); };
+function playClick() {
+  if (playing) { playing = false; return render(); }
+  if (tt >= 1) tt = 0;
+  if (Play.reduced) { tt = 1; return render(); }
+  playing = true; render();
+}
+document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => setX((step === 4 ? x4 : x) + (b.dataset.d === "+" ? 1 : -1) * (step === 4 ? 0.5 : 1))));
+$("pushX").onclick = () => setD1(Math.abs(d1 - x) < 1e-9 ? 1 : x);
+$("ten").onclick = () => { if (x === 10 && d1 === 1) { x = X0; d1 = 1; } else { x = 10; d1 = 1; } render(); };
+$("playBtn").onclick = playClick;
+$("x3").onclick = () => setX(3); $("x5").onclick = () => setX(5);
+$("dxr").oninput = (e) => setD3(10 ** +e.target.value);
+document.querySelectorAll("[data-dx]").forEach((b) => (b.onclick = () => setD3(+b.dataset.dx)));
+$("one").onclick = () => setX(1);
+
+Play.drag(cv, {
+  down(px, py) {
+    if (step === 4) {
+      if (!P || px < P.L) return false;
+      grab = "x4"; this.move(px, py); return true;
+    }
+    if (!M) return false;
+    const dx = step === 1 ? d1 : step === 2 ? tt : d3, ex = M.ox + (x + dx) * M.p, ey = M.oy - (x + dx) * M.p;
+    const inV = py > ey - 14 && py < M.oy + 6, inH = px > M.ox - 6 && px < ex + 14;
+    if (inV && Math.abs(px - ex - 5) < 18) grab = "r";
+    else if (inH && Math.abs(py - ey + 5) < 18) grab = "t";
+    else grab = null;
+    if (grab) playing = false;
+    return !!grab;
+  },
+  move(px, py) {
+    if (!grab) return;
+    if (grab === "x4") { const u = P.u0 + (px - P.sx(P.u0)) / (P.sx(P.u1) - P.sx(P.u0)) * (P.u1 - P.u0); return setX(u); }
+    const v = grab === "r" ? (px - 5 - M.ox) / M.p - x : (M.oy - py + 5) / M.p - x;
+    if (step === 1) setD1(v); else if (step === 2) setT(v); else setD3(v);
+  },
+  up() { grab = null; },
+});
+const nudge = (s) => {
+  if (step === 1) setD1(d1 + 0.1 * s);
+  else if (step === 2) setT(Math.round((tt + 0.1 * s) * 10) / 10);
+  else if (step === 3) setD3(s > 0 ? d3 * 1.25 : d3 / 1.25);
+  else setX(x4 + 0.1 * s);
+};
+const enter = () => (step === 1 ? $("pushX").onclick() : step === 2 ? playClick() : step === 3 ? setD3(d3 > 0.05 ? d3 / 10 : 1) : $("one").onclick());
+Play.keys(cv, {
+  ArrowLeft: () => nudge(-1), ArrowRight: () => nudge(1),
+  ArrowUp: () => setX((step === 4 ? x4 : x) + (step === 4 ? 0.5 : 1)),
+  ArrowDown: () => setX((step === 4 ? x4 : x) - (step === 4 ? 0.5 : 1)),
+  Enter: enter, " ": enter,
+});
+$("reset").onclick = () => {
+  x = X0; d1 = 1; tt = 0; playing = false; d3 = 0.1; x4 = 1; mark = -1; guess = -1;
+  nav.set(1);
+};
+Play.onTheme(() => (dirty = true));
+window.addEventListener("resize", () => { if (step) render(); });
+
+Play.loop((dt) => {
+  if (playing) {
+    tt = Math.min(1, tt + dt / SECS);
+    if (tt >= 1) { playing = false; render(); }
+    else if (Math.floor(tt * 10) !== Math.floor((tt - dt / SECS) * 10)) render();
+    dirty = true;
+  }
+  if (dirty) { dirty = false; main.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Derivative: Zoom In Until the Curve Is Straight · Boxi Math</title>
+<link rel="stylesheet" href="play.css">
+<script src="play.js"></script>
+<style>
+  .controls button { min-height: 36px; min-width: 40px; }
+  .controls button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .controls .grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .controls .grp.wide { flex: 1 1 200px; }
+  .controls .grp.wide input[type=range] { flex: 1 1 90px; }
+  .hot { background: var(--soft); outline: 2px solid var(--hl); border-radius: 5px; padding: 0 3px; }
+  .explain .mathline { font-size: 18px; }
+  .explain p.big { font-size: 15px; color: var(--fg); }
+  .chk { margin: 2px 0; font-size: 14px; color: var(--fg); }
+  .chk .x { color: var(--no); font-weight: 800; margin-right: 6px; }
+  .chk .q { color: var(--muted); font-weight: 800; margin-right: 6px; }
+  .chk s { text-decoration-color: var(--no); text-decoration-thickness: 2px; }
+  .ok-t { color: var(--a); font-weight: 700; }
+  .choices button { font-family: var(--math); font-size: 16px; min-height: 38px; padding: 4px 14px; }
+  .choices button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .hist { width: 100%; border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .hist td, .hist th { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .hist th { color: var(--muted); font-weight: 600; }
+  .hist td.r { color: var(--c); font-weight: 700; }
+  .stage .vtitle, .stage .vtag { background: var(--surface); padding: 1px 5px; border-radius: 4px; top: 10px; }
+  .dsh { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--hl); margin-right: 5px; vertical-align: 3px; }
+  .rows { margin: 2px 0 10px; font-size: 14px; color: var(--fg); }
+  .rows div { margin: 2px 0; }
+  .rows .m { font-family: var(--math); font-size: 16px; }
+</style>
+</head>
+<body>
+<main class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"><a class="langlink" href="?lang=zh">中文</a></span></div>
+  <h1 data-t="title"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <nav class="steps" aria-label="steps">
+      <button data-step="1"><span class="k">01</span><span data-t="s1"></span></button>
+      <button data-step="2"><span class="k">02</span><span data-t="s2"></span></button>
+      <button data-step="3"><span class="k">03</span><span data-t="s3"></span></button>
+      <button data-step="4"><span class="k">04</span><span data-t="s4"></span></button>
+    </nav>
+    <div class="tools"><button class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vtitle" id="vtitle"></div><div class="vtag" id="vtag"></div>
+      <canvas class="main" id="main" aria-label="graph of a curve with a point P"></canvas>
+      <div class="controls" id="c1">
+        <span class="grp"><span data-t="turnK"></span><span id="mBtns"></span></span>
+        <span class="grp"><button id="vertB" data-t="vert"></button></span>
+      </div>
+      <div class="controls" id="c2" hidden>
+        <span class="grp"><span>h:</span><span id="hBtns"></span></span>
+        <span class="grp"><button id="slideB"></button></span>
+      </div>
+      <div class="controls" id="c3" hidden>
+        <span class="grp"><span id="fBtns"></span></span>
+        <span class="grp wide"><span data-t="zoomL"></span><input id="zR" type="range" min="0" max="3" step="0.01" aria-label="zoom"><span class="val" id="zV"></span></span>
+        <span class="grp"><span id="zBtns"></span><button id="playB"></button></span>
+      </div>
+    </div>
+    <div class="explain" id="explain" aria-live="polite"></div>
+  </section>
+
+  <section class="result">
+    <div><div class="rt" data-t="resT"></div><div class="math"><i>f</i>′(<i>x</i>₀) = lim<sub><i>h</i>→0</sub> <span class="frac"><span><i>f</i>(<i>x</i>₀ + <i>h</i>) − <i>f</i>(<i>x</i>₀)</span><span><i>h</i></span></span></div></div>
+    <div class="rn" data-t="resN"></div>
+  </section>
+  <details class="more"><summary data-t="moreS"></summary><p data-t="moreP"></p><p data-t="moreQ"></p></details>
+  <p class="foot" data-t="foot"></p>
+</main>
+<script>
+"use strict";
+const { t, color, rgba, fmt, clamp } = Play;
+const D = {
+  title: { en: "The Derivative: Zoom In Until the Curve Is Straight", zh: "导数：把曲线放大到变成直线" },
+  eyebrow: { en: "Boxi Math · Try it · #30", zh: "Boxi Math · 动手试试 · #30" },
+  intro: { en: "Riding a bike round a bend at night, the straight beam of your headlight is the tangent to the road at that point. But which line is the tangent? Test the popular answer, slide a secant, zoom in, then find the number.",
+           zh: "夜里骑车过弯，车灯照出去的那条直线，就是弯路在这一点的切线。可切线到底是哪一条？先试试常见的说法，再滑动割线、放大曲线，最后把这个数算出来。" },
+  s1: { en: "Touches once?", zh: "只碰一个点？" }, s2: { en: "Q slides to P", zh: "Q 滑向 P" }, s3: { en: "Zoom in", zh: "放大" }, s4: { en: "2 + h → 2", zh: "2 + h → 2" },
+  reset: { en: "Reset", zh: "重置" },
+  turnK: { en: "Turn the line to k:", zh: "把直线转到 k：" }, vert: { en: "vertical", zh: "竖线" },
+  zoomL: { en: "Zoom:", zh: "放大：" },
+  sq: { en: "y = x²", zh: "y = x²" }, ab: { en: "y = |x|", zh: "y = |x|" },
+  tag1: { en: "drag to turn the line about P", zh: "拖动，让直线绕 P 转" }, tag2: { en: "drag Q along the curve", zh: "沿曲线拖动 Q" },
+  tag3: { en: "drag to move the point · inset = whole curve", zh: "拖动换点 · 小窗是整条曲线" }, tag4: { en: "drag Q", zh: "拖动 Q" },
+  resT: { en: "The limit of the secant slope as h goes to zero is called the derivative", zh: "割线斜率在 h 趋近于零时的极限，叫做导数" },
+  resN: { en: "A tangent isn't a line that touches once. It's the line the secants close in on. Zoom in on a differentiable curve and it hugs that line; a corner like |x| at 0 never does.",
+          zh: "切线不是只碰一个点的直线，而是割线逼近的那条直线。能求导的曲线放大后贴着这条直线；|x| 在原点那样的尖角，放大多少倍都不会。" },
+  moreS: { en: "Why can't we just put h = 0?", zh: "为什么不能直接让 h = 0？" },
+  moreP: { en: "At h = 0 the two points are the same point, and the slope would be 0 ÷ 0, which means nothing. So we never set h to zero. We simplify while h is not zero: ((1 + h)² − 1) ÷ h = (2h + h²) ÷ h = 2 + h. That expression makes sense for every h, and as h gets closer and closer to zero it gets closer and closer to 2. That target value is the limit, written lim as h → 0. The zoom picture is the same fact seen with your eyes: near P, x² − (1 + 2(x − 1)) = (x − 1)², so the gap between the curve and the tangent shrinks like the square of the distance, much faster than the window itself.",
+           zh: "h = 0 时两点重合，斜率变成 0 ÷ 0，没有意义。所以从不让 h 等于零，而是在 h 不为零时先化简：((1 + h)² − 1) ÷ h = (2h + h²) ÷ h = 2 + h。这个式子对每个 h 都有意义，h 越靠近零，它越靠近 2。这个目标值就是极限，写成 lim，下面标 h → 0。放大的画面是同一件事：在 P 附近，x² − (1 + 2(x − 1)) = (x − 1)²，曲线和切线的差按距离的平方变小，比窗口本身缩得快得多。" },
+  moreQ: { en: "Next: at any other point, what's the slope of the parabola's tangent?", zh: "换一个点，抛物线的切线斜率又是多少？" },
+  foot: { en: "Green is the curve, blue is the secant, gold dashed is the tangent, red marks a second crossing, the gold dot is what you drag. On a focused picture, keys work too (step 1: ← → turn, space = vertical; steps 2 and 4: ← → move Q, space = slide; step 3: ← → move the point, ↑ ↓ zoom, space = keep zooming).",
+          zh: "绿色是曲线，蓝色是割线，金色虚线是切线，红色是第二个交点，金色圆点是你能拖的。选中图后也能用按键（第 1 步：← → 转动，空格 = 竖线；第 2、4 步：← → 移动 Q，空格 = 滑动；第 3 步：← → 换点，↑ ↓ 放大缩小，空格 = 连续放大）。" },
+};
+Play.i18n(D);
+
+const el = (id) => document.getElementById(id);
+const cvEl = el("main");
+const EPS = 1e-9;
+const snap = (v, s) => Math.round(v / s) * s;
+const par = (v) => (v < -EPS ? `(${fmt(v, 4)})` : fmt(v, 4));
+const hot = (s) => `<span class="hot">${s}</span>`;
+const FN = { sq: (x) => x * x, abs: (x) => Math.abs(x) };
+const R0 = 1.5;                                   // step 3: half-width of the window at zoom 1
+
+// ---------- state ----------
+let m, vert, tried1;                              // step 1: line through P(1, 1)
+let h, guess, seenR, seenL, hist, anim2;           // steps 2 and 4: Q = (1 + h, (1 + h)²)
+let fn, x0, zoomE, play3, triedAbs;                // step 3: zoom = 10^zoomE
+function init() {
+  m = 0.5; vert = false; tried1 = { vert: false, tan: false };
+  h = 1; guess = null; seenR = false; seenL = false; hist = [1]; anim2 = false;
+  fn = "sq"; x0 = 1; zoomE = 0; play3 = false; triedAbs = false;
+}
+init();
+let step = 1, dirty = true;
+const zoom = () => Math.pow(10, zoomE);
+const kOf = (hh) => (FN.sq(1 + hh) - FN.sq(1)) / hh;
+
+// ---------- view (steps 1, 2, 4): equal units, centred on (0.6, 1.9) ----------
+function vw() {
+  const r = cvEl.getBoundingClientRect(), W = r.width || 600, H = r.height || 360;
+  const u = Math.max(18, Math.min(W / 6.4, H / 6.4)), cx = 0.6, cy = 1.9;
+  return { W, H, u, xmin: cx - W / 2 / u, xmax: cx + W / 2 / u, ymin: cy - H / 2 / u, ymax: cy + H / 2 / u,
+    X: (x) => W / 2 + (x - cx) * u, Y: (y) => H / 2 - (y - cy) * u,
+    wx: (px) => cx + (px - W / 2) / u, wy: (py) => cy - (py - H / 2) / u };
+}
+// h range that keeps Q inside the picture, clear of the title strip
+function hRange(V) {
+  const top = V.ymax - 34 / V.u - 0.3, lo = Math.max(V.xmin + 0.35, -Math.sqrt(Math.max(top, 0)));
+  return [lo - 1, Math.min(V.xmax - 0.35, Math.sqrt(Math.max(top, 0))) - 1];
+}
+function setH(v) {
+  const [lo, hi] = hRange(vw());
+  let n = clamp(v, lo, hi);
+  n = Math.abs(n) < 0.2 ? snap(n, 0.01) : snap(n, 0.05);
+  if (Math.abs(n) < 0.01 - EPS) n = (Math.sign(v) || Math.sign(h) || 1) * 0.01;
+  h = +n.toFixed(4);
+  note2();
+}
+function note2() {
+  if (Math.abs(h) <= 0.1 + EPS) { if (h > 0) seenR = true; else seenL = true; }
+}
+function record() {
+  const r = +h.toFixed(4);
+  hist = hist.filter((x) => x !== r); hist.push(r);
+  if (hist.length > 6) hist.shift();
+}
+
+// ---------- labels that avoid each other ----------
+let boxes = [], W0 = 0, H0 = 0;
+function boxOf(x, s, px, py, size, align) {
+  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+  const w = x.measureText(s).width + 8, hh = size + 6;
+  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+  return [l, py - hh / 2, l + w, py + hh / 2];
+}
+const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function place(x, s, cands, o = {}) {
+  const size = o.size || 15;
+  let pick = cands[0], best = Infinity;
+  for (const c of cands) {          // first candidate that is clear; otherwise the least crowded one inside
+    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
+    const out = bx[0] < 2 || bx[2] > W0 - 2 || bx[1] < 2 || bx[3] > H0 - 2, n = boxes.filter((b) => hit(b, bx)).length + (out ? 99 : 0);
+    if (n < best) { best = n; pick = c; }
+    if (!n) break;
+  }
+  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
+  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
+}
+const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+// reserve boxes along a drawn segment so labels stay off it
+function reserveSeg(a, b, r = 7) {
+  const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 14));
+  for (let i = 0; i <= n; i++) reserve(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, r);
+}
+
+// ---------- drawing helpers ----------
+function grid(x, V) {
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.xmin); i <= V.xmax; i++) { x.moveTo(V.X(i), 0); x.lineTo(V.X(i), V.H); }
+  for (let j = Math.ceil(V.ymin); j <= V.ymax; j++) { x.moveTo(0, V.Y(j)); x.lineTo(V.W, V.Y(j)); }
+  x.stroke();
+  x.strokeStyle = rgba(color("--muted"), 0.85); x.lineWidth = 1.5; x.beginPath();
+  x.moveTo(0, V.Y(0)); x.lineTo(V.W, V.Y(0)); x.moveTo(V.X(0), 0); x.lineTo(V.X(0), V.H); x.stroke();
+}
+function ticks(x, V) {
+  const st = V.u < 34 ? 2 : 1, mu = color("--muted");
+  const put = (s, px, py, align) => {
+    const bx = boxOf(x, s, px, py, 13, align);
+    if (bx[0] < 2 || bx[2] > V.W - 2 || bx[1] < 2 || bx[3] > V.H - 2 || boxes.some((b) => hit(b, bx))) return;
+    Play.text(x, s, px, py, { size: 13, color: mu, align, weight: 500 });
+  };
+  for (let i = Math.ceil(V.xmin / st) * st; i <= V.xmax; i += st) if (i) put(fmt(i), V.X(i), V.Y(0) + 13, "center");
+  for (let j = Math.ceil(V.ymin / st) * st; j <= V.ymax; j += st) if (j) put(fmt(j), V.X(0) - 7, V.Y(j), "right");
+  put("x", V.W - 12, V.Y(0) - 13, "center");
+}
+// any curve y = f(x) across the view, sampled every 2 px (plus exact extra x's, e.g. a corner)
+function curve(x, V, f, col, w, extra = []) {
+  const xs = [];
+  for (let px = -4; px <= V.W + 4; px += 2) xs.push(V.wx(px));
+  extra.forEach((e) => { if (e > V.wx(-4) && e < V.wx(V.W + 4)) xs.push(e); });
+  xs.sort((a, b) => a - b);
+  const lim = V.H / V.u + 2;
+  x.strokeStyle = col; x.lineWidth = w; x.lineJoin = "round"; x.beginPath();
+  let pen = false, lp = [-99, -99];
+  xs.forEach((xx) => {
+    const y = f(xx);
+    if (y > V.wy(0) + lim || y < V.wy(V.H) - lim) { pen = false; return; }
+    const px = V.X(xx), py = V.Y(y);
+    pen ? x.lineTo(px, py) : x.moveTo(px, py); pen = true;
+    if (Math.hypot(px - lp[0], py - lp[1]) > 12) { reserve(px, py, 6); lp = [px, py]; }
+  });
+  x.stroke();
+}
+// straight line through (a, b) with slope k across the canvas; returns its end points in px
+function lineK(x, V, a, b, k, col, w, dash) {
+  const p = [-10, V.Y(b + k * (V.wx(-10) - a))], q = [V.W + 10, V.Y(b + k * (V.wx(V.W + 10) - a))];
+  x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.lineCap = "round";
+  x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
+  return [p, q];
+}
+function dot(x, px, py, r, fill, stroke, lw = 2) {
+  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+  if (fill) { x.fillStyle = fill; x.fill(); }
+  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+}
+function handle(x, px, py) { dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5); reserve(px, py, 12); }
+function pDot(x, px, py) { dot(x, px, py, 6.5, color("--surface"), color("--fg"), 2.5); reserve(px, py, 10); }
+// point on a line at a given screen x, for placing a label beside the line
+const onLine = (V, a, b, k, px) => [px, V.Y(b + k * (V.wx(px) - a))];
+
+function draw(x, w, h0) {
+  W0 = w; H0 = h0;
+  boxes = [[0, 0, w, 30]];
+  if (step === 3) return draw3(x, w, h0);
+  const V = vw();
+  grid(x, V);
+  ({ 1: draw1, 2: draw24, 4: draw24 })[step](x, V);
+  ticks(x, V);
+}
+
+function draw1(x, V) {
+  const A = color("--a"), C = color("--c"), NO = color("--no"), HL = color("--hl");
+  curve(x, V, FN.sq, A, 3.5);
+  const pP = [V.X(1), V.Y(1)];
+  let hp;
+  if (vert) {
+    x.strokeStyle = NO; x.lineWidth = 3; x.beginPath(); x.moveTo(pP[0], 0); x.lineTo(pP[0], V.H); x.stroke();
+    reserveSeg([pP[0], 30], [pP[0], V.H]);
+    hp = [pP[0], V.Y(2.9)];
+    place(x, "x = 1", [[pP[0] + 10, V.Y(4.3), "left"], [pP[0] - 10, V.Y(4.3), "right"]], { color: NO });
+  } else {
+    const tan = Math.abs(m - 2) < EPS, col = tan ? HL : C;
+    const [p, q] = lineK(x, V, 1, 1, m, col, 3, tan ? [9, 6] : null);
+    reserveSeg(p, q);
+    const L = 1.9, th = Math.atan(m);
+    hp = [V.X(1 + L * Math.cos(th)), V.Y(1 + L * Math.sin(th))];
+    if (!tan) {
+      const x2 = m - 1, y2 = x2 * x2;
+      if (x2 > V.xmin && x2 < V.xmax && y2 < V.ymax - 0.4) {
+        const q2 = [V.X(x2), V.Y(y2)];
+        dot(x, ...q2, 7, NO, color("--surface"), 2); reserve(...q2, 10);
+        const s = `(${fmt(x2)}, ${fmt(y2)})`;
+        place(x, s, [[q2[0] + 12, q2[1] + 16, "left"], [q2[0] - 12, q2[1] + 16, "right"], [q2[0] + 12, q2[1] - 16, "left"], [q2[0] - 12, q2[1] - 16, "right"], [q2[0] - 30, q2[1] + 34, "right"], [q2[0] + 30, q2[1] + 34, "left"], [q2[0] - 34, q2[1] - 30, "right"], [q2[0] + 34, q2[1] - 30, "left"]], { color: NO, size: 14 });
+      }
+    }
+    const lab = "k = " + fmt(m);
+    const lx = hp[0] < V.W / 2 ? V.W * 0.2 : V.W * 0.8;
+    const c1 = onLine(V, 1, 1, m, lx), c2 = onLine(V, 1, 1, m, V.W - lx);
+    place(x, lab, [[c1[0] + 10, c1[1] + 20, "left"], [c1[0] - 10, c1[1] - 20, "right"], [c2[0] + 10, c2[1] + 20, "left"], [c2[0] - 10, c2[1] - 20, "right"], [V.W - 14, 46, "right"]], { color: col });
+  }
+  pDot(x, ...pP);
+  handle(x, ...hp);
+  place(x, "P (1, 1)", [[pP[0] + 14, pP[1] + 18, "left"], [pP[0] - 14, pP[1] + 18, "right"], [pP[0] + 14, pP[1] - 18, "left"], [pP[0] - 14, pP[1] - 18, "right"], [pP[0], pP[1] + 30]], { size: 14 });
+  place(x, "y = x²", [[V.X(-1.75) - 18, V.Y(3.06), "right"], [V.X(-1.4) - 18, V.Y(1.96), "right"], [V.X(-2) - 18, V.Y(3.9), "right"], [V.X(1.95), V.Y(3.8), "left"], [14, V.H - 18, "left"]], { color: A, size: 16 });
+}
+
+function draw24(x, V) {
+  const A = color("--a"), C = color("--c"), HL = color("--hl");
+  const showTan = step === 4 || (seenR && seenL);
+  curve(x, V, FN.sq, A, 3.5);
+  if (showTan) { const [p, q] = lineK(x, V, 1, 1, 2, HL, 2.5, [9, 6]); reserveSeg(p, q, 5); }
+  const k = kOf(h), qx = 1 + h, qy = qx * qx;
+  const [p, q] = lineK(x, V, 1, 1, k, C, 3);
+  reserveSeg(p, q);
+  // run h, rise Δy
+  const pP = [V.X(1), V.Y(1)], c = [V.X(qx), V.Y(1)], pQ = [V.X(qx), V.Y(qy)];
+  x.strokeStyle = rgba(C, 0.75); x.lineWidth = 2; x.setLineDash([5, 4]);
+  x.beginPath(); x.moveTo(...pP); x.lineTo(...c); x.lineTo(...pQ); x.stroke(); x.setLineDash([]);
+  pDot(x, ...pP); handle(x, ...pQ);
+  const side = h > 0 ? 1 : -1;
+  if (Math.abs(c[0] - pP[0]) > 26) place(x, "h = " + fmt(h), [[(pP[0] + c[0]) / 2, c[1] + 15], [c[0] + side * 6, c[1] + 16, side > 0 ? "left" : "right"], [(pP[0] + c[0]) / 2, c[1] + 32], [c[0] + side * 6, c[1] + 34, side > 0 ? "left" : "right"]], { color: C, size: 14 });
+  place(x, "P (1, 1)", [[pP[0] - side * 12, pP[1] + 18, side > 0 ? "right" : "left"], [pP[0] - side * 12, pP[1] - 18, side > 0 ? "right" : "left"], [pP[0], pP[1] + 34]], { size: 14 });
+  place(x, `Q (${fmt(qx)}, ${fmt(qy, 4)})`, [[pQ[0] + side * 14, pQ[1] - 16, side > 0 ? "left" : "right"], [pQ[0] + side * 14, pQ[1] + 16, side > 0 ? "left" : "right"],
+    [pQ[0] - side * 14, pQ[1] - 18, side > 0 ? "right" : "left"], [pQ[0], pQ[1] - 30]], { size: 14 });
+  const lx = V.W * 0.18, a1 = onLine(V, 1, 1, k, lx), a2 = onLine(V, 1, 1, k, V.W * 0.82);
+  place(x, "k = " + fmt(k, 4), [[V.W - 14, 46, "right"], [a1[0], a1[1] + 22], [a2[0], a2[1] + 22], [14, V.H - 18, "left"]], { color: C, size: 16 });
+  if (showTan) place(x, t({ en: "tangent, slope 2", zh: "切线，斜率 2" }), [[V.W - 14, V.H - 18, "right"], [14, 46, "left"], [14, V.H - 18, "left"]], { color: HL, size: 14 });
+  place(x, "y = x²", [[V.X(-1.75) - 18, V.Y(3.06), "right"], [V.X(-1.4) - 18, V.Y(1.96), "right"], [V.X(-2) - 18, V.Y(3.9), "right"], [V.X(1.95), V.Y(3.8), "left"], [14, V.H - 40, "left"]], { color: A, size: 16 });
+}
+
+// ---------- step 3: magnifier ----------
+const f3 = (xx) => FN[fn](xx);
+function tanSlope() { return fn === "sq" ? 2 * x0 : Math.abs(x0) < EPS ? null : Math.sign(x0); }
+function mv(W, H) {
+  const u = (W / (2 * R0)) * zoom(), cy = f3(x0), oy = fn === "abs" && Math.abs(x0) < EPS ? H * 0.68 : H / 2;   // a corner sits low so both arms show
+  return { W, H, u, X: (xx) => W / 2 + (xx - x0) * u, Y: (y) => oy - (y - cy) * u, wx: (px) => x0 + (px - W / 2) / u, wy: (py) => cy - (py - oy) / u };
+}
+// inset with the whole curve; corner chosen away from the tangent
+function inset(W, H) {
+  const tg = tanSlope(), right = tg == null || tg >= 0;
+  const iw = Math.min(170, W * 0.36), ih = Math.min(130, H * 0.36), l = right ? W - iw - 8 : 8, tp = H - ih - 8;
+  const u = Math.min(iw / 4.6, ih / 3.9);
+  return { l, tp, iw, ih, u, X: (xx) => l + iw / 2 + xx * u, Y: (y) => tp + ih - 8 - (y + 0.15) * u, wx: (px) => (px - l - iw / 2) / u };
+}
+// slopes of the window's right and left secants, and the biggest gap to the tangent
+function stats3() {
+  const w = R0 / zoom(), y0 = f3(x0), sR = (f3(x0 + w) - y0) / w, sL = (y0 - f3(x0 - w)) / w, tg = tanSlope();
+  let gap = null;
+  if (tg != null) { gap = 0; for (let i = -40; i <= 40; i++) { const xx = x0 + (w * i) / 40; gap = Math.max(gap, Math.abs(f3(xx) - y0 - tg * (xx - x0))); } }
+  return { w, sR, sL, tg, gap };
+}
+function draw3(x, W, H) {
+  const A = color("--a"), HL = color("--hl"), C = color("--c"), NO = color("--no"), MU = color("--muted");
+  const V = mv(W, H), S = stats3();
+  // grid: spacing a power of ten (or half / fifth of one), 40–200 px apart
+  let s = Math.pow(10, Math.ceil(Math.log10(40 / V.u)));
+  if (s * V.u >= 200) s /= 5; else if (s * V.u >= 100) s /= 2;
+  x.lineWidth = 1; x.strokeStyle = color("--line"); x.beginPath();
+  for (let i = Math.ceil(V.wx(0) / s); i * s <= V.wx(W); i++) { const px = V.X(i * s); x.moveTo(px, 0); x.lineTo(px, H); }
+  for (let j = Math.ceil(V.wy(H) / s); j * s <= V.wy(0); j++) { const py = V.Y(j * s); x.moveTo(0, py); x.lineTo(W, py); }
+  x.stroke();
+  x.strokeStyle = rgba(MU, 0.85); x.lineWidth = 1.5; x.beginPath();
+  if (V.wx(0) < 0 && V.wx(W) > 0) { x.moveTo(V.X(0), 0); x.lineTo(V.X(0), H); }
+  if (V.wy(H) < 0 && V.wy(0) > 0) { x.moveTo(0, V.Y(0)); x.lineTo(W, V.Y(0)); }
+  x.stroke();
+  const c0 = [W / 2, V.Y(f3(x0))];
+  curve(x, V, f3, A, 4, fn === "abs" ? [0] : []);
+  if (S.tg != null) { const [p, q] = lineK(x, V, x0, f3(x0), S.tg, HL, 2.5, [9, 6]); reserveSeg(p, q, 6); }
+  pDot(x, ...c0);
+  const I = inset(W, H);
+  boxes.push([I.l - 4, I.tp - 4, I.l + I.iw + 4, H]);
+  // labels in the big window
+  place(x, `P (${fmt(x0)}, ${fmt(f3(x0), 4)})`, [[c0[0] - 14, c0[1] + 20, "right"], [c0[0] + 14, c0[1] + 20, "left"], [c0[0] - 14, c0[1] - 20, "right"], [c0[0] + 14, c0[1] - 20, "left"]], { size: 14 });
+  const z = zoom(), zs = fmt(z, z < 10 ? 1 : 0);
+  const corner = fn === "abs" && Math.abs(x0) < EPS;
+  const zl = t({ en: `zoom ${zs}×`, zh: `放大 ${zs} 倍` }) + (corner && z >= 9.95 ? t({ en: ": still a corner", zh: "：还是尖角" }) : "");
+  const zx = I.l > W / 2 ? 14 : W - 14, za = I.l > W / 2 ? "left" : "right";
+  place(x, zl, [[zx, H - 18, za], [zx, 46, za]], { color: corner ? NO : color("--fg"), size: 15 });
+  if (corner) {
+    // label both arms with their slopes
+    [-1, 1].forEach((sg) => {
+      const px = W / 2 + sg * W * 0.27, py = V.Y(f3(V.wx(px)));
+      place(x, t({ en: "slope ", zh: "斜率 " }) + fmt(sg), [[px + sg * 6, py + 22, sg > 0 ? "left" : "right"], [px, py - 24], [px + sg * 6, py + 44, sg > 0 ? "left" : "right"]], { color: C, size: 14 });
+    });
+  } else if (S.tg != null) {
+    const [ex, ey] = onLine(V, x0, f3(x0), S.tg, I.l > W / 2 ? W * 0.2 : W * 0.8);
+    place(x, t({ en: "tangent, slope ", zh: "切线，斜率 " }) + fmt(S.tg, 4), [[ex, ey - 22], [ex, ey + 22], [W / 2, 46]], { color: HL, size: 14 });
+  }
+  // inset: the whole curve and where the window is
+  x.fillStyle = rgba(color("--surface"), 0.96); x.strokeStyle = color("--line"); x.lineWidth = 1.5;
+  x.beginPath(); x.rect(I.l, I.tp, I.iw, I.ih); x.fill(); x.stroke();
+  x.save(); x.beginPath(); x.rect(I.l, I.tp, I.iw, I.ih); x.clip();
+  x.strokeStyle = rgba(MU, 0.7); x.lineWidth = 1; x.beginPath();
+  x.moveTo(I.l, I.Y(0)); x.lineTo(I.l + I.iw, I.Y(0)); x.moveTo(I.X(0), I.tp); x.lineTo(I.X(0), I.tp + I.ih); x.stroke();
+  x.strokeStyle = A; x.lineWidth = 2; x.beginPath();
+  for (let px = 0; px <= I.iw; px += 2) { const xx = I.wx(I.l + px), y = Math.min(f3(xx), 9); px ? x.lineTo(I.l + px, I.Y(y)) : x.moveTo(I.l, I.Y(y)); }
+  x.stroke();
+  const bw = Math.max(6, (2 * S.w) * I.u), bh = Math.max(6, bw * H / W), bx = I.X(x0), by = I.Y(f3(x0));
+  x.strokeStyle = HL; x.lineWidth = 2; x.strokeRect(bx - bw / 2, by - bh / 2, bw, bh);
+  dot(x, bx, by, 3.5, color("--fg"));
+  x.restore();
+  Play.text(x, t({ en: "whole curve", zh: "整条曲线" }), I.l + 6, I.tp + 12, { size: 13, color: MU, align: "left", weight: 600 });
+}
+
+// ---------- text ----------
+const dotI = (v, o) => `<span><span class="dot" style="background:var(${v})"></span>${t(o)}</span>`;
+const legend = (items) => `<div class="legend">${items.join("")}</div>`;
+const dshI = (o) => `<span><span class="dsh"></span>${t(o)}</span>`;
+const chk = (done, o, why) => `<div class="chk">${done ? `<span class="x">✗</span><s>${t(o)}</s> <span class="tag-no">${t(why)}</span>` : `<span class="q">?</span>${t(o)}`}</div>`;
+const fr = (a, b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+
+function explain1() {
+  const tan = !vert && Math.abs(m - 2) < EPS, x2 = m - 1;
+  let out = `<div class="kicker">${t({ en: "Step 01 · test the guess", zh: "第 1 步 · 先试试说法" })}</div>
+    <h2>${t({ en: "Is a tangent a line that touches the curve at just one point?", zh: "切线就是只碰曲线一个点的直线吗？" })}</h2>
+    <p>${t({ en: "The road is y = x², the bike is at P (1, 1). Your friend says offhand: a line that touches the curve at just one point is the tangent. Turn the line about P and count where it meets the curve. Then try the vertical line.",
+              zh: "弯路是 y = x²，车在 P (1, 1)。同伴随口一说：只碰曲线一个点的直线，就是切线。让直线绕 P 转，数一数它和曲线有几个交点。再试试竖线。" })}</p>`;
+  if (vert) out += `<div class="mathline">x = 1 ⇒ ${t({ en: "one point", zh: "一个交点" })}: P (1, 1)</div>
+    <p class="big">${t({ en: "But this vertical line through P also touches just once, and it's clearly not a tangent: it cuts straight across the road.", zh: "可过 P 点的这条竖线也只碰一个点，却显然不是切线：它是横穿过路的。" })}</p>`;
+  else out += `<div class="mathline">x² = 1 + ${par(m)}(x − 1)<br>⇒ x = 1 ${t({ en: "or", zh: "或" })} x = k − 1 = ${hot(fmt(x2))}</div>
+    <p class="big">${tan ? t({ en: "At k = 2 the two answers are the same: the second point has merged into P. This line hugs the road at P; it's the headlight beam.", zh: "k = 2 时两个解重合：第二个交点并到了 P 上。这条直线在 P 处贴着弯路，就是车灯照出的那条线。" })
+      : t({ en: `Two points: P and (${fmt(x2)}, ${fmt(x2 * x2)}). Turn the line until the red point runs into P.`, zh: `两个交点：P 和 (${fmt(x2)}, ${fmt(x2 * x2)})。转动直线，让红点并到 P 上。` })}</p>`;
+  out += chk(tried1.vert, { en: "Tangent = a line that touches the curve at just one point?", zh: "切线 = 只碰一个点的直线？" }, { en: "The vertical line touches once too.", zh: "竖线也只碰一个点。" });
+  if (tried1.vert && tried1.tan) out += `<p style="margin-top:8px">${t({ en: "So “touches once” can't be the definition. Let's ask a different question: near P, how steep is the curve? Step 2.", zh: "所以「只碰一个点」当不了定义。换个问法：在 P 点附近，曲线到底有多陡？看第 2 步。" })}</p>`;
+  else out += `<p class="note" style="margin-top:8px">${t({ en: "Try both: find the k where the red point merges into P, and press “vertical”.", zh: "两样都试试：找到红点并到 P 上的那个 k，再点「竖线」。" })}</p>`;
+  return out;
+}
+
+function explain2() {
+  const k = kOf(h), qx = 1 + h, qy = qx * qx;
+  let out = `<div class="kicker">${t({ en: "Step 02 · secants", zh: "第 2 步 · 割线" })}</div>
+    <h2>${t({ en: "Let Q slide along the curve towards P", zh: "让 Q 沿着曲线滑向 P" })}</h2>
+    <p>${t({ en: "Take another point Q on the curve, join them with a secant, and find its slope. The two x-coordinates differ by h.", zh: "在曲线上再取一点 Q，连成割线，算它的斜率。两点横坐标相差 h。" })}</p>
+    <div class="mathline">k = ${fr("f(1 + h) − f(1)", "h")} = ${fr(fmt(qy, 6) + " − 1", fmt(h, 4))} = ${hot(fmt(k, 4))}</div>`;
+  if (guess == null) out += `<p><strong>${t({ en: "Predict first: let Q slide towards P, bit by bit. What number does the slope approach?", zh: "先预测：让 Q 沿着曲线一点一点滑向 P，斜率会靠近几？" })}</strong></p>
+    <div class="choices">${[1, 1.5, 2, 3].map((g) => `<button data-guess="${g}">${fmt(g)}</button>`).join("")}</div>`;
+  else out += `<p class="note">${t({ en: "Your guess: ", zh: "你的预测：" })}<b>${fmt(guess)}</b>. ${t({ en: "Now shrink h with the buttons, drag Q, or press Slide.", zh: "现在用按钮缩小 h，拖动 Q，或者点「滑动」。" })}</p>`;
+  if (hist.length > 1) out += `<table class="hist"><tr><th>h</th><th>Q</th><th>k</th></tr>${hist.slice().reverse().map((hh) =>
+    `<tr><td>${fmt(hh, 4)}</td><td>(${fmt(1 + hh, 4)}, ${fmt((1 + hh) ** 2, 4)})</td><td class="r">${fmt(kOf(hh), 4)}</td></tr>`).join("")}</table>`;
+  if (seenR && seenL) out += `<p class="big">${t({ en: "From the right the slope falls towards 2; from the left it climbs up towards 2 as well. Both secants close in on the same line. That's the tangent at P.", zh: "从右边，斜率往下靠近 2；从左边，斜率往上也靠近 2。两边的割线逼近同一条直线，这就是 P 点的切线。" })}
+    ${guess != null ? (Math.abs(guess - 2) < EPS ? `<span class="ok-t">${t({ en: "Your guess was right.", zh: "你猜对了。" })}</span>` : t({ en: `You guessed ${fmt(guess)}; the slope heads to 2.`, zh: `你猜的是 ${fmt(guess)}；斜率靠近的是 2。` })) : ""}</p>`;
+  else out += `<p class="note">${seenR ? t({ en: "Now come from the left: try h = −0.01.", zh: "再从左边靠近：试试 h = −0.01。" }) : seenL ? t({ en: "Now come from the right: try h = 0.01.", zh: "再从右边靠近：试试 h = 0.01。" })
+    : t({ en: "Get h within 0.1 of zero from both sides.", zh: "从两边都把 h 缩到 0.1 以内。" })}</p>`;
+  return out + legend([dotI("--a", { en: "y = x²", zh: "y = x²" }), dotI("--c", { en: "secant PQ", zh: "割线 PQ" }), dshI({ en: "tangent", zh: "切线" })]);
+}
+
+function explain3() {
+  const S = stats3(), z = zoom(), corner = fn === "abs" && Math.abs(x0) < EPS, f = fn === "sq" ? "x²" : "|x|";
+  const r = cvEl.getBoundingClientRect(), pct = S.gap != null ? (100 * S.gap * mv(r.width || 600, r.height || 360).u) / (r.height || 360) : 0;
+  let out = `<div class="kicker">${t({ en: "Step 03 · zoom in", zh: "第 3 步 · 放大" })}</div>
+    <span class="tag-demo">${t({ en: "Demo, not proof", zh: "这是演示，不是证明" })}</span>
+    <h2>${fn === "sq" ? t({ en: "Zoom in around P: the bend fades", zh: "把 P 点附近放大：弯曲越来越不明显" }) : t({ en: "So does every curve turn straight if you zoom in?", zh: "那么，任何曲线放大，都会变直吗？" })}</h2>
+    <p>${t({ en: "Drag the slider, press 10× or 60×, or keep zooming. Drag the picture (or the inset) to pick another point. Then switch to y = |x| at 0.", zh: "拖滑块、点 10× 或 60×，或者连续放大。拖动画面（或小窗）换一个点。再换成 y = |x|，看原点。" })}</p>
+    <div class="rows">
+      <div>${t({ en: "window half-width", zh: "窗口半宽" })} <span class="m">w = ${fmt(R0)} ÷ ${fmt(z, z < 10 ? 2 : 0)} = ${fmt(S.w, 5)}</span></div>
+      <div><span class="dot" style="background:var(--c)"></span>${t({ en: "right secant", zh: "右边割线" })} <span class="m">(f(x₀ + w) − f(x₀)) ÷ w = ${hot(fmt(S.sR, 4))}</span></div>
+      <div><span class="dot" style="background:var(--c)"></span>${t({ en: "left secant", zh: "左边割线" })} <span class="m">(f(x₀) − f(x₀ − w)) ÷ w = ${hot(fmt(S.sL, 4))}</span></div>
+    </div>`;
+  if (corner) out += `<p class="big">${t({ en: `y = |x| at the origin: zoom ${fmt(z, 0)}× and it's still a corner. Secants on the right always have slope 1, on the left −1, so there is no tangent at the origin.`,
+    zh: `y = |x| 在原点：放大 ${fmt(z, 0)} 倍，还是尖角。右边割线斜率总是 1，左边总是 −1，原点处没有切线。` })}</p>`;
+  else out += `<p class="big">${t({ en: `y = ${f} at x₀ = ${fmt(x0)}: both secants read about ${fmt(S.tg, 4)}, the tangent's slope. The curve leaves the tangent by at most ${fmt(S.gap, 6)}, about ${fmt(pct, pct < 1 ? 2 : 0)}% of the window height.`,
+    zh: `y = ${f} 在 x₀ = ${fmt(x0)}：两条割线都约等于 ${fmt(S.tg, 4)}，就是切线斜率。曲线离切线最多 ${fmt(S.gap, 6)}，约占窗口高度的 ${fmt(pct, pct < 1 ? 2 : 0)}%。` })}
+    ${fn === "abs" ? t({ en: "Away from the corner |x| is straight anyway; only x = 0 is special.", zh: "离开尖角，|x| 本来就是直的；只有 x = 0 特殊。" }) : ""}</p>`;
+  if (fn === "sq") out += `<p class="note">${t({ en: "This is a demonstration, not a proof: the curve is still curved, it just looks more and more like a line.", zh: "这是演示，不是证明：曲线始终是弯的，只是越来越像直线。" })}</p>`;
+  out += chk(triedAbs, { en: "Any curve turns straight if you zoom in far enough?", zh: "任何曲线放大都会变直？" }, { en: "|x| at 0 stays a corner.", zh: "|x| 在原点一直是尖角。" });
+  return out;
+}
+
+function explain4() {
+  const k = kOf(h), qy = (1 + h) ** 2, d = qy - 1;
+  return `<div class="kicker">${t({ en: "Step 04 · the formula", zh: "第 4 步 · 算式" })}</div>
+    <h2>${t({ en: "Simplify the secant slope: two plus h", zh: "把割线斜率化简：二加 h" })}</h2>
+    <p>${t({ en: "Back to the parabola. Drag Q or pick an h; every line below uses your h.", zh: "回到抛物线。拖动 Q 或选一个 h，下面每一行都用你的 h。" })}</p>
+    <div class="mathline">k = ${fr("f(1 + h) − f(1)", "h")} = ${fr("(1 + h)² − 1", "h")} = ${fr("2h + h²", "h")} = ${hot("2 + h")}</div>
+    <div class="rows">
+      <div>h = ${fmt(h, 4)}: <span class="m">${fr(fmt(qy, 6) + " − 1", fmt(h, 4))} = ${fr(fmt(d, 6), fmt(h, 4))} = ${fmt(k, 4)}</span></div>
+      <div>2 + h = <span class="m">2 + ${par(h)} = ${fmt(2 + h, 4)}</span> <span class="ok-t">✓</span></div>
+    </div>
+    <p class="big">${t({ en: "As h goes to zero, two plus h tends to two: the slope of the tangent at P.", zh: "h 趋近于零，二加 h 的极限是二，这就是 P 点的切线斜率。" })}</p>
+    <div class="mathline">f′(1) = lim<sub>h→0</sub> (2 + h) = 2</div>
+    <p class="note">${t({ en: "h itself is never 0 (that would be 0 ÷ 0). The limit of the secant slope as h goes to zero is called the derivative.", zh: "h 本身从不等于 0（那会是 0 ÷ 0）。割线斜率在 h 趋近于零时的极限，叫做导数。" })}</p>`;
+}
+
+// ---------- render ----------
+const btns = (vals, cur, key, lab) => vals.map((v) => { const on = cur != null && Math.abs(v - cur) < EPS; return `<button data-${key}="${v}" class="${on ? "on" : ""}" aria-pressed="${on}">${lab(v)}</button>`; }).join(" ");
+const VT = { 1: { en: "the road y = x², the bike at P", zh: "弯路 y = x²，车在 P" }, 2: { en: "secant through P and Q", zh: "过 P、Q 的割线" }, 4: { en: "secant slope = 2 + h", zh: "割线斜率 = 2 + h" } };
+function render() {
+  el("explain").innerHTML = ({ 1: explain1, 2: explain2, 3: explain3, 4: explain4 })[step]();
+  el("vtitle").textContent = step === 3 ? t({ en: `magnifier on y = ${fn === "sq" ? "x²" : "|x|"}`, zh: `放大镜：y = ${fn === "sq" ? "x²" : "|x|"}` }) : t(VT[step]);
+  el("vtag").textContent = t(D["tag" + step]);
+  el("c1").hidden = step !== 1; el("c2").hidden = !(step === 2 || step === 4); el("c3").hidden = step !== 3;
+  el("mBtns").innerHTML = btns([0, 1, 2, 3], vert ? null : m, "m", fmt);
+  el("vertB").classList.toggle("on", vert); el("vertB").setAttribute("aria-pressed", vert);
+  el("hBtns").innerHTML = btns([1, 0.5, 0.1, 0.01, -0.01, -1], h, "h", (v) => fmt(v));
+  el("slideB").textContent = anim2 ? t({ en: "❚❚ Pause", zh: "❚❚ 暂停" }) : t({ en: "▶ Slide Q to P", zh: "▶ Q 滑向 P" });
+  el("fBtns").innerHTML = ["sq", "abs"].map((k) => `<button data-fn="${k}" class="${fn === k ? "on" : ""}" aria-pressed="${fn === k}">${t(D[k === "sq" ? "sq" : "ab"])}</button>`).join(" ");
+  el("zR").value = zoomE; const z = zoom(); el("zV").textContent = fmt(z, z < 10 ? 1 : 0) + "×";
+  el("zBtns").innerHTML = btns([1, 10, 60], z, "z", (v) => v + "×");
+  el("playB").textContent = play3 ? t({ en: "❚❚ Pause", zh: "❚❚ 暂停" }) : t({ en: "▶ Keep zooming", zh: "▶ 连续放大" });
+  el("explain").setAttribute("aria-busy", anim2 || play3);
+  dirty = true;
+}
+
+// ---------- actions ----------
+function setM(v) { vert = false; m = clamp(snap(v, 0.25), -6, 8); if (Math.abs(v - 2) < 0.2) m = 2; if (Math.abs(m - 2) < EPS) tried1.tan = true; render(); }
+function setVert(v) { vert = v; if (v) tried1.vert = true; render(); }
+function setZoom(e) {
+  zoomE = clamp(e, 0, 3);
+  if (fn === "abs" && Math.abs(x0) < EPS && zoom() >= 59.5) triedAbs = true;
+  render();
+}
+function setX0(v, snapIt) {
+  const lim = fn === "sq" ? [-1.8, 1.8] : [-1.5, 1.5];
+  let n = clamp(v, ...lim);
+  if (snapIt) { n = snap(n, 0.05); if (Math.abs(n) < 0.04) n = 0; }
+  x0 = Math.abs(n) < 1e-12 ? 0 : n; render();
+}
+function setFn(k) { fn = k; x0 = k === "sq" ? 1 : 0; setZoom(zoomE); }
+
+// ---------- pointer + keys ----------
+let grab = null;
+Play.drag(cvEl, {
+  down(px, py) {
+    play3 = false; anim2 = false;
+    if (step === 1) {
+      const V = vw();
+      if (Math.hypot(px - V.X(1), py - V.Y(1)) < 18) return false;
+      grab = "line"; this.move(px, py); return true;
+    }
+    if (step === 3) {
+      const r = cvEl.getBoundingClientRect(), I = inset(r.width, r.height);
+      grab = px >= I.l && px <= I.l + I.iw && py >= I.tp ? "inset" : "pan";
+      if (grab === "inset") setX0(I.wx(px), true); else render();
+      return true;
+    }
+    const V = vw(), d = Math.hypot(V.X(1 + h) - px, V.Y((1 + h) ** 2) - py);
+    if (d > 40) return false;
+    grab = "Q"; render(); return true;
+  },
+  move(px, py, dx) {
+    if (!grab) return;
+    if (grab === "line") {
+      const V = vw();
+      let a = Math.atan2(V.wy(py) - 1, V.wx(px) - 1);
+      if (a > Math.PI / 2) a -= Math.PI; else if (a <= -Math.PI / 2) a += Math.PI;
+      if (Math.abs(a) > (88 * Math.PI) / 180) setVert(true); else setM(Math.tan(a));
+    } else if (grab === "Q") { setH(vw().wx(px) - 1); render(); }
+    else if (grab === "inset") { const r = cvEl.getBoundingClientRect(); setX0(inset(r.width, r.height).wx(px), true); }
+    else if (grab === "pan" && dx) { const r = cvEl.getBoundingClientRect(); setX0(x0 - dx / mv(r.width, r.height).u, false); }
+  },
+  up() { if (grab === "Q") { record(); render(); } grab = null; },
+});
+// h ladder for the arrow keys
+const LAD = [-2, -1.5, -1, -0.5, -0.1, -0.01, 0.01, 0.1, 0.5, 1];
+function stepH(dir) {
+  const [lo, hi] = hRange(vw()), ok = LAD.filter((v) => v >= lo - EPS && v <= hi + EPS);
+  const nx = dir > 0 ? ok.find((v) => v > h + EPS) : ok.slice().reverse().find((v) => v < h - EPS);
+  if (nx != null) { anim2 = false; h = nx; note2(); record(); render(); }
+}
+function toggleSlide() {
+  if (anim2) { anim2 = false; record(); render(); return; }
+  if (Math.abs(h) <= 0.01 + EPS) { setH(h > 0 ? -1 : 1); record(); }
+  anim2 = true; render();
+}
+function togglePlay() {
+  if (play3) { play3 = false; render(); return; }
+  if (zoomE >= 3 - EPS) zoomE = 0;
+  play3 = true; render();
+}
+Play.keys(cvEl, {
+  ArrowLeft: () => (step === 1 ? setM(vert ? 2 : m - 0.25) : step === 3 ? setX0(x0 - 0.05, true) : stepH(-1)),
+  ArrowRight: () => (step === 1 ? setM(vert ? 2 : m + 0.25) : step === 3 ? setX0(x0 + 0.05, true) : stepH(1)),
+  ArrowUp: () => { if (step === 3) { play3 = false; setZoom(zoomE + Math.log10(1.5)); } },
+  ArrowDown: () => { if (step === 3) { play3 = false; setZoom(zoomE - Math.log10(1.5)); } },
+  "+": () => { if (step === 3) setZoom(zoomE + Math.log10(1.5)); }, "-": () => { if (step === 3) setZoom(zoomE - Math.log10(1.5)); },
+  " ": () => (step === 1 ? setVert(!vert) : step === 3 ? togglePlay() : toggleSlide()),
+});
+cvEl.addEventListener("wheel", (e) => { if (step !== 3 || (!e.ctrlKey && !e.metaKey)) return; e.preventDefault(); play3 = false; setZoom(zoomE - e.deltaY * 0.002); }, { passive: false });
+
+el("mBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-m]"); if (b) setM(+b.dataset.m); });
+el("vertB").onclick = () => setVert(!vert);
+el("hBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-h]"); if (b) { anim2 = false; setH(+b.dataset.h); record(); render(); } });
+el("slideB").onclick = toggleSlide;
+el("fBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-fn]"); if (b) setFn(b.dataset.fn); });
+el("zR").addEventListener("input", (e) => { play3 = false; setZoom(+e.target.value); });
+el("zBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b) { play3 = false; setZoom(Math.log10(+b.dataset.z)); } });
+el("playB").onclick = togglePlay;
+el("explain").addEventListener("click", (e) => { const b = e.target.closest("[data-guess]"); if (b) { guess = +b.dataset.guess; render(); } });
+addEventListener("resize", () => (dirty = true));
+
+const nav = Play.steps(document.querySelector(".steps"), (s) => {
+  step = s; grab = null; anim2 = false; play3 = false;
+  if (s === 2 || s === 4) setH(h);
+  render();
+});
+el("reset").onclick = () => { init(); nav.set(1); };
+
+const cv = Play.canvas(cvEl, draw);
+Play.onTheme(() => (dirty = true));
+let acc = 0;
+Play.loop((dt) => {
+  if (anim2) {
+    const nh = h * Math.exp(-1.3 * dt);
+    if (Math.abs(nh) <= 0.01) { h = Math.sign(h) * 0.01; anim2 = false; note2(); record(); render(); }
+    else { h = nh; note2(); acc += dt; if (acc > 0.12) { acc = 0; render(); } else dirty = true; }
+  }
+  if (play3) {
+    const e = zoomE + dt * 0.35;
+    if (e >= 3) { play3 = false; setZoom(3); }
+    else { zoomE = e; acc += dt; if (acc > 0.12) { acc = 0; setZoom(e); } else dirty = true; }
+  }
+  if (dirty) { dirty = false; cv.redraw(); }
+});
+nav.set(1);
+</script>
+</body>
+</html>
