@@ -1,4 +1,5 @@
 import episodesJson from "./episodes.json";
+import videosJson from "./videos.json";
 
 export type Lang = "en" | "zh";
 export const LANGS: Lang[] = ["en", "zh"];
@@ -23,6 +24,19 @@ export interface Episode {
 
 export const episodes = episodesJson as Episode[];
 export const byId = new Map(episodes.map((e) => [e.id, e]));
+
+/** Self-hosted videos (GitHub Release assets), written by peiyuMath site/tools/publish_videos.py. */
+export interface Video { src: string; poster: string; seconds: number }
+const videos = videosJson as Record<string, Partial<Record<Lang, Video>>>;
+/** The video for this language, falling back to the other language. */
+export function videoOf(slug: string, lang: Lang): Video | undefined {
+  const v = videos[slug];
+  return v?.[lang] ?? v?.[lang === "en" ? "zh" : "en"];
+}
+/** "ready" as soon as a video can be watched on the site. */
+export function phaseOf(e: Episode): Episode["phase"] {
+  return videos[e.slug] || e.youtube ? "ready" : e.phase;
+}
 
 export const STAGES: { n: number; name: T; age: T; question: T; blurb: T }[] = [
   {
@@ -163,6 +177,7 @@ export const UI: Record<string, T> = {
   },
   ready: { en: "Watch", zh: "可以看" },
   coming: { en: "Coming soon", zh: "即将上线" },
+  downloadVideo: { en: "Download the video", zh: "下载视频" },
   tryIt: { en: "Try it yourself", zh: "动手试试" },
   tryItLead: {
     en: "The same idea as the video, in your hands: drag, slide and turn the pictures.",

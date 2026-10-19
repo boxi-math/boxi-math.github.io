@@ -1,5 +1,5 @@
 ---
-import { type Episode, type Lang, t, pickText } from "../data/site";
+import { type Episode, type Lang, t, pickText, phaseOf } from "../data/site";
 
 interface Props {
   eps: Episode[];
@@ -23,7 +23,7 @@ const { eps, lang } = Astro.props;
               </>
             )}
           </span>
-          <span class={`badge ${e.phase}`}>{t(e.phase, lang)}</span>
+          <span class={`badge ${phaseOf(e)}`}>{t(phaseOf(e), lang)}</span>
         </a>
       </li>
     ))

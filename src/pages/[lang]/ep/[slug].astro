@@ -2,7 +2,7 @@
 import Base from "../../../layouts/Base.astro";
 import EpisodeList from "../../../components/EpisodeList.astro";
 import fs from "node:fs";
-import { LANGS, type Lang, STAGES, SEEDS, GRADE_LABEL, episodes, byId, t, pickText } from "../../../data/site";
+import { LANGS, type Lang, STAGES, SEEDS, GRADE_LABEL, episodes, byId, t, pickText, videoOf } from "../../../data/site";
 
 export function getStaticPaths() {
   return LANGS.flatMap((lang) => episodes.map((e) => ({ params: { lang, slug: e.slug } })));
@@ -15,6 +15,7 @@ const aha = pickText(e.aha, lang);
 const insight = pickText(e.insight, lang);
 const mix = pickText(e.misconception, lang);
 const non = pickText(e.non_example, lang);
+const video = videoOf(e.slug, lang);
 const hasPlay = fs.existsSync(`public/play/${e.slug}.html`);
 const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefined);
 ---
@@ -40,9 +41,13 @@ const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefine
       }
     </div>
 
-    <div class="video">
+    <div class={`video${video || e.youtube ? " has" : ""}`}>
       {
-        e.youtube ? (
+        video ? (
+          <video controls preload="metadata" playsinline poster={video.poster} src={video.src} title={title}>
+            <a href={video.src}>{t("downloadVideo", lang)}</a>
+          </video>
+        ) : e.youtube ? (
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${e.youtube}`}
             title={title}
