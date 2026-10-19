@@ -1,0 +1,33 @@
+---
+import { type Activity, type Lang, t, pickText } from "../data/site";
+
+interface Props {
+  a: Activity;
+  lang: Lang;
+}
+const { a, lang } = Astro.props;
+const list = (v: { zh?: string[]; en?: string[] } | undefined) => (v ? v[lang] ?? v.en ?? [] : []);
+---
+
+<section class="activity">
+  <h2>{t("tryAtHome", lang)} · {pickText(a.title, lang)}</h2>
+  <p class="meta">{t("forParents", lang)}{a.minutes ? ` · ${a.minutes} ${t("minutes", lang)}` : ""}</p>
+  <div class="cols">
+    <div>
+      <h3>{t("youNeed", lang)}</h3>
+      <ul>{list(a.materials).map((m) => <li>{m}</li>)}</ul>
+    </div>
+    <div>
+      <h3>{t("steps", lang)}</h3>
+      <ol>{list(a.steps).map((m) => <li>{m}</li>)}</ol>
+    </div>
+  </div>
+  {
+    list(a.ask).length > 0 && (
+      <>
+        <h3>{t("askChild", lang)}</h3>
+        <ul class="asks">{list(a.ask).map((m) => <li>{m}</li>)}</ul>
+      </>
+    )
+  }
+</section>

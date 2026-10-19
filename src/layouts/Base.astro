@@ -8,11 +8,16 @@ interface Props {
   description?: string;
   /** Path after /<lang>/, used for the language switch and hreflang. */
   path?: string;
+  /** Share image (site path or URL); defaults to the #1 poster. */
+  image?: string;
 }
-const { lang, title, description, path = "" } = Astro.props;
+const { lang, title, description, path = "", image = "/posters/01-make-ten-en.jpg" } = Astro.props;
 const siteName = t("site", lang);
 const fullTitle = title ? `${title} · ${siteName}` : `${siteName} — ${t("tagline", lang)}`;
 const alt = other(lang);
+const canonical = new URL(`/${lang}/${path}`, Astro.site);
+const desc = description ?? t("heroLead", lang);
+const ogImage = new URL(image, Astro.site);
 ---
 
 <!doctype html>
@@ -21,7 +26,16 @@ const alt = other(lang);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
-    <meta name="description" content={description ?? t("heroLead", lang)} />
+    <meta name="description" content={desc} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:type" content={path.startsWith("ep/") ? "video.episode" : "website"} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content={lang === "zh" ? "zh_CN" : "en_US"} />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" hreflang="en" href={new URL(`/en/${path}`, Astro.site)} />
     <link rel="alternate" hreflang="zh" href={new URL(`/zh/${path}`, Astro.site)} />

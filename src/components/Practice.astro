@@ -1,0 +1,121 @@
+---
+import { type Lang, type PracticeItem, t, pickText } from "../data/site";
+
+interface Props {
+  items: PracticeItem[];
+  lang: Lang;
+}
+const { items, lang } = Astro.props;
+const LETTERS = "ABCDEFGH";
+// rubric: a string, a list, or {zh, en} of either
+const asList = (v: unknown): string[] => (Array.isArray(v) ? v : typeof v === "string" ? [v] : []);
+const rubricOf = (r: unknown): string[] => {
+  if (r && typeof r === "object" && !Array.isArray(r)) {
+    const o = r as Record<string, unknown>;
+    return asList(o[lang] ?? o.en);
+  }
+  return asList(r);
+};
+---
+
+<ol class="practice">
+  {
+    items.map((it) => {
+      const a = it.answer;
+      const choices = a.choices ? a.choices[lang] ?? a.choices.en : [];
+      return (
+        <li class="q" data-kind={a.kind} data-value={a.value ?? ""}>
+          <p class="stem">{pickText(it.stem, lang)}</p>
+          {a.kind === "choice" && (
+            <div class="opts">
+              {choices.map((c, i) => (
+                <button type="button" class="opt" data-letter={LETTERS[i]}>
+                  <span class="letter">{LETTERS[i]}</span> {c}
+                </button>
+              ))}
+            </div>
+          )}
+          {(a.kind === "number" || a.kind === "expression") && (
+            <form class="ans">
+              <input
+                type="text"
+                inputmode={a.kind === "number" ? "decimal" : "text"}
+                autocomplete="off"
+                spellcheck="false"
+                aria-label={t("yourAnswer", lang)}
+                placeholder={t("yourAnswer", lang)}
+              />
+              <button type="submit">{t("check", lang)}</button>
+              <button type="button" class="show">{t("showAnswer", lang)}</button>
+            </form>
+          )}
+          {a.kind === "open" && (
+            <details class="rubric">
+              <summary>{t("showRubric", lang)}</summary>
+              <ul>{rubricOf(a.rubric).map((r) => <li>{r}</li>)}</ul>
+            </details>
+          )}
+          <p class="fb" aria-live="polite" />
+        </li>
+      );
+    })
+  }
+</ol>
+
+<script is:inline define:vars={{ msg: { right: t("right", lang), wrong: t("wrong", lang), answerIs: t("answerIs", lang), sameValue: t("sameValue", lang), compare: t("compareWith", lang) } }}>
+  // Runs once per practice block; each block only binds its own items.
+  (() => {
+    const blocks = document.querySelectorAll("ol.practice:not([data-bound])");
+    const minus = /[−–—]/g;
+    // number or fraction (a/b), mixed number (a b/c), decimal; returns null if not a plain number
+    const num = (s) => {
+      s = s.trim().replace(minus, "-").replace(/，/g, ",").replace(/\s+/g, " ").replace("½", "1/2");
+      let m = s.match(/^(-?)(\d+) (\d+)\/(\d+)$/);
+      if (m) return (m[1] ? -1 : 1) * (+m[2] + +m[3] / +m[4]);
+      m = s.match(/^(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/);
+      if (m) return +m[2] === 0 ? null : +m[1] / +m[2];
+      return /^-?\d+(?:\.\d+)?$/.test(s) ? +s : null;
+    };
+    const norm = (s) =>
+      s.toLowerCase().replace(minus, "-").replace(/[×✕·]/g, "*").replace(/²/g, "^2").replace(/³/g, "^3")
+        .replace(/，/g, ",").replace(/；/g, ";").replace(/（/g, "(").replace(/）/g, ")").replace(/pi/g, "π")
+        .replace(/\s+/g, "").replace(/^y=/, "");
+    const tol = (v) => { const d = (v.split(".")[1] || "").length; return d ? 0.5 * 10 ** -d + 1e-9 : 1e-9; };
+
+    blocks.forEach((ol) => {
+      ol.dataset.bound = "1";
+      ol.querySelectorAll("li.q").forEach((li) => {
+        const kind = li.dataset.kind, value = li.dataset.value, fb = li.querySelector(".fb");
+        const say = (cls, html) => { fb.className = "fb " + cls; fb.innerHTML = html; };
+        if (kind === "choice") {
+          li.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
+            const ok = b.dataset.letter === value;
+            li.querySelectorAll(".opt").forEach((o) => o.classList.remove("picked", "good", "bad"));
+            b.classList.add("picked", ok ? "good" : "bad");
+            if (!ok) li.querySelector(`.opt[data-letter="${value}"]`).classList.add("good");
+            say(ok ? "good" : "bad", ok ? msg.right : `${msg.wrong} ${msg.answerIs} <b>${value}</b>`);
+          }));
+        }
+        const form = li.querySelector("form.ans");
+        if (!form) return;
+        const input = form.querySelector("input");
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const got = input.value.trim();
+          if (!got) { input.focus(); return; }
+          const g = num(got), w = num(value);
+          if (norm(got) === norm(value)) return say("good", msg.right);
+          if (g !== null && w !== null) {
+            if (Math.abs(g - w) <= tol(value)) {
+              return kind === "number" ? say("good", msg.right) : say("half", `${msg.sameValue} <b>${value}</b>`);
+            }
+            return say("bad", msg.wrong);
+          }
+          if (kind === "number") return say("bad", msg.wrong);
+          say("half", `${msg.compare} <b>${value}</b>`);
+        });
+        form.querySelector(".show").addEventListener("click", () => say("half", `${msg.answerIs} <b>${value}</b>`));
+      });
+    });
+  })();
+</script>

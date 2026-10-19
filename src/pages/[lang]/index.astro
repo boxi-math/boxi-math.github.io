@@ -1,12 +1,14 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { LANGS, type Lang, STAGES, SEEDS, episodes, t } from "../../data/site";
+import { LANGS, type Lang, STAGES, SEEDS, episodes, byId, t, pickText, videoOf } from "../../data/site";
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 const lang = Astro.params.lang as Lang;
 const count = (n: number) => episodes.filter((e) => e.stage === n).length;
+// one episode to start with per stage: the first of a series where there is one
+const START = [1, 6, 21, 30].map((n) => byId.get(n)!).filter(Boolean);
 ---
 
 <Base lang={lang}>
@@ -16,6 +18,24 @@ const count = (n: number) => episodes.filter((e) => e.stage === n).length;
     <p class="lead">{t("heroLead", lang)}</p>
     <p class="rule">{t("heroRule", lang)}</p>
   </section>
+
+  <h2 id="start">{t("startHere", lang)}</h2>
+  <div class="start">
+    {
+      START.map((e) => {
+        const v = videoOf(e.slug, lang);
+        return (
+          <a class="card start-card" href={`/${lang}/ep/${e.slug}/`}>
+            {v && <img src={v.poster} alt="" loading="lazy" width="1280" height="720" />}
+            <span class="meta">
+              {t("stage", lang)} {e.stage} · {STAGES[e.stage].name[lang]}
+            </span>
+            <span class="q">{pickText(e.title, lang)}</span>
+          </a>
+        );
+      })
+    }
+  </div>
 
   <h2 id="stages">{t("stages", lang)}</h2>
   <div class="stages">

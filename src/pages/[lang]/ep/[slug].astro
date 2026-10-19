@@ -1,6 +1,8 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import EpisodeList from "../../../components/EpisodeList.astro";
+import Practice from "../../../components/Practice.astro";
+import ActivityBox from "../../../components/Activity.astro";
 import fs from "node:fs";
 import { LANGS, type Lang, STAGES, SEEDS, GRADE_LABEL, episodes, byId, t, pickText, videoOf } from "../../../data/site";
 
@@ -17,10 +19,15 @@ const mix = pickText(e.misconception, lang);
 const non = pickText(e.non_example, lang);
 const video = videoOf(e.slug, lang);
 const hasPlay = fs.existsSync(`public/play/${e.slug}.html`);
+const P = e.practice;
+const order = [...episodes].sort((a, b) => a.id - b.id);
+const at = order.findIndex((x) => x.slug === e.slug);
+const prev = order[at - 1], next = order[at + 1];
+const hook = e.next_hook ? pickText(e.next_hook, lang) : "";
 const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefined);
 ---
 
-<Base lang={lang} title={title} description={aha || insight || stage.question[lang]} path={`ep/${e.slug}/`}>
+<Base lang={lang} title={title} description={aha || insight || stage.question[lang]} path={`ep/${e.slug}/`} image={video?.poster}>
   <article class="narrow">
     <p class="crumbs">
       <a href={`/${lang}/stages/${e.stage}/`}>{t("stage", lang)} {e.stage} · {stage.name[lang]}</a> / #{e.id}
@@ -40,6 +47,16 @@ const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefine
         })
       }
     </div>
+
+    {
+      P.before && P.before.length > 0 && (
+        <section class="before">
+          <h2>{t("beforeWatch", lang)}</h2>
+          <p class="sub">{t("beforeWatchLead", lang)}</p>
+          <Practice items={P.before} lang={lang} />
+        </section>
+      )
+    }
 
     <div class={`video${video || e.youtube ? " has" : ""}`}>
       {
@@ -126,6 +143,50 @@ const related = e.callbacks.map((n) => byId.get(n)).filter((x) => x !== undefine
       </section>
     )
   }
+
+  <article class="narrow">
+    {e.activity && <ActivityBox a={e.activity} lang={lang} />}
+
+    {
+      (P.after_concept?.length || P.after_procedure?.length) && (
+        <section class="practice-wrap">
+          <h2>{t("practiceTitle", lang)}</h2>
+          {P.after_concept?.length ? (<><h3>{t("pWhy", lang)}</h3><Practice items={P.after_concept} lang={lang} /></>) : null}
+          {P.after_procedure?.length ? (<><h3>{t("pDo", lang)}</h3><Practice items={P.after_procedure} lang={lang} /></>) : null}
+          {P.spaced?.length ? (
+            <details class="later">
+              <summary>{t("pLater", lang)}</summary>
+              <p class="sub">{t("pLaterLead", lang)}</p>
+              <Practice items={P.spaced} lang={lang} />
+            </details>
+          ) : null}
+        </section>
+      )
+    }
+
+    {
+      hook && (
+        <div class="block think">
+          <div class="label">{t("thinkAbout", lang)}</div>
+          <p>{hook}</p>
+        </div>
+      )
+    }
+
+    {
+      e.transcript.length > 0 && (
+        <details class="transcript">
+          <summary>{t("transcript", lang)}</summary>
+          {e.transcript.map((ln) => <p>{pickText(ln, lang)}</p>)}
+        </details>
+      )
+    }
+
+    <nav class="epnav" aria-label="episodes">
+      {prev ? <a class="prev" href={`/${lang}/ep/${prev.slug}/`}><span>← {t("prevEp", lang)} · #{prev.id}</span>{pickText(prev.title, lang)}</a> : <span />}
+      {next ? <a class="next" href={`/${lang}/ep/${next.slug}/`}><span>#{next.id} · {t("nextEp", lang)} →</span>{pickText(next.title, lang)}</a> : <span />}
+    </nav>
+  </article>
 
   {
     related.length > 0 && (

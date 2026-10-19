@@ -20,6 +20,24 @@ export interface Episode {
   callbacks: number[];
   phase: "ready" | "coming" | "planned";
   youtube: string | null;
+  practice: Partial<Record<"before" | "after_concept" | "after_procedure" | "spaced", PracticeItem[]>>;
+  activity: Activity | null;
+  next_hook: T | null;
+  transcript: T[];
+}
+
+export interface PracticeItem {
+  id: string;
+  type: string;
+  stem: T;
+  answer: { kind: "number" | "choice" | "expression" | "open"; value?: string; choices?: { zh?: string[]; en?: string[] }; rubric?: string | string[] | { zh?: string | string[]; en?: string | string[] } };
+}
+export interface Activity {
+  title: T;
+  minutes?: number;
+  materials?: { zh?: string[]; en?: string[] };
+  steps?: { zh?: string[]; en?: string[] };
+  ask?: { zh?: string[]; en?: string[] };
 }
 
 export const episodes = episodesJson as Episode[];
@@ -178,6 +196,33 @@ export const UI: Record<string, T> = {
   ready: { en: "Watch", zh: "可以看" },
   coming: { en: "Coming soon", zh: "即将上线" },
   downloadVideo: { en: "Download the video", zh: "下载视频" },
+  startHere: { en: "Start here", zh: "从这里开始" },
+  beforeWatch: { en: "Before you watch", zh: "看之前先想一想" },
+  beforeWatchLead: { en: "Make a guess first. You'll find out in the video.", zh: "先猜一个，看完视频就知道了。" },
+  practiceTitle: { en: "Practice", zh: "练一练" },
+  pWhy: { en: "Why does it work?", zh: "为什么" },
+  pDo: { en: "Have a go", zh: "做一做" },
+  pLater: { en: "Come back in a few days", zh: "过几天再回来做" },
+  pLaterLead: { en: "Doing these again after a gap is what makes it stick.", zh: "隔几天再做一遍，记得最牢。" },
+  yourAnswer: { en: "Your answer", zh: "你的答案" },
+  check: { en: "Check", zh: "对一对" },
+  showAnswer: { en: "Show answer", zh: "看答案" },
+  showRubric: { en: "What a good answer says", zh: "参考要点" },
+  right: { en: "✓ Right.", zh: "✓ 对了。" },
+  wrong: { en: "✗ Not quite.", zh: "✗ 还不对。" },
+  answerIs: { en: "Answer:", zh: "答案：" },
+  sameValue: { en: "Same value. The answer is written as", zh: "数对了，答案写成" },
+  compareWith: { en: "Compare with:", zh: "对照答案：" },
+  tryAtHome: { en: "Try it at home", zh: "在家试一试" },
+  forParents: { en: "For a parent and child, away from the screen", zh: "家长和孩子一起做，不用看屏幕" },
+  minutes: { en: "min", zh: "分钟" },
+  youNeed: { en: "You need", zh: "准备" },
+  steps: { en: "Steps", zh: "步骤" },
+  askChild: { en: "Ask", zh: "问一问" },
+  transcript: { en: "Transcript", zh: "旁白文字稿" },
+  thinkAbout: { en: "Something to think about", zh: "想一想" },
+  prevEp: { en: "Previous", zh: "上一集" },
+  nextEp: { en: "Next", zh: "下一集" },
   tryIt: { en: "Try it yourself", zh: "动手试试" },
   tryItLead: {
     en: "The same idea as the video, in your hands: drag, slide and turn the pictures.",
