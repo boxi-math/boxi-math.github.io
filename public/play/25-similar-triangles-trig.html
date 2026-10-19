@@ -144,30 +144,13 @@ function sizeCanvas() {
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  return [px - w / 2, py - h / 2, px + w / 2, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pick = null;
-  for (const c of cands) { const bx = boxOf(x, s, c[0], c[1], size); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pick = c; break; } }
-  if (!pick) { if (o.optional) return false; pick = cands[0]; }
-  boxes.push(boxOf(x, s, pick[0], pick[1], size));
-  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size });
-  return true;
-}
+const LB = Play.labels({ sym: true }), { boxes, boxOf, hit, inside, place, reserve } = LB;
 // label beside segment p–q, pushed along the unit normal n far enough to clear the segment
 function sideLabel(x, s, p, q, n, o = {}) {
   const size = o.size || 15, b = boxOf(x, s, 0, 0, size), w = b[2] - b[0], h = b[3] - b[1];
   const m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], d = (o.gap ?? 5) + Math.abs(n[0]) * w / 2 + Math.abs(n[1]) * h / 2;
   place(x, s, [[m[0] + n[0] * d, m[1] + n[1] * d], [m[0] - n[0] * d, m[1] - n[1] * d]], o);
 }
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
 
 // ---------- drawing helpers ----------
 function seg(x, p, q, col, w, dash) {
@@ -237,7 +220,7 @@ function triangle(x, V, deg, c) {
 }
 
 function draw(x, w, h) {
-  W0 = w; H0 = h; boxes = [[0, 0, w, 30]];
+  LB.reset(w, h, [0, 0, w, 30]);
   if (step === 2) return draw2(x, w, h);
   const V = vw();
   grid(x, V);

@@ -189,7 +189,7 @@ function drawRoad(c, w, h) {
     Play.text(c, String(f1(k)), x + (tn ? -2 : tp ? 2 : 0), y0 + 22, { size: 14, weight: 700, align: tn ? "right" : tp ? "left" : "center" });
   }
   const xc = X(pos1(tm));
-  c.fillStyle = Cc; c.beginPath(); c.roundRect ? c.roundRect(xc - 13, y0 - 18, 26, 11, 4) : c.rect(xc - 13, y0 - 18, 26, 11); c.fill();
+  c.fillStyle = Cc; Play.rrect(c, xc - 13, y0 - 18, 26, 11, 4); c.fill();
   c.fillStyle = FG; [-7, 7].forEach((d) => { c.beginPath(); c.arc(xc + d, y0 - 6, 3.2, 0, 2 * Math.PI); c.fill(); });
   Play.text(c, `t = ${F(tm, 1)} s · ` + t({ en: "position", zh: "位置" }) + ` ${F(pos1(tm), 1)}`, w / 2, h - 14, { size: 14, weight: 650 });
 }
@@ -220,7 +220,7 @@ function drawTable(c, w, h) {
     Play.text(c, j ? Dk(j) : S.name, 10, y, { size: 15, weight: 700, color: rc(j), align: "left" });
     if (j === T.kc) {
       const a = x0 + (j / 2) * cw + 3, b = x0 + (j / 2 + row.length) * cw - 3;
-      c.strokeStyle = HL; c.lineWidth = 2; c.beginPath(); c.roundRect ? c.roundRect(a, y - 16, b - a, 32, 9) : c.rect(a, y - 16, b - a, 32); c.stroke();
+      c.strokeStyle = HL; c.lineWidth = 2; Play.rrect(c, a, y - 16, b - a, 32, 9); c.stroke();
     }
     row.forEach((v, i) => {
       const x = x0 + (i + j / 2 + 0.5) * cw, extd = i >= S.cnt - j;

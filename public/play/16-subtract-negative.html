@@ -125,21 +125,7 @@ function circle(x, cx, cy, r, fill, stroke, lw) {
   if (fill) { x.fillStyle = fill; x.fill(); }
   if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.stroke(); }
 }
-function textW(x, s, size) { x.font = `750 ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width; }
-// labels centred on x; on overlap the next one moves one row further away from the line (dir = +1 down, −1 up)
-function labels(x, list, y0, size, dir) {
-  const placed = [];
-  list.forEach((o) => {
-    const lw = textW(x, o.s, size) + 10;
-    const cx = clamp(o.x, lw / 2 + 4, Gm.w - lw / 2 - 4);
-    let row = 0;
-    while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
-    placed.push({ x: cx, w: lw, row });
-    const y = y0 + dir * row * 22;
-    if (o.bg) { x.fillStyle = o.bg; x.beginPath(); x.roundRect ? x.roundRect(cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6) : x.rect(cx - lw / 2, y - size * 0.75, lw, size * 1.5); x.fill(); }
-    Play.text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
-  });
-}
+const labels = (x, list, y0, size, dir) => Play.rowLabels(x, list, y0, size, Gm.w, dir * 22);   // dir +1 = down, −1 = up
 function axis(x, y) {
   const { lo, hi, xl, xr, X, unit } = Gm, mu = color("--muted"), fg = color("--fg");
   x.strokeStyle = mu; x.lineWidth = 2; x.beginPath(); x.moveTo(xl - 12, y); x.lineTo(xr + 12, y); x.stroke();

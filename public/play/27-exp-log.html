@@ -72,7 +72,7 @@
 </main>
 <script>
 "use strict";
-const { t, color, rgba, fmt, clamp } = Play;
+const { t, color, rgba, fmt, clamp, dot } = Play;
 const D = {
   title: { en: "Exponentials and Logs: One Graph, Two Readings", zh: "指数增长与对数：同一张图的两种读法" },
   eyebrow: { en: "Boxi Math · Try it · #27", zh: "Boxi Math · 动手试试 · #27" },
@@ -135,47 +135,7 @@ function vw() {
 }
 
 // ---------- labels that avoid each other (tick numbers are reserved first) ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-const fits = (bx) => bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx));
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  cands = cands.map((c) => {             // slide a spot sideways back into the picture
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    const dx = bx[0] < 2 ? 2 - bx[0] : bx[2] > W0 - 2 ? W0 - 2 - bx[2] : 0;
-    return dx ? [c[0] + dx, c[1], c[2]] : c;
-  });
-  let p = null;
-  for (const c of cands) if (fits(boxOf(x, s, c[0], c[1], size, c[2] || "center"))) { p = c; break; }
-  if (!p) {
-    if (o.optional) return false;
-    let bs = Infinity;                   // least crowded spot inside the picture
-    for (const c of cands) {
-      const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-      if (bx[0] < 2 || bx[2] > W0 - 2 || bx[1] < 2 || bx[3] > H0 - 2) continue;
-      const n = boxes.filter((b) => hit(b, bx)).length;
-      if (n < bs) { bs = n; p = c; }
-    }
-    p = p || cands[0];
-  }
-  boxes.push(boxOf(x, s, p[0], p[1], size, p[2] || "center"));
-  Play.text(x, s, p[0], p[1], { weight: 700, ...o, size, align: p[2] || "center" });
-  return true;
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-function around(p, side, below, d = 14) {
-  const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
-  const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
-  const S = side >= 0 ? [r, l] : [l, r];
-  return [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
-          [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4]];
-}
+const LB = Play.labels({ slide: true, fallback: "fewest" }), { boxes, boxOf, free: fits, place, reserve, around } = LB;
 
 // ---------- drawing helpers ----------
 function grid(x, V) {
@@ -218,11 +178,6 @@ function nearestT(V, P, t0, t1, px, py) {
   }
   return best;
 }
-function dot(x, px, py, r, fill, stroke, lw = 2) {
-  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
-  if (fill) { x.fillStyle = fill; x.fill(); }
-  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
-}
 function handle(x, px, py, ring) {
   if (ring) dot(x, px, py, 15, null, rgba(color("--hl"), 0.85), 2.5);
   dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
@@ -244,8 +199,7 @@ const EXP = (tt) => [tt, 2 ** tt];
 const eqCorner = (x, V, s, col) => place(x, s, [[14, TOP + 18, "left"], [V.W - 14, TOP + 18, "right"], [V.W - 14, V.H - 16, "right"]], { color: col, size: 16 });
 
 function draw(x, w, h) {
-  const V = vw(); W0 = w; H0 = h;
-  boxes = [[0, 0, w, TOP]];
+  const V = vw(); LB.reset(w, h, [0, 0, w, TOP]);
   grid(x, V);
   const tk = tickList(x, V);
   ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);

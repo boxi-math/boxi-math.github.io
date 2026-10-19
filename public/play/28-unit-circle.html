@@ -140,25 +140,8 @@ function sizeCanvas() {
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, str, px, py, size) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(str).width + 8, h = size + 6;
-  return [px - w / 2, py - h / 2, px + w / 2, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
-function place(x, str, cands, o = {}) {
-  const size = o.size || 15;
-  let pk = null;
-  for (const c of cands) { const bx = boxOf(x, str, c[0], c[1], size); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pk = c; break; } }
-  if (!pk) { if (o.optional) return false; pk = cands[0]; }
-  boxes.push(boxOf(x, str, pk[0], pk[1], size));
-  Play.text(x, str, pk[0], pk[1], { weight: 700, ...o, size });
-  return true;
-}
+const LB = Play.labels({ sym: true }), { boxes, boxOf, hit, inside, place, reserve } = LB;
 const boxW = (x, str, size) => { const b = boxOf(x, str, 0, 0, size); return b[2] - b[0]; };
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
 
 // ---------- drawing helpers ----------
 function seg(x, p, q, col, w, dash) {
@@ -188,7 +171,7 @@ function curve(x, V, f, a, b, col, w, alpha = 1) {
 }
 
 function draw(x, w, h) {
-  W0 = w; H0 = h; boxes = [[0, 0, w, 30]];
+  LB.reset(w, h, [0, 0, w, 30]);
   const V = vw(), A = color("--a"), HL = color("--hl"), BR = color("--b"), BL = color("--c"), NO = color("--no"), MU = color("--muted");
   const st = Math.sin(t), ct = Math.cos(t), P = [V.cx + ct * V.u, V.cy - st * V.u], O = [V.cx, V.cy], foot = [P[0], V.cy];
   const deg = step === 1 && unit === "deg";

@@ -142,25 +142,7 @@ function circle(x, cx, cy, r, fill, stroke, lw, dash) {
   if (fill) { x.fillStyle = fill; x.fill(); }
   if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw || 2; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
 }
-function textW(x, s, size, weight) { x.font = `${weight || 700} ${size}px Inter, system-ui, sans-serif`; return x.measureText(s).width; }
-// labels above points on the line; each {x, s, c, bg}; bumps up a row on overlap and stays in the canvas
-function labels(x, list, y0, size) {
-  const placed = [];
-  list.forEach((o) => {
-    const lw = textW(x, o.s, size, 750) + 10;
-    let cx = clamp(o.x, lw / 2 + 4, Gm.w - lw / 2 - 4), row = 0;
-    while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
-    placed.push({ x: cx, w: lw, row });
-    const y = y0 - row * 24;
-    if (o.bg) {
-      x.fillStyle = o.bg; x.beginPath();
-      x.roundRect ? x.roundRect(cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6) : x.rect(cx - lw / 2, y - size * 0.75, lw, size * 1.5);
-      x.fill();
-    }
-    Play.text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
-  });
-  return placed;
-}
+const labels = (x, list, y0, size) => Play.rowLabels(x, list, y0, size, Gm.w);   // bumped up a row on overlap
 // number line from 0 to Gm.max with ticks every 1/4
 function line(x, opt = {}) {
   const { xl, xr, yl, X, max } = Gm, mu = color("--muted"), fg = color("--fg"), per = opt.per || 4, N = max * per;

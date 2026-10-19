@@ -118,7 +118,7 @@ const dotXY = (L, r, c) => [L.ax + (c + 0.5) * L.g, L.ay + (r + 0.5) * L.g];
 
 function dot(x, X, Y, r, fill) { x.beginPath(); x.arc(X, Y, r, 0, 7); x.fillStyle = fill; x.fill(); }
 function ring(x, X, Y, r, col) { x.beginPath(); x.arc(X, Y, r - 1.5, 0, 7); x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash([3, 3]); x.stroke(); x.setLineDash([]); }
-function rrect(x, X, Y, w, h, r) { x.beginPath(); x.roundRect ? x.roundRect(X, Y, w, h, r) : x.rect(X, Y, w, h); }
+const { rrect } = Play;
 
 // one table entry: tens digit and ones digit drawn apart so each can take its own colour
 function entry(x, L, k, y, o = {}) {

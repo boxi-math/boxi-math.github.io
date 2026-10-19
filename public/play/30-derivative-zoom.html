@@ -79,7 +79,7 @@
 </main>
 <script>
 "use strict";
-const { t, color, rgba, fmt, clamp } = Play;
+const { t, color, rgba, fmt, clamp, dot } = Play;
 const D = {
   title: { en: "The Derivative: Zoom In Until the Curve Is Straight", zh: "导数：把曲线放大到变成直线" },
   eyebrow: { en: "Boxi Math · Try it · #30", zh: "Boxi Math · 动手试试 · #30" },
@@ -158,32 +158,7 @@ function record() {
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, hh = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - hh / 2, l + w, py + hh / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pick = cands[0], best = Infinity;
-  for (const c of cands) {          // first candidate that is clear; otherwise the least crowded one inside
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    const out = bx[0] < 2 || bx[2] > W0 - 2 || bx[1] < 2 || bx[3] > H0 - 2, n = boxes.filter((b) => hit(b, bx)).length + (out ? 99 : 0);
-    if (n < best) { best = n; pick = c; }
-    if (!n) break;
-  }
-  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
-  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-// reserve boxes along a drawn segment so labels stay off it
-function reserveSeg(a, b, r = 7) {
-  const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 14));
-  for (let i = 0; i <= n; i++) reserve(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, r);
-}
+const LB = Play.labels({ fallback: "fewest", outCost: 99, segR: 7, segStep: 14 }), { boxes, boxOf, hit, place, reserve, reserveSeg } = LB;
 
 // ---------- drawing helpers ----------
 function grid(x, V) {
@@ -230,19 +205,13 @@ function lineK(x, V, a, b, k, col, w, dash) {
   x.beginPath(); x.moveTo(...p); x.lineTo(...q); x.stroke(); x.setLineDash([]); x.lineCap = "butt";
   return [p, q];
 }
-function dot(x, px, py, r, fill, stroke, lw = 2) {
-  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
-  if (fill) { x.fillStyle = fill; x.fill(); }
-  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
-}
 function handle(x, px, py) { dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5); reserve(px, py, 12); }
 function pDot(x, px, py) { dot(x, px, py, 6.5, color("--surface"), color("--fg"), 2.5); reserve(px, py, 10); }
 // point on a line at a given screen x, for placing a label beside the line
 const onLine = (V, a, b, k, px) => [px, V.Y(b + k * (V.wx(px) - a))];
 
 function draw(x, w, h0) {
-  W0 = w; H0 = h0;
-  boxes = [[0, 0, w, 30]];
+  LB.reset(w, h0, [0, 0, w, 30]);
   if (step === 3) return draw3(x, w, h0);
   const V = vw();
   grid(x, V);

@@ -71,7 +71,7 @@
 </main>
 <script>
 "use strict";
-const { t, color, rgba, fmt, clamp } = Play;
+const { t, color, rgba, fmt, clamp, dot } = Play;
 const D = {
   title: { en: "Slope: How Steep Is a Line?", zh: "斜率：一次函数的“坡度”" },
   eyebrow: { en: "Boxi Math · Try it · #22", zh: "Boxi Math · 动手试试 · #22" },
@@ -146,25 +146,7 @@ function clip(k, b, V, lim) {
 const segLen = (k, s) => (s ? Math.hypot(1, k) * (s[1] - s[0]) : 0);
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pick = cands[0];
-  for (const c of cands) {
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { pick = c; break; }
-  }
-  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
-  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+const LB = Play.labels(), { boxes, boxOf, hit, place, reserve } = LB;
 
 // ---------- drawing ----------
 function grid(x, V) {
@@ -194,11 +176,6 @@ function line(x, V, k, b, lim, col, w = 3) {
   x.beginPath(); x.moveTo(V.X(s[0]), V.Y(k * s[0] + b)); x.lineTo(V.X(s[1]), V.Y(k * s[1] + b)); x.stroke();
   x.lineCap = "butt";
   return s;
-}
-function dot(x, px, py, r, fill, stroke, lw = 2) {
-  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
-  if (fill) { x.fillStyle = fill; x.fill(); }
-  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
 }
 function handle(x, px, py, ring) {
   if (ring) dot(x, px, py, 15, null, rgba(color("--hl"), 0.8), 2.5);
@@ -231,8 +208,7 @@ function triLabels(x, T, run, rise, col, size = 15, o = {}) {
 }
 
 function draw(x, w, h) {
-  const V = vw(); W0 = w; H0 = h;
-  boxes = [[0, 0, w, 30]];               // keep clear of the title strip
+  const V = vw(); LB.reset(w, h, [0, 0, w, 30]);               // keep clear of the title strip
   grid(x, V);
   ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
   ticks(x, V);

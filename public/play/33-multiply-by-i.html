@@ -167,24 +167,7 @@ function vw() {
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-const inside = (b) => b[0] >= 2 && b[2] <= W0 - 2 && b[1] >= 2 && b[3] <= H0 - 2;
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pk = null;
-  for (const c of cands) { const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center"); if (inside(bx) && !boxes.some((b) => hit(b, bx))) { pk = c; break; } }
-  if (!pk) { if (o.optional) return; pk = cands.find((c) => inside(boxOf(x, s, c[0], c[1], size, c[2] || "center"))) || cands[0]; }
-  boxes.push(boxOf(x, s, pk[0], pk[1], size, pk[2] || "center"));
-  Play.text(x, s, pk[0], pk[1], { weight: 700, ...o, size, align: pk[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+const LB = Play.labels({ fallback: "inside" }), { boxes, boxOf, hit, inside, place, reserve } = LB;
 function reserveSeg(p, q, r = 4) { const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 8); for (let k = 0; k <= n; k++) reserve(p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n, r); }
 // label spots around a canvas point, preferred direction (dx, dy) first
 function around(p, dx, dy, d = 20) {
@@ -274,7 +257,7 @@ function partial(w) {
 const ang = (w) => Math.atan2(w[1], w[0]);
 
 function draw(x, w, h) {
-  W0 = w; H0 = h; boxes = [[0, 0, w, TOP]];
+  LB.reset(w, h, [0, 0, w, TOP]);
   const V = vw();
   if (step === 1) draw1(x, V); else if (step === 2) draw2(x, V); else draw3(x, V);
 }

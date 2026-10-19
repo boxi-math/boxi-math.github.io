@@ -146,41 +146,8 @@ function bnd(V) {
 const P = (V, p) => [V.X(p[0]), V.Y(p[1])];
 
 // ---------- labels that avoid each other and the arrows ----------
-let boxes = [], axisBoxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-const inside = (bx) => bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2;
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pick = null;
-  for (const c of cands) {
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    if (inside(bx) && !boxes.some((b) => hit(b, bx)) && !axisBoxes.some((b) => hit(b, bx))) { pick = c; break; }
-  }
-  if (!pick) {   // nothing free: the spot inside the picture that covers the least (crossing an axis beats crossing an arrow)
-    let best = Infinity;
-    for (const c of cands) {
-      const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-      if (!inside(bx)) continue;
-      const sc = 10 * boxes.filter((b) => hit(b, bx)).length + axisBoxes.filter((b) => hit(b, bx)).length;
-      if (sc < best) { best = sc; pick = c; }
-    }
-    if (!pick) pick = [clamp(cands[0][0], 40, W0 - 40), clamp(cands[0][1], 12, H0 - 12), cands[0][2]];
-  }
-  boxes.push(boxOf(x, s, pick[0], pick[1], size, pick[2] || "center"));
-  Play.text(x, s, pick[0], pick[1], { weight: 700, ...o, size, align: pick[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-// keep labels off a drawn segment
-function reserveSeg(p, q, r = 4) {
-  const L = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(L / 8));
-  for (let i = 0; i <= n; i++) reserve(p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n, r);
-}
+const LB = Play.labels({ fallback: "fewest", last: (c, L) => [clamp(c[0][0], 40, L.W - 40), clamp(c[0][1], 12, L.H - 12), c[0][2]] });
+const { boxes, soft: axisBoxes, boxOf, hit, inside, place, reserve, reserveSeg } = LB;   // crossing an axis beats crossing an arrow
 // label beside an arrow: both sides of the middle first, then nearer the ends
 function arrowLabel(x, s, p, q, col, size = 15) {
   const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
@@ -247,9 +214,8 @@ function house(x, p) {
 }
 
 function draw(x, w, h) {
-  const V = vw(); W0 = w; H0 = h;
-  boxes = [[0, 0, w, 30]];
-  axisBoxes = [[0, V.Y(0) - 3, w, V.Y(0) + 3], [V.X(0) - 3, 0, V.X(0) + 3, h]];   // labels stay off the axes; ticks don't check these
+  const V = vw(); LB.reset(w, h, [0, 0, w, 30]);
+  axisBoxes.push([0, V.Y(0) - 3, w, V.Y(0) + 3], [V.X(0) - 3, 0, V.X(0) + 3, h]);   // labels stay off the axes; ticks don't check these
   grid(x, V);
   ({ 1: draw1, 2: draw2, 3: draw3 })[step](x, V);
   ticks(x, V);

@@ -153,8 +153,7 @@ function circle(x, cx, cy, r, fill, stroke, dash) {
   if (stroke) { x.strokeStyle = stroke; x.lineWidth = 1.6; x.setLineDash(dash || []); x.stroke(); x.setLineDash([]); }
 }
 function band(x, x0, y0, w, h, col) {
-  x.fillStyle = col; x.beginPath();
-  if (x.roundRect) x.roundRect(x0, y0, w, h, h / 2); else x.rect(x0, y0, w, h);
+  x.fillStyle = col; Play.rrect(x, x0, y0, w, h, h / 2);
   x.fill();
 }
 

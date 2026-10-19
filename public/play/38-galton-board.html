@@ -113,25 +113,7 @@ el("moreQ").textContent = t({ en: `Next: ten coin flips with exactly five heads 
                               zh: `下一步：抛十次硬币正好五次正面，就是十层钉子的同一种数法：${2 ** 10} 条路里有 C(10, 5) = ${C(10, 5)} 条。` });
 
 // ---------- the same balls as the video: Python's random.Random(seed), rng.random() < 0.5 → right ----------
-function pyRandom(seed) {
-  const n = 624, m = 397, mt = new Uint32Array(n); let mti;
-  const mul = (a, b) => Math.imul(a, b) >>> 0;
-  mt[0] = 19650218; for (mti = 1; mti < n; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
-  let i = 1;
-  for (let k = n; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0)) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
-  for (let k = n - 1; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
-  mt[0] = 0x80000000;
-  function next() {
-    if (mti >= n) {
-      for (let k = 0; k < n; k++) { const y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff); mt[k] = mt[(k + m) % n] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
-      mti = 0;
-    }
-    let y = mt[mti++];
-    y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
-    return y >>> 0;
-  }
-  return () => ((next() >>> 5) * 67108864 + (next() >>> 6)) / 9007199254740992;
-}
+const { pyRandom } = Play;
 function galtonPaths(seed, balls, rows) {   // 0 = left, 1 = right; slot = number of rights
   const r = pyRandom(seed), out = [];
   for (let b = 0; b < balls; b++) { const p = []; for (let i = 0; i < rows; i++) p.push(r() < 0.5 ? 1 : 0); out.push(p); }
@@ -169,11 +151,7 @@ function geo(w, rows, hBin) {
     slotAt: (px) => clamp(Math.round((px - cx) / dx + rows / 2), 0, rows),
   };
 }
-function fitHeight(h) {
-  const want = Math.round(h) + "px";
-  if (cvEl.style.height !== want) { cvEl.style.height = want; return true; }
-  return false;
-}
+const fitHeight = (h) => Play.fitHeight(cvEl, h);
 const hBinFor = (w) => (step === 2 ? 46 : w < 560 ? 140 : 170);
 function dot(x, px, py, r, fill, stroke, lw = 1.5) {
   x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);

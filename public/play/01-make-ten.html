@@ -170,7 +170,7 @@ function circle(x, p, r, fill, stroke, lw, dash) {
 function pill(x, s, cx, cy, size) {
   x.font = `700 ${size}px Inter, system-ui, sans-serif`;
   const w = x.measureText(s).width + 16, h = size + 10;
-  x.beginPath(); x.roundRect ? x.roundRect(cx - w / 2, cy - h / 2, w, h, 8) : x.rect(cx - w / 2, cy - h / 2, w, h);
+  Play.rrect(x, cx - w / 2, cy - h / 2, w, h, 8);
   x.fillStyle = rgba(color("--hl"), 0.32); x.fill(); x.strokeStyle = color("--hl"); x.lineWidth = 2; x.stroke();
   Play.text(x, s, cx, cy + 0.5, { size, weight: 750, halo: false });
 }

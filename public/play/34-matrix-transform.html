@@ -212,30 +212,7 @@ function fits(m) {                   // house and both tips stay inside the pict
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pk = null;
-  for (const c of cands) {
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { pk = c; break; }
-  }
-  if (!pk) { if (o.optional) return; pk = cands[0]; }
-  boxes.push(boxOf(x, s, pk[0], pk[1], size, pk[2] || "center"));
-  Play.text(x, s, pk[0], pk[1], { weight: 700, ...o, size, align: pk[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-function reserveSeg(p, q, r = 4) {
-  const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 6));
-  for (let i = 0; i <= n; i++) reserve(p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n, r);
-}
+const LB = Play.labels({ segStep: 6 }), { boxes, boxOf, hit, place, reserve, reserveSeg } = LB;
 function tipCands(P, O, away) {      // beside the tip (on the side away from `away`), then beyond it
   let dx = P[0] - O[0], dy = P[1] - O[1], L = Math.hypot(dx, dy);
   if (L < 1) { dx = 1; dy = -1; L = Math.SQRT2; }
@@ -335,8 +312,7 @@ function ticks(x, V) {
 }
 
 function draw(x, w, h) {
-  const V = vw(); W0 = w; H0 = h;
-  boxes = [[0, 0, w, TOP]];
+  const V = vw(); LB.reset(w, h, [0, 0, w, TOP]);
   grid0(x, V);
   gridM(x, V, cur);
   if (step === 3 && pick3 !== null && seenRows && !anim) house(x, V, read3 === "cols" ? tr(W3) : W3, read3 === "cols" ? false : null);

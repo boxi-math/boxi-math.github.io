@@ -161,7 +161,7 @@ function roller(c, x0, y0, x1, y1) {   // a rounded bar with a grip
   const HL = color("--hl"), th = 10, vert = x0 === x1;
   const r = vert ? [x0, Math.min(y0, y1), th, Math.abs(y1 - y0)] : [Math.min(x0, x1), y0 - th, Math.abs(x1 - x0), th];
   c.fillStyle = HL; c.strokeStyle = rgba(color("--fg"), 0.55); c.lineWidth = 1.2;
-  c.beginPath(); c.roundRect ? c.roundRect(...r, 5) : c.rect(...r); c.fill(); c.stroke();
+  Play.rrect(c, ...r, 5); c.fill(); c.stroke();
   const gx = vert ? x0 + th / 2 : (x0 + x1) / 2, gy = vert ? (y0 + y1) / 2 : y0 - th / 2;
   c.fillStyle = color("--surface"); c.beginPath(); c.arc(gx, gy, 3, 0, 2 * Math.PI); c.fill();
 }

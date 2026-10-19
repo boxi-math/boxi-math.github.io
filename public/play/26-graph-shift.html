@@ -79,7 +79,7 @@
 </main>
 <script>
 "use strict";
-const { t, color, rgba, fmt, clamp } = Play;
+const { t, color, rgba, fmt, clamp, dot } = Play;
 const D = {
   title: { en: "Why Does f(x + 2) Shift Left?", zh: "图像平移为什么是“左加右减”" },
   eyebrow: { en: "Boxi Math · Try it · #26", zh: "Boxi Math · 动手试试 · #26" },
@@ -158,37 +158,7 @@ function vw() {
 }
 
 // ---------- labels that avoid each other ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let pick0 = null, inside = null;
-  for (const c of cands) {
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    if (!(bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2)) continue;
-    inside = inside || c;
-    if (!boxes.some((b) => hit(b, bx))) { pick0 = c; break; }
-  }
-  if (!pick0) { if (o.optional) return; pick0 = inside || cands[0]; }   // never clip a required label
-  boxes.push(boxOf(x, s, pick0[0], pick0[1], size, pick0[2] || "center"));
-  Play.text(x, s, pick0[0], pick0[1], { weight: 700, ...o, size, align: pick0[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-// around a point: right-below, left-below, right-above, left-above, below, above (first = preferred side)
-function around(p, side, below, d = 14) {
-  const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
-  const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
-  const S = side >= 0 ? [r, l] : [l, r];
-  return [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
-          [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4],
-          [p[0] - d - 8, p[1], "right"], [p[0] + d + 8, p[1], "left"], [p[0], p[1] + 2 * d + 6], [p[0], p[1] - 2 * d - 6]];
-}
+const LB = Play.labels({ fallback: "inside", wide: true }), { boxes, boxOf, hit, place, reserve, around } = LB;
 
 // ---------- drawing ----------
 function grid(x, V) {
@@ -237,11 +207,6 @@ function curveBoxes(V, p, q) {         // keep labels off the curve
     if (pt[1] > -10 && pt[1] < V.H + 10 && pt[0] > -10 && pt[0] < V.W + 10) reserve(pt[0], pt[1], 4);
   }
 }
-function dot(x, px, py, r, fill, stroke, lw = 2) {
-  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
-  if (fill) { x.fillStyle = fill; x.fill(); }
-  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
-}
 function handle(x, px, py, ring) {
   if (ring) dot(x, px, py, 16, null, rgba(color("--hl"), 0.85), 2.5);
   dot(x, px, py, 9, color("--hl"), color("--fg"), 1.5);
@@ -277,8 +242,7 @@ function baseLabel(x, V) {
 const hLab = (x, s, a, b, col) => place(x, s, [[(a[0] + b[0]) / 2, a[1] - 15], [(a[0] + b[0]) / 2, a[1] + 16]], { color: col, size: 14, optional: true });
 
 function draw(x, w, h) {
-  const V = vw(); W0 = w; H0 = h;
-  boxes = [[0, 0, w, TOP]];
+  const V = vw(); LB.reset(w, h, [0, 0, w, TOP]);
   grid(x, V);
   ({ 1: draw1, 2: draw2, 3: draw3, 4: draw4 })[step](x, V);
   ticks(x, V);

@@ -80,7 +80,7 @@
 </main>
 <script>
 "use strict";
-const { t, color, rgba, fmt, clamp } = Play;
+const { t, color, rgba, fmt, clamp, dot, rrect } = Play;
 const D = {
   title: { en: "Coin Flips: Why Frequencies Settle Down", zh: "抛硬币：频率为什么会稳定" },
   eyebrow: { en: "Boxi Math · Try it · #36", zh: "Boxi Math · 动手试试 · #36" },
@@ -118,25 +118,7 @@ const hot = (s) => `<span class="hot">${s}</span>`;
 const sgnN = (v) => (v > 0 ? "+" + v : v < 0 ? "−" + -v : "0");
 
 // ---------- replayable coins: the same Mersenne Twister as Python's random.Random(seed) ----------
-function pyRandom(seed) {
-  const n = 624, m = 397, mt = new Uint32Array(n); let mti;
-  const mul = (a, b) => Math.imul(a, b) >>> 0;
-  mt[0] = 19650218; for (mti = 1; mti < n; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
-  let i = 1;
-  for (let k = n; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0)) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
-  for (let k = n - 1; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
-  mt[0] = 0x80000000;
-  function next() {
-    if (mti >= n) {
-      for (let k = 0; k < n; k++) { const y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff); mt[k] = mt[(k + m) % n] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
-      mti = 0;
-    }
-    let y = mt[mti++];
-    y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
-    return y >>> 0;
-  }
-  return () => ((next() >>> 5) * 67108864 + (next() >>> 6)) / 9007199254740992;
-}
+const { pyRandom } = Play;
 function coins(seed) {                       // 1 = heads; cum[k] = heads in the first k flips
   const r = pyRandom(seed), f = [], cum = [0];
   for (let i = 0; i < N; i++) { f.push(r() < 0.5 ? 1 : 0); cum.push(cum[i] + f[i]); }
@@ -157,37 +139,8 @@ const main = () => R[0];
 const tailRun = (n) => { let k = 0; while (k < n && !main().f[n - 1 - k]) k++; return k; };
 
 // ---------- labels that avoid each other (as in #24) ----------
-let boxes = [], W0 = 0, H0 = 0;
-function boxOf(x, s, px, py, size, align) {
-  x.font = `700 ${size}px Inter, system-ui, sans-serif`;
-  const w = x.measureText(s).width + 8, h = size + 6;
-  const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
-  return [l, py - h / 2, l + w, py + h / 2];
-}
-const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function place(x, s, cands, o = {}) {
-  const size = o.size || 15;
-  let p = null;
-  for (const c of cands) {
-    const bx = boxOf(x, s, c[0], c[1], size, c[2] || "center");
-    if (bx[0] >= 2 && bx[2] <= W0 - 2 && bx[1] >= 2 && bx[3] <= H0 - 2 && !boxes.some((b) => hit(b, bx))) { p = c; break; }
-  }
-  if (!p) { if (o.optional) return; p = cands[0]; }
-  boxes.push(boxOf(x, s, p[0], p[1], size, p[2] || "center"));
-  Play.text(x, s, p[0], p[1], { weight: 700, ...o, size, align: p[2] || "center" });
-}
-const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
-function dot(x, px, py, r, fill, stroke, lw = 2) {
-  x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
-  if (fill) { x.fillStyle = fill; x.fill(); }
-  if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
-}
-function rrect(x, l, tp, w, h, r) { x.beginPath(); x.roundRect ? x.roundRect(l, tp, w, h, r) : x.rect(l, tp, w, h); }
-function fitHeight(h) {                       // canvas height follows the content; RO redraws after a change
-  const want = Math.round(h) + "px";
-  if (cvEl.style.height !== want) { cvEl.style.height = want; return true; }
-  return false;
-}
+const LB = Play.labels(), { place, reserve } = LB;
+const fitHeight = (h) => Play.fitHeight(cvEl, h);   // canvas height follows the content; RO redraws after a change
 
 // ---------- step 1: coins one by one ----------
 const TOP = 34;
@@ -258,7 +211,7 @@ function drawChart(x, w, h, which) {
   if (fitHeight(w < 560 ? 300 : 360)) return;
   const all = which === 3, upto = all ? N : nD, target = all ? N : n2;
   const V = chartView(w, h, all ? N : SCALES.find((s) => s >= Math.max(10, target)));
-  boxes = [[0, 0, w, TOP]];
+  LB.reset(w, h, [0, 0, w, TOP]);
   if (all && el("band").checked) {                     // funnel 1/2 ± 1/√k
     x.fillStyle = rgba(color("--c"), 0.13); x.beginPath();
     for (let k = 1; k <= N; k++) x.lineTo(V.px(k), V.py(Math.min(1, 0.5 + 1 / Math.sqrt(k))));
@@ -289,7 +242,7 @@ function grid4(w) { const cols = w < 520 ? 40 : 50, cell = (w - 24) / cols, rows
 function draw4(x, w, h) {
   const G = grid4(w);
   if (fitHeight(G.H)) return;
-  boxes = [[0, 0, w, TOP]];
+  LB.reset(w, h, [0, 0, w, TOP]);
   const f = main().f, pos = streaks(f, L), next = new Set(pos), pre = new Set();
   pos.forEach((i) => { for (let j = i - L; j < i; j++) pre.add(j); });
   const A = color("--a"), B = color("--b"), FG = color("--fg"), g = Math.max(1, G.cell * 0.12);
@@ -315,7 +268,6 @@ function draw4(x, w, h) {
 }
 
 function draw(x, w, h) {
-  W0 = w; H0 = h;
   if (step === 1) draw1(x, w); else if (step === 4) draw4(x, w, h); else drawChart(x, w, h, step);
 }
 

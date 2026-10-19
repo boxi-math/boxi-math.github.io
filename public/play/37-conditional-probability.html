@@ -187,7 +187,7 @@ function config() {
 const done3 = () => cases(2).every((x) => crossed.has(x.i) === !COND.any.f(x.seq));
 
 // ---------- drawing ----------
-function rr(x, a, b, w, h, r) { x.beginPath(); if (x.roundRect) x.roundRect(a, b, w, h, r); else x.rect(a, b, w, h); }
+const rr = Play.rrect;
 function badge(x, cx, cy, r, boy, alpha) {
   x.globalAlpha = alpha;
   x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI); x.fillStyle = color(boy ? "--c" : "--h"); x.fill();

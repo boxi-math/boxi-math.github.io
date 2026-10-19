@@ -29,6 +29,35 @@
  *       .line(a, b, color, width, dash)  .poly(points, fill, stroke, width, dash)  .label(p, text, opt)
  *   Play.mesh.box(x0,y0,z0,x1,y1,z1)  Play.mesh.pyramid(basePts, apex)  Play.mesh.cone(c, r, h, n)  Play.mesh.cylinder(c, r, h, n)
  *   Play.v  small vector helpers: add, sub, mul, dot, cross, norm, unit, avg, lerp
+ *   Play.clamp(x, a, b)
+ *   Play.rrect(ctx, x, y, w, h, r)   beginPath + rounded-rectangle path (plain rect where roundRect is missing)
+ *   Play.dot(ctx, x, y, r, fill, stroke, lw = 2)   filled / stroked circle (either colour may be null)
+ *   Play.fitHeight(canvasEl, h)    set the element's CSS height to round(h) px; true if it changed (the canvas
+ *                                  ResizeObserver then redraws, so a draw function can just return)
+ *   Play.rowLabels(ctx, list, y0, size, w, step = -24)   number-line labels: each {x, s, c, bg?} centred on x
+ *                                  (kept inside 0..w) at height y0; one overlapping an earlier label in its row moves
+ *                                  a row further (y0 + row * step). bg = rounded chip, no halo. Returns [{x, w, row}]
+ *   Play.pyRandom(seed)            () -> float in [0, 1), bit for bit Python's random.Random(seed).random()
+ *                                  (integer seed >= 0), so pages can replay the videos' random runs
+ *   Play.labels(opt)               labels that avoid each other; returns L (state lives in L, one per canvas):
+ *       L.reset(w, h, ...boxes)    start a frame: canvas size in CSS px, boxes already taken (e.g. [0, 0, w, 30])
+ *       L.place(ctx, s, cands, o)  draw s at the first candidate [x, y, align?] whose box is inside the canvas
+ *                                  (pad px margin) and hits nothing; o = Play.text options + size (15) + optional.
+ *                                  Nothing free: optional -> skip and return false; otherwise opt.fallback picks:
+ *                                  "first" (default) cands[0] · "inside" first candidate inside the canvas ·
+ *                                  "fewest" the one hitting the fewest boxes (a soft box counts 1/10; outside the
+ *                                  canvas costs opt.outCost, default Infinity = never), ties to the earliest;
+ *                                  if that finds none, opt.last(cands, L) or cands[0]. Returns true when drawn.
+ *       L.reserve(x, y, r)  L.reserveSeg(p, q, r = opt.segR ?? 4, step = opt.segStep ?? 8)   keep labels off a
+ *                                  point / a segment (boxes every `step` px)
+ *       L.around(p, side, below, d = 14)   six spots round point p, side (+1 right / -1 left) and below first;
+ *                                  opt.wide adds four farther ones
+ *       L.boxOf(ctx, s, x, y, size, align) -> [l, t, r, b]   L.hit(a, b)   L.inside(b)   L.free(b)
+ *       L.boxes / L.soft           taken boxes (arrays; push to them). Soft boxes (e.g. axes) only count 1/10 in
+ *                                  "fewest". L.W / L.H canvas size.
+ *       opt = {pad = 2, fallback, outCost, last, slide (first slide each candidate sideways back inside),
+ *              segR, segStep, wide, sym (centred box edges computed as x ± w/2 rather than left + w: the
+ *              last bit of rounding differs, kept so older pages lay out exactly as before)}
  *
  * Embedding: with ?embed=1 the page hides its own title/footer and posts its height to the parent
  * ({type: "play-height", h}) so the iframe can size itself.
@@ -324,6 +353,112 @@
     },
   };
 
+  // ---------- small 2D helpers ----------
+  function rrect(x, X, Y, w, h, r) { x.beginPath(); x.roundRect ? x.roundRect(X, Y, w, h, r) : x.rect(X, Y, w, h); }
+  function dot(x, px, py, r, fill, stroke, lw = 2) {
+    x.beginPath(); x.arc(px, py, r, 0, 2 * Math.PI);
+    if (fill) { x.fillStyle = fill; x.fill(); }
+    if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
+  }
+  function fitHeight(el, h) {
+    const want = Math.round(h) + "px";
+    if (el.style.height !== want) { el.style.height = want; return true; }
+    return false;
+  }
+
+  // labels centred on o.x at height y0; one that would overlap an earlier one in its row moves a row on (step px)
+  function rowLabels(x, list, y0, size, w, step = -24) {
+    const placed = [];
+    list.forEach((o) => {
+      x.font = `750 ${size}px Inter, system-ui, sans-serif`;
+      const lw = x.measureText(o.s).width + 10, cx = clamp(o.x, lw / 2 + 4, w - lw / 2 - 4);
+      let row = 0;
+      while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < (p.w + lw) / 2)) row++;
+      placed.push({ x: cx, w: lw, row });
+      const y = y0 + row * step;
+      if (o.bg) { x.fillStyle = o.bg; rrect(x, cx - lw / 2, y - size * 0.75, lw, size * 1.5, 6); x.fill(); }
+      text(x, o.s, cx, y, { size, weight: 750, color: o.c, halo: !o.bg });
+    });
+    return placed;
+  }
+
+  // Python's random.Random(seed).random(): MT19937 seeded with init_by_array([seed]), 53-bit floats
+  function pyRandom(seed) {
+    const n = 624, m = 397, mt = new Uint32Array(n); let mti;
+    const mul = (a, b) => Math.imul(a, b) >>> 0;
+    mt[0] = 19650218; for (mti = 1; mti < n; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
+    let i = 1;
+    for (let k = n; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0)) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+    for (let k = n - 1; k; k--) { mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0; i++; if (i >= n) { mt[0] = mt[n - 1]; i = 1; } }
+    mt[0] = 0x80000000;
+    function next() {
+      if (mti >= n) {
+        for (let k = 0; k < n; k++) { const y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff); mt[k] = mt[(k + m) % n] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
+        mti = 0;
+      }
+      let y = mt[mti++];
+      y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
+      return y >>> 0;
+    }
+    return () => ((next() >>> 5) * 67108864 + (next() >>> 6)) / 9007199254740992;
+  }
+
+  // ---------- labels that avoid each other ----------
+  function labels(opt = {}) {
+    const pad = opt.pad ?? 2, fallback = opt.fallback || "first", outCost = opt.outCost ?? Infinity;
+    const boxes = [], soft = [];
+    const L = { boxes, soft, W: 0, H: 0 };
+    const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+    function boxOf(x, s, px, py, size, align) {
+      x.font = `700 ${size}px Inter, system-ui, sans-serif`;
+      const w = x.measureText(s).width + 8, h = size + 6;
+      if (opt.sym && align !== "left" && align !== "right") return [px - w / 2, py - h / 2, px + w / 2, py + h / 2];
+      const l = align === "left" ? px - 4 : align === "right" ? px - w + 4 : px - w / 2;
+      return [l, py - h / 2, l + w, py + h / 2];
+    }
+    const inside = (b) => b[0] >= pad && b[2] <= L.W - pad && b[1] >= pad && b[3] <= L.H - pad;
+    const free = (b) => inside(b) && !boxes.some((a) => hit(a, b)) && !soft.some((a) => hit(a, b));
+    function reset(w, h, ...init) { L.W = w; L.H = h; boxes.length = 0; soft.length = 0; boxes.push(...init); }
+    const reserve = (px, py, r) => boxes.push([px - r, py - r, px + r, py + r]);
+    function reserveSeg(p, q, r = opt.segR ?? 4, step = opt.segStep ?? 8) {
+      const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / step));
+      for (let i = 0; i <= n; i++) reserve(p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n, r);
+    }
+    function place(x, s, cands, o = {}) {
+      const size = o.size || 15, bx = (c) => boxOf(x, s, c[0], c[1], size, c[2] || "center");
+      if (opt.slide) cands = cands.map((c) => {
+        const b = bx(c), dx = b[0] < pad ? pad - b[0] : b[2] > L.W - pad ? L.W - pad - b[2] : 0;
+        return dx ? [c[0] + dx, c[1], c[2]] : c;
+      });
+      let p = cands.find((c) => free(bx(c))) || null;
+      if (!p) {
+        if (o.optional) return false;
+        if (fallback === "inside") p = cands.find((c) => inside(bx(c)));
+        else if (fallback === "fewest") {
+          let best = Infinity;
+          for (const c of cands) {
+            const b = bx(c), cost = 10 * boxes.filter((a) => hit(a, b)).length + soft.filter((a) => hit(a, b)).length + (inside(b) ? 0 : 10 * outCost);
+            if (cost < best) { best = cost; p = c; }
+          }
+        }
+        p = p || (opt.last ? opt.last(cands, L) : cands[0]);
+      }
+      boxes.push(bx(p));
+      text(x, s, p[0], p[1], { weight: 700, ...o, size, align: p[2] || "center" });
+      return true;
+    }
+    function around(p, side, below, d = 14) {
+      const r = [p[0] + d, p[1], "left"], l = [p[0] - d, p[1], "right"];
+      const v1 = below ? d + 4 : -(d + 4), v2 = -v1;
+      const S = side >= 0 ? [r, l] : [l, r];
+      const out = [[S[0][0], S[0][1] + v1, S[0][2]], [S[1][0], S[1][1] + v1, S[1][2]], [p[0], p[1] + v1 + Math.sign(v1) * 4],
+        [S[0][0], S[0][1] + v2, S[0][2]], [S[1][0], S[1][1] + v2, S[1][2]], [p[0], p[1] + v2 + Math.sign(v2) * 4]];
+      if (opt.wide) out.push([p[0] - d - 8, p[1], "right"], [p[0] + d + 8, p[1], "left"], [p[0], p[1] + 2 * d + 6], [p[0], p[1] - 2 * d - 6]);
+      return out;
+    }
+    return Object.assign(L, { boxOf, hit, inside, free, reset, reserve, reserveSeg, place, around });
+  }
+
   function postHeight() {
     if (!embed || parent === window) return;
     requestAnimationFrame(() => parent.postMessage({ type: "play-height", h: Math.ceil(document.body.getBoundingClientRect().height) + 4 }, "*"));
@@ -334,5 +469,6 @@
     document.addEventListener("toggle", postHeight, true);
   }
 
-  window.Play = { lang, embed, reduced, t, i18n, steps, canvas, drag, keys, color, rgba, onTheme, loop, fmt, text, View3D, mesh, v, clamp };
+  window.Play = { lang, embed, reduced, t, i18n, steps, canvas, drag, keys, color, rgba, onTheme, loop, fmt, text, View3D, mesh, v, clamp,
+    rrect, dot, fitHeight, pyRandom, labels, rowLabels };
 })();
