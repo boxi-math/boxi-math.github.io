@@ -1,0 +1,1020 @@
+[
+ {
+  "id": "0A",
+  "stage": 0,
+  "name": {
+   "en": "See it at a glance",
+   "zh": "一眼看出"
+  },
+  "summary": {
+   "en": "Know 1–5 objects without counting: dice dots, fingers.",
+   "zh": "不数就知道 1–5 个（subitizing）；骰子点、手指。"
+  },
+  "form": {
+   "en": "parent video + printable game card",
+   "zh": "家长短视频 + 可打印游戏卡"
+  },
+  "seeds": [
+   "S-1"
+  ],
+  "episodes": [],
+  "lessons": 4,
+  "cards": [
+   "dots-at-a-glance",
+   "dice-snap",
+   "finger-flash",
+   "peek-under-the-cup"
+  ]
+ },
+ {
+  "id": "0B",
+  "stage": 0,
+  "name": {
+   "en": "Break apart and put together",
+   "zh": "分与合"
+  },
+  "summary": {
+   "en": "5 and 10 can be split and joined again; hide some and guess how many.",
+   "zh": "5 和 10 可以拆开再合上；藏起几个。"
+  },
+  "form": {
+   "en": "parent video + printable game card",
+   "zh": "家长短视频 + 可打印游戏卡"
+  },
+  "seeds": [
+   "S-1"
+  ],
+  "episodes": [],
+  "lessons": 5,
+  "cards": [
+   "hide-the-beans",
+   "shake-and-spill",
+   "egg-box-ten-frame",
+   "two-car-parks",
+   "bottle-bowling-ten"
+  ]
+ },
+ {
+  "id": "0C",
+  "stage": 0,
+  "name": {
+   "en": "Compare",
+   "zh": "比一比"
+  },
+  "summary": {
+   "en": "More or fewer, longer or shorter, order in a line: a first number line.",
+   "zh": "多少、长短、高矮、前后顺序；数轴雏形（排队）。"
+  },
+  "form": {
+   "en": "parent video + printable game card",
+   "zh": "家长短视频 + 可打印游戏卡"
+  },
+  "seeds": [
+   "S-1"
+  ],
+  "episodes": [],
+  "lessons": 3,
+  "cards": [
+   "who-has-more",
+   "which-is-longer",
+   "line-up-by-size"
+  ]
+ },
+ {
+  "id": "0D",
+  "stage": 0,
+  "name": {
+   "en": "Fit shapes together",
+   "zh": "拼一拼"
+  },
+  "summary": {
+   "en": "A shape stays itself after fitting, cutting, turning or flipping; symmetry.",
+   "zh": "形状拼、切、转、翻之后还是它；对称。"
+  },
+  "form": {
+   "en": "parent video + printable game card",
+   "zh": "家长短视频 + 可打印游戏卡"
+  },
+  "seeds": [
+   "S-4"
+  ],
+  "episodes": [],
+  "lessons": 5,
+  "cards": [
+   "two-triangles",
+   "fold-and-cut",
+   "turn-it-around",
+   "build-my-half",
+   "four-squares"
+  ]
+ },
+ {
+  "id": "0E",
+  "stage": 0,
+  "name": {
+   "en": "Find the pattern",
+   "zh": "找规律"
+  },
+  "summary": {
+   "en": "Say what comes next, then ask: is it always so?",
+   "zh": "说出下一个是什么，并问「一定吗」。"
+  },
+  "form": {
+   "en": "parent video + printable game card",
+   "zh": "家长短视频 + 可打印游戏卡"
+  },
+  "seeds": [
+   "S-5",
+   "S-6"
+  ],
+  "episodes": [],
+  "lessons": 3,
+  "cards": [
+   "pasta-necklace-pattern",
+   "clap-stomp-rhythm",
+   "spot-the-slip"
+  ]
+ },
+ {
+  "id": "0F",
+  "stage": 0,
+  "name": {
+   "en": "Guess first",
+   "zh": "猜一猜"
+  },
+  "summary": {
+   "en": "Guess, count, then fix the guess; mistakes are fine. Runs through every card, no lessons of its own.",
+   "zh": "先猜再数再改；错了不要紧。贯穿每张游戏卡，不单独成课。"
+  },
+  "form": {
+   "en": "a 'guess first' step on every game card",
+   "zh": "每张游戏卡末尾一条「先猜」"
+  },
+  "seeds": [
+   "S-6"
+  ],
+  "episodes": [],
+  "lessons": 0,
+  "cards": []
+ },
+ {
+  "id": "1A",
+  "stage": 1,
+  "name": {
+   "en": "Place value",
+   "zh": "位值"
+  },
+  "summary": {
+   "en": "Ten ones make one ten; a place is a new unit; numbers to 100 on the number line.",
+   "zh": "10 个一是 1 个十；数位是「单位换了」；100 以内在数轴上的位置。"
+  },
+  "form": {
+   "en": "hands-on activities with a parent",
+   "zh": "动手活动，家长陪"
+  },
+  "seeds": [
+   "S-3"
+  ],
+  "episodes": [],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "1B",
+  "stage": 1,
+  "name": {
+   "en": "Adding, subtracting and the equals sign",
+   "zh": "加减与等号"
+  },
+  "summary": {
+   "en": "Make ten, break ten; read = as 'both sides the same'.",
+   "zh": "凑十、破十；等号读作「两边一样多」，3+4 = □+5。"
+  },
+  "form": {
+   "en": "activities + insight video, with a parent",
+   "zh": "动手活动 + 洞察视频，家长陪"
+  },
+  "seeds": [
+   "S-2",
+   "S-1"
+  ],
+  "episodes": [
+   1
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "1C",
+  "stage": 1,
+  "name": {
+   "en": "What multiplication means",
+   "zh": "乘法的意义"
+  },
+  "summary": {
+   "en": "Equal groups and dot arrays; see why order doesn't matter; times tables come last.",
+   "zh": "几个几、点阵、交换律看得见；口诀最后背。"
+  },
+  "form": {
+   "en": "activities + insight videos, with a parent",
+   "zh": "动手活动 + 洞察视频，家长陪"
+  },
+  "seeds": [
+   "S-1",
+   "S-5"
+  ],
+  "episodes": [
+   2,
+   3
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "1D",
+  "stage": 1,
+  "name": {
+   "en": "Two meanings of division",
+   "zh": "除法的两种意义"
+  },
+  "summary": {
+   "en": "Sharing and grouping; remainders. The hard prerequisite for fractions.",
+   "zh": "平均分和包含除；余数；分数的硬先修。"
+  },
+  "form": {
+   "en": "hands-on activities with a parent",
+   "zh": "动手活动，家长陪"
+  },
+  "seeds": [
+   "S-3"
+  ],
+  "episodes": [],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "1E",
+  "stage": 1,
+  "name": {
+   "en": "Laws of arithmetic and column multiplication",
+   "zh": "运算律与竖式"
+  },
+  "summary": {
+   "en": "The distributive law is one cut; each step of column multiplication is a piece of an area.",
+   "zh": "分配律就是切一刀；竖式每一步在面积图上是哪块。"
+  },
+  "form": {
+   "en": "activities + insight videos, with a parent",
+   "zh": "动手活动 + 洞察视频，家长陪"
+  },
+  "seeds": [
+   "S-4",
+   "S-5"
+  ],
+  "episodes": [
+   4,
+   5
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "1F",
+  "stage": 1,
+  "name": {
+   "en": "Shape and measure",
+   "zh": "形与量"
+  },
+  "summary": {
+   "en": "Units of length, area by counting squares, tangram puzzles.",
+   "zh": "长度单位、数格子算面积、七巧板拼。"
+  },
+  "form": {
+   "en": "hands-on activities with a parent",
+   "zh": "动手活动，家长陪"
+  },
+  "seeds": [
+   "S-4",
+   "S-3"
+  ],
+  "episodes": [],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "1G",
+  "stage": 1,
+  "name": {
+   "en": "Sorting and counting",
+   "zh": "分类与计数"
+  },
+  "summary": {
+   "en": "Sort by different rules, count, make simple tally tables.",
+   "zh": "按不同标准分类、计数、简单统计表。"
+  },
+  "form": {
+   "en": "hands-on activities with a parent",
+   "zh": "动手活动，家长陪"
+  },
+  "seeds": [
+   "S-5"
+  ],
+  "episodes": [],
+  "lessons": 2,
+  "cards": []
+ },
+ {
+  "id": "2A",
+  "stage": 2,
+  "name": {
+   "en": "Fractions on the Number Line",
+   "zh": "数轴上的分数"
+  },
+  "summary": {
+   "en": "A fraction is a point with a size on the number line; one point, many names.",
+   "zh": "把分数当作数轴上一个有大小的点；说出同一个点的不同名字为什么是同一个点。"
+  },
+  "form": {
+   "en": "folding activity, inquiries, one video",
+   "zh": "折纸活动 + 探究 + 1 集视频"
+  },
+  "seeds": [
+   "S-1",
+   "S-3"
+  ],
+  "episodes": [
+   6
+  ],
+  "lessons": 6,
+  "cards": []
+ },
+ {
+  "id": "2B",
+  "stage": 2,
+  "name": {
+   "en": "Operations with Fractions",
+   "zh": "分数运算"
+  },
+  "summary": {
+   "en": "Predict the size before computing; explain each rule with a number line or area picture.",
+   "zh": "四种运算都先猜结果比谁大再算，并能用数轴或面积图说出每条法则为什么对。"
+  },
+  "form": {
+   "en": "inquiries + videos",
+   "zh": "探究 + 洞察视频"
+  },
+  "seeds": [
+   "S-3",
+   "S-6"
+  ],
+  "episodes": [
+   7,
+   8,
+   9
+  ],
+  "lessons": 7,
+  "cards": []
+ },
+ {
+  "id": "2C",
+  "stage": 2,
+  "name": {
+   "en": "Decimals and percentages",
+   "zh": "小数与百分数"
+  },
+  "summary": {
+   "en": "Decimals and percents are other names for fractions: the same point on the line.",
+   "zh": "小数和百分数只是分数的另外两种名字，三种写法在数轴上是同一个点。"
+  },
+  "form": {
+   "en": "inquiries",
+   "zh": "探究"
+  },
+  "seeds": [
+   "S-3",
+   "S-1"
+  ],
+  "episodes": [],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "2D",
+  "stage": 2,
+  "name": {
+   "en": "Ratio and proportion",
+   "zh": "比与比例"
+  },
+  "summary": {
+   "en": "When two quantities change together, their ratio stays fixed: the root of slope and similarity.",
+   "zh": "两个量「一起变」时比值不变；比例是以后斜率、相似、三角比的根。"
+  },
+  "form": {
+   "en": "mixing activity, video, inquiries, modelling",
+   "zh": "配色活动 + 视频 + 探究 + 建模"
+  },
+  "seeds": [
+   "S-3",
+   "S-5"
+  ],
+  "episodes": [
+   10
+  ],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "2E",
+  "stage": 2,
+  "name": {
+   "en": "Cutting and rearranging area and volume",
+   "zh": "面积与体积的切拼"
+  },
+  "summary": {
+   "en": "Every area and volume formula is a shortcut for cut, move and count. Guess, cut, check.",
+   "zh": "所有面积、体积公式都是「切一切、挪一挪、数格子」的捷径；先猜，再切，再验。"
+  },
+  "form": {
+   "en": "activities + videos + inquiries",
+   "zh": "动手活动 + 洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-4",
+   "S-6"
+  ],
+  "episodes": [
+   11,
+   12,
+   13,
+   14
+  ],
+  "lessons": 9,
+  "cards": []
+ },
+ {
+  "id": "2F",
+  "stage": 2,
+  "name": {
+   "en": "Data and the mean",
+   "zh": "数据与平均数"
+  },
+  "summary": {
+   "en": "One number can stand for many, but know what it hides; chance has a size.",
+   "zh": "一组数可以用一个数代表，但要知道它代表不了什么；「可能」是可以说出大小的。"
+  },
+  "form": {
+   "en": "data and draw activities, video, inquiry",
+   "zh": "收集数据、摸球活动 + 视频 + 探究"
+  },
+  "seeds": [
+   "S-1",
+   "S-5"
+  ],
+  "episodes": [
+   35
+  ],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "3A",
+  "stage": 3,
+  "name": {
+   "en": "Letters for numbers",
+   "zh": "字母表示数"
+  },
+  "summary": {
+   "en": "Patterns become letter expressions; a letter means 'any number'; = still means both sides equal.",
+   "zh": "规律 → 字母式；字母是「任何一个数」；等号两边一样多（回访 1B）。"
+  },
+  "form": {
+   "en": "inquiries + math circle",
+   "zh": "探究 + 数学小组"
+  },
+  "seeds": [
+   "S-5",
+   "S-2"
+  ],
+  "episodes": [],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "3B",
+  "stage": 3,
+  "name": {
+   "en": "Negative numbers and the number line",
+   "zh": "负数与数轴"
+  },
+  "summary": {
+   "en": "The line extends left; subtracting a negative adds; times −1 turns the arrow half a turn.",
+   "zh": "数轴往左延伸；减负为加；负负得正（乘 −1 是箭头绕 0 转半圈）。"
+  },
+  "form": {
+   "en": "videos + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-1",
+   "S-3",
+   "S-4"
+  ],
+  "episodes": [
+   15,
+   16
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3C",
+  "stage": 3,
+  "name": {
+   "en": "Equations",
+   "zh": "方程"
+  },
+  "summary": {
+   "en": "A balance: do the same to both sides. An inequality is a tipped balance.",
+   "zh": "天平；两边同时做同一件事；不等式是天平倾斜。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-2"
+  ],
+  "episodes": [
+   19
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3D",
+  "stage": 3,
+  "name": {
+   "en": "Polynomials and the area model",
+   "zh": "整式与面积模型"
+  },
+  "summary": {
+   "en": "Multiplying polynomials is cutting rectangles; perfect squares and difference of squares.",
+   "zh": "多项式乘法是切矩形；完全平方、平方差。"
+  },
+  "form": {
+   "en": "videos + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-4",
+   "S-5"
+  ],
+  "episodes": [
+   17,
+   18
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3E",
+  "stage": 3,
+  "name": {
+   "en": "Real numbers",
+   "zh": "实数"
+  },
+  "summary": {
+   "en": "√2 is on the number line but is not a fraction: a first proof.",
+   "zh": "√2 在数轴上但不是分数；证明的第一次。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "episodes": [
+   20
+  ],
+  "lessons": 3,
+  "cards": []
+ },
+ {
+  "id": "3F",
+  "stage": 3,
+  "name": {
+   "en": "Coordinates and linear functions",
+   "zh": "坐标与一次函数"
+  },
+  "summary": {
+   "en": "Direct proportion is a ratio; slope is steepness.",
+   "zh": "正比例是比例（← 2D）；斜率是坡度。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-5",
+   "S-3"
+  ],
+  "episodes": [
+   22
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3G",
+  "stage": 3,
+  "name": {
+   "en": "Quadratics",
+   "zh": "二次"
+  },
+  "summary": {
+   "en": "Completing the square means filling in a square; vertex form.",
+   "zh": "配方是补成正方形；顶点式。"
+  },
+  "form": {
+   "en": "videos + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-4",
+   "S-5"
+  ],
+  "episodes": [
+   23,
+   24
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3H",
+  "stage": 3,
+  "name": {
+   "en": "Geometric reasoning",
+   "zh": "几何推理"
+  },
+  "summary": {
+   "en": "Classify shapes, then angle sums, congruence, Pythagoras; ruler-and-compass constructions.",
+   "zh": "图形分类 → 内角和 → 全等 → 勾股；尺规作图。补 van Hiele 断层。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-4",
+   "S-6"
+  ],
+  "episodes": [
+   21
+  ],
+  "lessons": 7,
+  "cards": []
+ },
+ {
+  "id": "3I",
+  "stage": 3,
+  "name": {
+   "en": "Transformations, similarity and trig ratios",
+   "zh": "变换、相似与三角比"
+  },
+  "summary": {
+   "en": "Translate, rotate, reflect; similarity is proportion; sin 30° is always 1/2.",
+   "zh": "平移旋转对称；相似是比例（← 2D）；sin 30° 永远是 1/2。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-4",
+   "S-3"
+  ],
+  "episodes": [
+   25
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "3J",
+  "stage": 3,
+  "name": {
+   "en": "Circles",
+   "zh": "圆"
+  },
+  "summary": {
+   "en": "Inscribed angles and tangents.",
+   "zh": "圆周角、切线。"
+  },
+  "form": {
+   "en": "inquiries + math circle",
+   "zh": "探究 + 数学小组"
+  },
+  "seeds": [
+   "S-4"
+  ],
+  "episodes": [],
+  "lessons": 3,
+  "cards": []
+ },
+ {
+  "id": "3K",
+  "stage": 3,
+  "name": {
+   "en": "Data and first probability",
+   "zh": "数据与概率初步"
+  },
+  "summary": {
+   "en": "Frequencies settle down; probability is a ratio; variance.",
+   "zh": "频率稳定；概率是比值（← 2B、2D）；方差。"
+  },
+  "form": {
+   "en": "video + inquiries + math circle",
+   "zh": "洞察视频 + 探究 + 数学小组"
+  },
+  "seeds": [
+   "S-1",
+   "S-5"
+  ],
+  "episodes": [
+   36
+  ],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "3L",
+  "stage": 3,
+  "name": {
+   "en": "Modelling project",
+   "zh": "建模项目"
+  },
+  "summary": {
+   "en": "Phone plans, estimation, designing a vote: open math-circle problems.",
+   "zh": "话费套餐、估测、投票设计——数学小组题。"
+  },
+  "form": {
+   "en": "math circle problems",
+   "zh": "数学小组题"
+  },
+  "seeds": [
+   "S-6"
+  ],
+  "episodes": [],
+  "lessons": 2,
+  "cards": []
+ },
+ {
+  "id": "4A",
+  "stage": 4,
+  "name": {
+   "en": "Functions and transformations",
+   "zh": "函数与变换"
+  },
+  "summary": {
+   "en": "A function is a correspondence; why a shift goes left for +, right for −.",
+   "zh": "函数是对应；平移为什么左加右减。"
+  },
+  "form": {
+   "en": "video + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-5",
+   "S-3"
+  ],
+  "episodes": [
+   26
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4B",
+  "stage": 4,
+  "name": {
+   "en": "Exponentials and logarithms",
+   "zh": "指数与对数"
+  },
+  "summary": {
+   "en": "Two ways to read the same graph.",
+   "zh": "同一张图的两种读法。"
+  },
+  "form": {
+   "en": "video + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-3",
+   "S-5"
+  ],
+  "episodes": [
+   27
+  ],
+  "lessons": 4,
+  "cards": []
+ },
+ {
+  "id": "4C",
+  "stage": 4,
+  "name": {
+   "en": "Trigonometric functions",
+   "zh": "三角函数"
+  },
+  "summary": {
+   "en": "The unit circle; a radian measures an angle with the radius.",
+   "zh": "单位圆；弧度是「用半径量角」。"
+  },
+  "form": {
+   "en": "video + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-4",
+   "S-3"
+  ],
+  "episodes": [
+   28
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4D",
+  "stage": 4,
+  "name": {
+   "en": "Sequences and differences",
+   "zh": "数列与差分"
+  },
+  "summary": {
+   "en": "Add it again backwards; differences are a discrete derivative.",
+   "zh": "倒过来再加一遍；差分是离散导数；§6.7 新定义数列讲题线挂在这里。"
+  },
+  "form": {
+   "en": "videos + inquiries + worked-problem series",
+   "zh": "洞察视频 + 探究 + 讲题线"
+  },
+  "seeds": [
+   "S-5"
+  ],
+  "episodes": [
+   29,
+   39
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4E",
+  "stage": 4,
+  "name": {
+   "en": "Derivatives",
+   "zh": "导数"
+  },
+  "summary": {
+   "en": "Zoom in until the curve becomes a line; see why (x²)′ = 2x.",
+   "zh": "放大到变成直线；(x²)′ 看得见。"
+  },
+  "form": {
+   "en": "videos + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-5",
+   "S-1"
+  ],
+  "episodes": [
+   30,
+   31
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4F",
+  "stage": 4,
+  "name": {
+   "en": "Vectors and complex numbers",
+   "zh": "向量与复数"
+  },
+  "summary": {
+   "en": "Tip to tail; multiplying by i turns 90°; a matrix reshapes the plane (extension).",
+   "zh": "首尾相接；乘 i 转 90°；矩阵变形整个平面（拓展）。"
+  },
+  "form": {
+   "en": "videos + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-4",
+   "S-3"
+  ],
+  "episodes": [
+   32,
+   33,
+   34
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4G",
+  "stage": 4,
+  "name": {
+   "en": "Solid and analytic geometry",
+   "zh": "立体与解析几何"
+  },
+  "summary": {
+   "en": "Space vectors; solving systems and the discriminant.",
+   "zh": "空间向量；联立与判别式（← 3C、3G）。"
+  },
+  "form": {
+   "en": "inquiries",
+   "zh": "探究"
+  },
+  "seeds": [
+   "S-4",
+   "S-2"
+  ],
+  "episodes": [],
+  "lessons": 6,
+  "cards": []
+ },
+ {
+  "id": "4H",
+  "stage": 4,
+  "name": {
+   "en": "Counting and probability distributions",
+   "zh": "计数与概率分布"
+  },
+  "summary": {
+   "en": "Conditional probability shrinks the sample space; the Galton board.",
+   "zh": "条件概率缩小样本空间；高尔顿板。"
+  },
+  "form": {
+   "en": "videos + inquiries",
+   "zh": "洞察视频 + 探究"
+  },
+  "seeds": [
+   "S-5",
+   "S-1"
+  ],
+  "episodes": [
+   37,
+   38
+  ],
+  "lessons": 5,
+  "cards": []
+ },
+ {
+  "id": "4I",
+  "stage": 4,
+  "name": {
+   "en": "Statistics and regression",
+   "zh": "统计与回归"
+  },
+  "summary": {
+   "en": "Least squares makes the total area of residual squares smallest.",
+   "zh": "最小二乘是残差正方形面积最小（← 3F）。"
+  },
+  "form": {
+   "en": "inquiries",
+   "zh": "探究"
+  },
+  "seeds": [
+   "S-5"
+  ],
+  "episodes": [],
+  "lessons": 3,
+  "cards": []
+ },
+ {
+  "id": "4J",
+  "stage": 4,
+  "name": {
+   "en": "Modelling and investigation",
+   "zh": "建模与探究"
+  },
+  "summary": {
+   "en": "Many solutions to one contest problem; comparing methods. Math circle, lesson count open.",
+   "zh": "预赛题的一题多解、方法比较。数学小组，课数不定。"
+  },
+  "form": {
+   "en": "math circle with contest problems",
+   "zh": "预赛题库的数学小组"
+  },
+  "seeds": [
+   "S-6"
+  ],
+  "episodes": [],
+  "lessons": 0,
+  "cards": []
+ }
+]

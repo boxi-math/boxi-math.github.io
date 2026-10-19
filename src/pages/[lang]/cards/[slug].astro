@@ -1,0 +1,89 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { LANGS, type Lang, cards, units, SEEDS, t, tf } from "../../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => cards.map((c) => ({ params: { lang, slug: c.slug } })));
+}
+const lang = Astro.params.lang as Lang;
+const c = cards.find((x) => x.slug === Astro.params.slug)!;
+const unit = units.find((u) => u.id === c.unit);
+const seeds = c.seeds.map((id) => SEEDS.find((s) => s.id === id)).filter(Boolean);
+const i = cards.indexOf(c);
+const prev = cards[i - 1];
+const next = cards[i + 1];
+---
+
+<Base lang={lang} title={`${c.title[lang]} · ${t("forParents", lang)}`} description={c.why[lang]} path={`cards/${c.slug}/`}>
+  <article class="gamecard-page narrow">
+    <p class="crumbs noprint">
+      <a href={`/${lang}/stages/0/`}>{t("backToStage", lang)}</a>
+      {unit && <> / {t("unitLabel", lang)} {unit.id} · {unit.name[lang]}</>}
+    </p>
+    <p class="eyebrow">{t("forParents", lang)} · {c.id} · {tf("ages", lang, { a: c.age })} · {tf("minutes", lang, { n: c.minutes })}</p>
+    <h1>{c.title[lang]}</h1>
+    <p class="lead">{c.why[lang]}</p>
+    <div class="chips">
+      {seeds.map((s) => <a class="chip" href={`/${lang}/seeds/${s!.id}/`}>{s!.id} {s!.name[lang]}</a>)}
+    </div>
+
+    <section class="box">
+      <h2>{t("materials", lang)}</h2>
+      <ul>{c.materials[lang].map((m) => <li>{m}</li>)}</ul>
+    </section>
+
+    <section class="box">
+      <h2>{t("steps", lang)}</h2>
+      <ol>{c.steps[lang].map((s) => <li>{s}</li>)}</ol>
+    </section>
+
+    <section class="box guess">
+      <h2>{t("guessFirst", lang)}</h2>
+      <p>{c.guess[lang]}</p>
+    </section>
+
+    <section class="box">
+      <h2>{t("askThree", lang)}</h2>
+      <ol>{c.ask[lang].map((q) => <li>{q}</li>)}</ol>
+    </section>
+
+    <div class="two">
+      <section class="box"><h2>{t("easier", lang)}</h2><p>{c.easier[lang]}</p></section>
+      <section class="box"><h2>{t("harder", lang)}</h2><p>{c.harder[lang]}</p></section>
+    </div>
+
+    <section class="box"><h2>{t("watchFor", lang)}</h2><p>{c.watch[lang]}</p></section>
+    {c.safety && <section class="box safety"><h2>{t("safety", lang)}</h2><p>{c.safety[lang]}</p></section>}
+
+    <p class="noprint actions">
+      <button type="button" onclick="window.print()">{t("printCard", lang)}</button>
+    </p>
+    <nav class="epnav noprint">
+      {prev ? <a href={`/${lang}/cards/${prev.slug}/`}>← {prev.id} {prev.title[lang]}</a> : <span />}
+      {next ? <a class="next" href={`/${lang}/cards/${next.slug}/`}>{next.id} {next.title[lang]} →</a> : <span />}
+    </nav>
+    <p class="printfoot">boxi-math.github.io · CC BY 4.0 · Boxi Yu</p>
+  </article>
+</Base>
+
+<style>
+  .gamecard-page h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.8rem 1rem; margin: 0.8rem 0; }
+  .box p { margin: 0; }
+  .box ul, .box ol { margin: 0; padding-left: 1.3rem; }
+  .box li { margin: 0.2rem 0; }
+  .guess { border-left: 4px solid var(--hl); }
+  .safety { border-left: 4px solid var(--no); }
+  .two { display: grid; gap: 0 12px; grid-template-columns: 1fr 1fr; }
+  .actions button { font: inherit; padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  .printfoot { display: none; }
+  @media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
+  @media print {
+    :global(header.top), :global(footer.bottom), .noprint { display: none !important; }
+    :global(body) { background: #fff; color: #000; font-size: 12pt; }
+    :global(main) { padding: 0; }
+    .box { border-color: #999; background: #fff; break-inside: avoid; margin: 0.4rem 0; }
+    .lead { color: #333; }
+    .printfoot { display: block; font-size: 9pt; color: #555; margin-top: 0.6rem; }
+  }
+</style>

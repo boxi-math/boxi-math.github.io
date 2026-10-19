@@ -1,7 +1,7 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import EpisodeList from "../../../components/EpisodeList.astro";
-import { LANGS, type Lang, STAGES, episodes, t } from "../../../data/site";
+import { LANGS, type Lang, STAGES, episodes, byId, units, cardBySlug, t, tf } from "../../../data/site";
 
 export function getStaticPaths() {
   return LANGS.flatMap((lang) => STAGES.map((s) => ({ params: { lang, n: String(s.n) } })));
@@ -9,6 +9,8 @@ export function getStaticPaths() {
 const lang = Astro.params.lang as Lang;
 const s = STAGES[Number(Astro.params.n)];
 const eps = episodes.filter((e) => e.stage === s.n).sort((a, b) => a.id - b.id);
+const stageUnits = units.filter((u) => u.stage === s.n);
+const stageCards = stageUnits.flatMap((u) => u.cards.map((slug) => cardBySlug.get(slug)).filter((c) => c !== undefined));
 ---
 
 <Base lang={lang} title={`${t("stage", lang)} ${s.n} · ${s.name[lang]}`} description={s.blurb[lang]} path={`stages/${s.n}/`}>
@@ -19,6 +21,82 @@ const eps = episodes.filter((e) => e.stage === s.n).sort((a, b) => a.id - b.id);
     <p class="lead">{s.question[lang]}</p>
     <p>{s.blurb[lang]}</p>
   </div>
-  <h2>{t("allEpisodes", lang)}</h2>
-  {eps.length ? <EpisodeList eps={eps} lang={lang} /> : <p class="lead">{t("noEpisodes", lang)}</p>}
+
+  {stageCards.length > 0 && (
+    <>
+      <h2 id="cards">{t("gameCards", lang)}</h2>
+      <p class="meta">{t("cardsLead", lang)}</p>
+      <div class="cardgrid">
+        {stageCards.map((c) => (
+          <a class="card gamecard" href={`/${lang}/cards/${c.slug}/`}>
+            <span class="seed-id">{c.id}</span>
+            <span class="q">{c.title[lang]}</span>
+            <span class="meta">{c.why[lang]}</span>
+            <span class="meta small">{tf("ages", lang, { a: c.age })} · {tf("minutes", lang, { n: c.minutes })}</span>
+          </a>
+        ))}
+      </div>
+    </>
+  )}
+
+  {eps.length > 0 && (
+    <>
+      <h2>{t("allEpisodes", lang)}</h2>
+      <EpisodeList eps={eps} lang={lang} />
+    </>
+  )}
+
+  {stageUnits.length > 0 && (
+    <>
+      <h2 id="units">{t("units", lang)}</h2>
+      <p class="meta">{t("unitsLead", lang)}</p>
+      <ul class="units">
+        {stageUnits.map((u) => {
+          const uEps = u.episodes.map((id) => byId.get(id)).filter((e) => e !== undefined);
+          const uCards = u.cards.map((slug) => cardBySlug.get(slug)).filter((c) => c !== undefined);
+          const status = uEps.length ? "hasVideo" : uCards.length ? "hasCards" : "planned";
+          return (
+            <li class="unit">
+              <div class="unit-head">
+                <span class="seed-id">{u.id}</span>
+                <span class="unit-name">{u.name[lang]}</span>
+                <span class={`badge ${status === "planned" ? "" : "ready"}`}>{t(status, lang)}</span>
+              </div>
+              <p class="sub">{u.summary[lang]}</p>
+              <p class="meta small">
+                {u.form[lang]}
+                {u.lessons > 0 && <span> · {tf("aboutLessons", lang, { n: u.lessons })}</span>}
+              </p>
+              {u.seeds.length > 0 && (
+                <p class="unit-links">{u.seeds.map((id) => <a class="chip" href={`/${lang}/seeds/${id}/`}>{id}</a>)}</p>
+              )}
+              {uEps.length > 0 && (
+                <p class="unit-links">
+                  {uEps.map((e) => <a class="chip" href={`/${lang}/ep/${e.slug}/`}>#{e.id} {e.title[lang]}</a>)}
+                </p>
+              )}
+              {uCards.length > 0 && (
+                <p class="unit-links">
+                  {uCards.map((c) => <a class="chip" href={`/${lang}/cards/${c.slug}/`}>{c.id} {c.title[lang]}</a>)}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  )}
 </Base>
+
+<style>
+  .cardgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .gamecard { display: flex; flex-direction: column; gap: 0.25rem; }
+  .small { font-size: 0.85rem; }
+  .units { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .unit { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.8rem 1rem; }
+  .unit-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .unit-name { font-weight: 600; flex: 1 1 auto; }
+  .unit .sub { color: var(--muted); margin: 0.3rem 0; }
+  .unit-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.4rem 0 0; }
+  .unit .meta { margin: 0; }
+</style>

@@ -1,0 +1,1476 @@
+[
+ {
+  "id": "0A-1",
+  "unit": "0A",
+  "slug": "dots-at-a-glance",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "3–5",
+  "minutes": 5,
+  "title": {
+   "en": "Quick Dots",
+   "zh": "点点闪卡"
+  },
+  "why": {
+   "en": "Your child learns to see small amounts, up to five, in one look instead of counting one by one.",
+   "zh": "让孩子不用一个个数，看一眼就知道是几个（5 个以内）。"
+  },
+  "guess": {
+   "en": "Before we turn it over again: how many dots do you think you saw?",
+   "zh": "先别翻，你猜刚才有几个点？"
+  },
+  "easier": {
+   "en": "Use only the 1, 2 and 3 cards, and show them a little longer.",
+   "zh": "只用 1、2、3 三张，每张多停一会儿。"
+  },
+  "harder": {
+   "en": "Draw the same number in a new layout, like 4 in a line or 5 scattered.",
+   "zh": "同一个数换个摆法，比如 4 个排成一排，5 个随便散开。"
+  },
+  "watch": {
+   "en": "If your child starts saying the number before you finish counting, the dots are being seen as a whole. Pointing and counting is fine at first.",
+   "zh": "孩子不等数完就说出数，说明他开始“一眼看出”了。一开始还要用手点着数，也完全正常。"
+  },
+  "materials": {
+   "en": [
+    "5 index cards or pieces of card",
+    "a thick marker"
+   ],
+   "zh": [
+    "5 张卡片或硬纸片",
+    "一支粗记号笔"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Draw 1, 2, 3, 4 and 5 big dots on separate cards, like the faces of a dice.",
+    "Hold up one card for about two seconds, then turn it face down.",
+    "Ask how many dots there were, and let your child answer.",
+    "Turn the card back over and count the dots together to check.",
+    "Swap roles: your child flashes a card and you answer."
+   ],
+   "zh": [
+    "在卡片上分别画 1 到 5 个大圆点，摆法像骰子的点。",
+    "举起一张，停两秒左右，再扣过去。",
+    "问孩子刚才有几个点，等他说。",
+    "翻回来，一起点着数一数，看对不对。",
+    "换过来，孩子举卡，你来猜。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How did you know so fast?",
+    "What shape do the dots make?",
+    "Which card is the trickiest? Why?"
+   ],
+   "zh": [
+    "你怎么一下就知道的？",
+    "这些点摆成了什么样子？",
+    "哪张最难猜？为什么？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0A-2",
+  "unit": "0A",
+  "slug": "dice-snap",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "3–6",
+  "minutes": 5,
+  "title": {
+   "en": "Dice Race",
+   "zh": "骰子抢答"
+  },
+  "why": {
+   "en": "Dice faces are a fixed pattern, so your child starts to know each amount by its shape.",
+   "zh": "骰子上的点摆法固定，孩子会慢慢记住每个数的“样子”，不用再数。"
+  },
+  "guess": {
+   "en": "Shout your guess first. Then we touch the dots and see if we were right.",
+   "zh": "先喊出你猜的数，再一起点点看对不对。"
+  },
+  "easier": {
+   "en": "Cover the 6 face with a sticker so only 1–5 come up.",
+   "zh": "用贴纸把 6 点那面盖住，只玩 1 到 5。"
+  },
+  "harder": {
+   "en": "Roll two dice and ask which one has more, without counting.",
+   "zh": "两个骰子一起摇，不数，比一比哪个多。"
+  },
+  "watch": {
+   "en": "Getting faster over a few days matters more than getting every roll right. Let your child win often at first.",
+   "zh": "几天下来越说越快，比每次都对更重要。一开始可以多让孩子赢几次。"
+  },
+  "materials": {
+   "en": [
+    "1 dice (a big soft one is best)",
+    "a cup or bowl to roll it in"
+   ],
+   "zh": [
+    "1 个骰子（大的软骰子最好）",
+    "一个碗或杯子，用来摇"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Shake the dice in the cup and tip it out.",
+    "Both of you call out the number as fast as you can.",
+    "Touch each dot together to check.",
+    "Whoever was right takes a turn to roll next."
+   ],
+   "zh": [
+    "把骰子放进碗里摇一摇，倒出来。",
+    "你和孩子一起抢着说是几点。",
+    "一起用手指点一点，验一验。",
+    "说对的人下一轮来摇。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Which number is the easiest to spot?",
+    "Six looks like two threes. Can you see them?",
+    "Was there a time you guessed wrong? What did it look like?"
+   ],
+   "zh": [
+    "哪个点数你一眼就认得？",
+    "6 点像不像两个 3？你找得到吗？",
+    "刚才有没有猜错的时候？那次是几点？"
+   ]
+  },
+  "safety": {
+   "en": "A small dice is a choking hazard for children under 3. Use a big soft dice, and put small ones away after play.",
+   "zh": "小骰子对 3 岁以下孩子有窒息风险。用大号软骰子，玩完把小骰子收好。"
+  }
+ },
+ {
+  "id": "0A-3",
+  "unit": "0A",
+  "slug": "finger-flash",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "3–5",
+  "minutes": 3,
+  "title": {
+   "en": "Finger Flash",
+   "zh": "手指闪闪"
+  },
+  "why": {
+   "en": "Fingers are always with you, and showing amounts on them links the number to a picture your child can make.",
+   "zh": "手指随时都在。用手指比出数量，孩子会把“几个”和自己手上的样子连起来。"
+  },
+  "guess": {
+   "en": "Quick, show me with your fingers how many you think I had. Now let's put our hands together and check.",
+   "zh": "快，用手比给我看，你猜我刚才伸了几根？好，两只手放一起对一对。"
+  },
+  "easier": {
+   "en": "Keep your hand out longer and use only 1 to 3.",
+   "zh": "手多亮一会儿，只比 1 到 3。"
+  },
+  "harder": {
+   "en": "Use two hands, such as 5 and 2, for numbers up to 10.",
+   "zh": "用两只手比到 10，比如一只手 5 加一只手 2。"
+  },
+  "watch": {
+   "en": "Some children copy the exact fingers you used, others make the number their own way. Both are good: the second shows they are thinking about how many.",
+   "zh": "有的孩子照着你伸的那几根比，有的换几根手指比出同样的数。两种都好，后一种说明他在想“有几个”，不只是照样子。"
+  },
+  "materials": {
+   "en": [
+    "your hands"
+   ],
+   "zh": [
+    "两只手就够了"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Hide your hand behind your back and put up some fingers, from 1 to 5.",
+    "Show it for a moment, then hide it again.",
+    "Your child shows the same number on their own hand.",
+    "Put your hands side by side and compare."
+   ],
+   "zh": [
+    "手藏在背后，伸出 1 到 5 根手指。",
+    "拿出来亮一下，马上再藏回去。",
+    "孩子用自己的手比出一样多的手指。",
+    "两只手并排放，对一对。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How many fingers are hiding, folded down?",
+    "Can you show three in a different way?",
+    "Which one is easier to see, four or five?"
+   ],
+   "zh": [
+    "有几根手指弯着藏起来了？",
+    "3 还能用别的手指比出来吗？",
+    "4 和 5，哪个更好认？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0A-4",
+  "unit": "0A",
+  "slug": "peek-under-the-cup",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Peek Under the Cup",
+   "zh": "掀杯看一眼"
+  },
+  "why": {
+   "en": "Seeing the same amount in a line, a clump and a pattern shows your child that the number stays the same however things are arranged.",
+   "zh": "同样几个东西，排成一排、堆成一堆、摆成图案，个数都一样。孩子会慢慢明白，数量不随摆法变。"
+  },
+  "guess": {
+   "en": "I only showed you for a moment. What's your guess? Let's lift it and see.",
+   "zh": "只看了一眼，你猜有几个？我们掀开看看。"
+  },
+  "easier": {
+   "en": "Use only up to 3 and always put them in a neat row.",
+   "zh": "只用 3 个以内，每次都排成整齐的一排。"
+  },
+  "harder": {
+   "en": "Show 4 or 5 scattered, or use two colours, such as 3 red and 2 blue.",
+   "zh": "4 个或 5 个随便散开，或者用两种颜色，比如 3 红 2 蓝。"
+  },
+  "watch": {
+   "en": "If your child thinks a spread-out row has more, that is a very common stage. Just line the two up and count them together; no need to correct in words.",
+   "zh": "孩子觉得摊开的那排“更多”，这在这个年龄很常见。把两排对齐，一起数一数就好，不用急着讲道理。"
+  },
+  "materials": {
+   "en": [
+    "5 toy blocks or bottle caps",
+    "a large bowl or tea towel to cover them"
+   ],
+   "zh": [
+    "5 块积木或 5 个瓶盖",
+    "一个大碗或一块毛巾，用来盖住"
+   ]
+  },
+  "steps": {
+   "en": [
+    "While your child looks away, set out 1 to 5 objects and cover them.",
+    "Lift the cover for about two seconds, then put it back.",
+    "Ask how many there were.",
+    "Lift it again and count together.",
+    "Next round, use the same number but arrange them differently."
+   ],
+   "zh": [
+    "孩子转过身，你摆好 1 到 5 个东西，盖住。",
+    "掀开两秒左右，再盖回去。",
+    "问孩子：刚才有几个？",
+    "再掀开，一起数一数。",
+    "下一轮还是这个数，但换一种摆法。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Is it easier to see when they're in a line or in a pattern?",
+    "If I move them around, are there more now, or fewer?",
+    "Can you hide some for me to guess?"
+   ],
+   "zh": [
+    "排成一排好认，还是摆成花样好认？",
+    "我把它们挪开了，现在是多了还是少了？",
+    "你来摆，我来猜好不好？"
+   ]
+  },
+  "safety": {
+   "en": "Bottle caps and small blocks are a choking hazard for children under 3. Use large blocks for younger siblings and stay close.",
+   "zh": "瓶盖、小积木对 3 岁以下孩子有窒息风险。家里有更小的弟弟妹妹时改用大积木，大人在旁边看着。"
+  }
+ },
+ {
+  "id": "0B-1",
+  "unit": "0B",
+  "slug": "hide-the-beans",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "How Many Are Hiding?",
+   "zh": "藏豆子"
+  },
+  "why": {
+   "en": "Your child learns that five is made of two parts, and that if you see one part you can work out the other.",
+   "zh": "孩子会知道 5 可以分成两部分，看见一部分，就能想出另一部分。"
+  },
+  "guess": {
+   "en": "Look at what's left on the table. How many do you think are in my hand? Now I'll open it.",
+   "zh": "看看桌上剩几颗，你猜我手里有几颗？我张开手啦。"
+  },
+  "easier": {
+   "en": "Start with 3 beans.",
+   "zh": "先从 3 颗豆子玩起。"
+  },
+  "harder": {
+   "en": "Use 7 or 10 beans, or hide some in both hands.",
+   "zh": "用 7 颗或 10 颗，或者两只手各藏一些。"
+  },
+  "watch": {
+   "en": "At first your child may count up on their fingers to find the missing part. That's a great strategy. Over time some pairs, like 4 and 1, will just be known.",
+   "zh": "一开始孩子可能掰着手指往上数，这是很好的办法。玩多了，像“4 和 1”这样的组合会直接脱口而出。"
+  },
+  "materials": {
+   "en": [
+    "5 dried beans or large buttons",
+    "a small bowl"
+   ],
+   "zh": [
+    "5 颗豆子或大纽扣",
+    "一个小碗"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Count the 5 beans together and put them on the table.",
+    "Your child closes their eyes while you hide some in your hand.",
+    "Your child looks at the beans left on the table.",
+    "They say how many are hiding, then you open your hand.",
+    "Swap: your child hides, you guess."
+   ],
+   "zh": [
+    "先一起数清楚 5 颗豆子，放在桌上。",
+    "孩子闭眼，你抓几颗藏在手里。",
+    "孩子睁眼，看桌上还剩几颗。",
+    "让他说手里藏了几颗，再张开手看。",
+    "换过来，孩子藏，你猜。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How did you work it out?",
+    "What if none were left on the table?",
+    "Can 5 be split another way?"
+   ],
+   "zh": [
+    "你是怎么想出来的？",
+    "要是桌上一颗都不剩呢？",
+    "5 还能怎么分？"
+   ]
+  },
+  "safety": {
+   "en": "Beans and buttons are a choking hazard for children under 3. An adult should stay with the child the whole time and count them back into the bowl at the end.",
+   "zh": "豆子、纽扣对 3 岁以下孩子有窒息风险。大人全程陪着，玩完一起数清楚收回碗里。"
+  }
+ },
+ {
+  "id": "0B-2",
+  "unit": "0B",
+  "slug": "shake-and-spill",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Shake and Spill",
+   "zh": "摇一摇，倒一倒"
+  },
+  "why": {
+   "en": "Each spill splits five in a new way, so your child sees all the pairs that make five.",
+   "zh": "每倒一次，5 就分成不同的两份。玩几轮，孩子就能看到“几和几合成 5”的各种样子。"
+  },
+  "guess": {
+   "en": "Before you tip them out: how many heads do you think will land face up?",
+   "zh": "倒出来之前先猜：会有几个正面朝上？"
+  },
+  "easier": {
+   "en": "Use 3 coins.",
+   "zh": "只用 3 枚硬币。"
+  },
+  "harder": {
+   "en": "Use 6 to 10 coins, and keep a list until you think you've found every pair.",
+   "zh": "用 6 到 10 枚，记下来，直到觉得所有分法都找齐了。"
+  },
+  "watch": {
+   "en": "Your child does not need to find every pair. Noticing that the total stays five each time is the real win.",
+   "zh": "不用找齐所有分法。孩子发现“每次合起来都是 5”，就已经很好了。"
+  },
+  "materials": {
+   "en": [
+    "5 coins",
+    "a cup",
+    "paper and a pencil (optional)"
+   ],
+   "zh": [
+    "5 枚硬币",
+    "一个杯子",
+    "纸和笔（可选）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Put 5 coins in the cup and shake.",
+    "Tip them out onto the table.",
+    "Sort them into heads and tails.",
+    "Say it together: 3 heads and 2 tails make 5.",
+    "Draw tally marks for each spill if your child likes."
+   ],
+   "zh": [
+    "5 枚硬币放进杯子，摇一摇。",
+    "倒在桌上。",
+    "把正面的放一边，反面的放另一边。",
+    "一起说：3 个正面、2 个反面，合起来是 5。",
+    "孩子愿意的话，每次画几道记下来。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Have we had this one before?",
+    "Could all five ever be heads?",
+    "Is 2 and 3 the same as 3 and 2?"
+   ],
+   "zh": [
+    "这种分法刚才出现过吗？",
+    "5 个会不会全是正面？",
+    "“2 和 3”跟“3 和 2”一样吗？"
+   ]
+  },
+  "safety": {
+   "en": "Coins are a choking hazard for children under 3. An adult should supervise and count them back at the end.",
+   "zh": "硬币对 3 岁以下孩子有窒息风险。大人在旁边看着，玩完数清楚收好。"
+  }
+ },
+ {
+  "id": "0B-3",
+  "unit": "0B",
+  "slug": "egg-box-ten-frame",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Egg Box Ten",
+   "zh": "鸡蛋盒十格盘"
+  },
+  "why": {
+   "en": "Two rows of five make ten easy to see, so your child can tell at once how many are full and how many are empty.",
+   "zh": "两排、每排五格，十个一眼看得清。孩子一看就知道满了几格、还空几格。"
+  },
+  "guess": {
+   "en": "Don't count yet. How many empty cups do you think there are? Let's fill them and find out.",
+   "zh": "先别数，你猜还空几格？我们放满看看。"
+  },
+  "easier": {
+   "en": "Use only the top row of 5.",
+   "zh": "只用上面一排的 5 格。"
+  },
+  "harder": {
+   "en": "Close the lid after a quick look and ask how many are empty.",
+   "zh": "看一眼就盖上盖子，再问还空几格。"
+  },
+  "watch": {
+   "en": "Watch for your child saying \"five and two more\" for seven. Using the full row of five is exactly the idea this game is for.",
+   "zh": "孩子说“5 个再加 2 个”是 7，就说明他用上了“一排是 5”，这正是这个游戏要的。"
+  },
+  "materials": {
+   "en": [
+    "an empty egg box with 10 cups (tape over any extra cups)",
+    "10 balls of scrunched paper or pom-poms"
+   ],
+   "zh": [
+    "一个空鸡蛋盒（多出来的格子用胶带封住，留 10 格）",
+    "10 个纸团或小绒球"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Fill the top row first, left to right, then the bottom row.",
+    "Put in some balls while your child watches.",
+    "Ask how many are in and how many cups are empty.",
+    "Fill the empty cups and count to ten together."
+   ],
+   "zh": [
+    "约好先放上排，从左往右，再放下排。",
+    "当着孩子的面放进几个。",
+    "问：放了几个？还空几格？",
+    "把空格放满，一起数到 10。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How do you know without counting them all?",
+    "If the top row is full, how many is that?",
+    "Seven in, how many more to make ten?"
+   ],
+   "zh": [
+    "不一个个数，你怎么知道的？",
+    "上排满了，是几个？",
+    "放了 7 个，再放几个就是 10？"
+   ]
+  },
+  "safety": {
+   "en": "Paper balls and pom-poms are a choking hazard for children under 3. Supervise and tidy them away afterwards.",
+   "zh": "纸团、绒球对 3 岁以下孩子有窒息风险。大人看着玩，玩完收好。"
+  }
+ },
+ {
+  "id": "0B-4",
+  "unit": "0B",
+  "slug": "two-car-parks",
+  "seeds": [
+   "S-1",
+   "S-5"
+  ],
+  "age": "3–5",
+  "minutes": 5,
+  "title": {
+   "en": "Two Car Parks",
+   "zh": "两个停车场"
+  },
+  "why": {
+   "en": "Moving cars between two spaces shows your child that five can be split in many ways and is still five.",
+   "zh": "车在两个停车场之间开来开去，孩子会看到：5 能分成好多种，合起来还是 5。"
+  },
+  "guess": {
+   "en": "If one more car drives over, how many will be left here? Guess, then drive it and see.",
+   "zh": "再开过去一辆，这边还剩几辆？先猜，再开过去看看。"
+  },
+  "easier": {
+   "en": "Use 3 cars.",
+   "zh": "用 3 辆车。"
+  },
+  "harder": {
+   "en": "Use 6 or 7 cars and lay out the splits in a row from 6 and 0 to 0 and 6.",
+   "zh": "用 6 辆或 7 辆，把分法按顺序排出来，从“6 和 0”一直到“0 和 6”。"
+  },
+  "watch": {
+   "en": "Some children want to recount all five every time. That's fine. Noticing \"one goes up, one goes down\" is a pattern to celebrate.",
+   "zh": "孩子每次都想把 5 辆全数一遍也没关系。要是他发现“这边多一辆，那边就少一辆”，那是很了不起的发现。"
+  },
+  "materials": {
+   "en": [
+    "5 toy cars (or 5 small toys)",
+    "2 shoebox lids or 2 sheets of paper as car parks"
+   ],
+   "zh": [
+    "5 辆玩具车（或 5 个小玩具）",
+    "2 个鞋盒盖或 2 张纸，当停车场"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Park all 5 cars in one car park.",
+    "Drive one car over to the other car park.",
+    "Say it: 4 here and 1 there, 5 cars altogether.",
+    "Keep driving one car at a time until they're all moved."
+   ],
+   "zh": [
+    "5 辆车先都停在一个停车场。",
+    "开一辆到另一个停车场。",
+    "一起说：这边 4 辆，那边 1 辆，一共 5 辆。",
+    "一次开一辆，直到全开过去。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Did we lose any cars?",
+    "Which way of parking do you like best?",
+    "What happens if we start from the other car park?"
+   ],
+   "zh": [
+    "车有没有少？",
+    "你最喜欢哪种停法？",
+    "从另一个停车场开回来，会怎样？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0B-5",
+  "unit": "0B",
+  "slug": "bottle-bowling-ten",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Bottle Bowling",
+   "zh": "瓶子保龄球"
+  },
+  "why": {
+   "en": "Knocked down plus still standing is always ten, so your child practises the pairs that make ten while playing.",
+   "zh": "倒下的加上站着的，总是 10 个。孩子在玩里练熟“几和几凑成 10”。"
+  },
+  "guess": {
+   "en": "Four fell down. How many do you think are still standing? Count them and see.",
+   "zh": "倒了 4 个，你猜还站着几个？数数看。"
+  },
+  "easier": {
+   "en": "Use 5 bottles.",
+   "zh": "用 5 个瓶子。"
+  },
+  "harder": {
+   "en": "Guess how many will fall before each roll, and keep score on paper.",
+   "zh": "每次滚球前先猜会倒几个，在纸上记分。"
+  },
+  "watch": {
+   "en": "Pairs like 5 and 5 or 9 and 1 tend to stick first. If your child counts every bottle every time, that's still useful practice.",
+   "zh": "“5 和 5”“9 和 1”这类组合通常最先记住。孩子每次都一个个数，也一样是在练。"
+  },
+  "materials": {
+   "en": [
+    "10 empty plastic bottles",
+    "a soft ball"
+   ],
+   "zh": [
+    "10 个空塑料瓶",
+    "一个软球"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Stand the 10 bottles in a group and count them together.",
+    "Your child rolls the ball at them.",
+    "Count how many fell down.",
+    "Ask how many are still standing, then check.",
+    "Stand them up and take turns."
+   ],
+   "zh": [
+    "10 个瓶子摆在一起，先一起数一遍。",
+    "孩子滚球去撞。",
+    "数一数倒了几个。",
+    "问：还站着几个？再数一数看。",
+    "摆好，轮流来。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Could you tell how many were standing without counting them?",
+    "What would you need to knock down for a strike?",
+    "If 9 fall, how many are left?"
+   ],
+   "zh": [
+    "不数站着的，你能知道有几个吗？",
+    "要全倒，得撞倒几个？",
+    "倒了 9 个，还剩几个？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0C-1",
+  "unit": "0C",
+  "slug": "who-has-more",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Who Has More?",
+   "zh": "谁的多？"
+  },
+  "why": {
+   "en": "Matching things one to one helps your child see that \"more\" means how many, not how much space they take up.",
+   "zh": "一个对一个地配对，孩子会明白“多”看的是个数，不是占的地方大。"
+  },
+  "guess": {
+   "en": "Which plate do you think has more? Point to it. Now let's pair them up and check.",
+   "zh": "你猜哪盘多？指一指。好，我们一对一对配起来看看。"
+  },
+  "easier": {
+   "en": "Use 3 against 3, then 3 against 4.",
+   "zh": "先 3 块对 3 块，再 3 块对 4 块。"
+  },
+  "harder": {
+   "en": "Use 7 against 8, spread differently, and guess before matching.",
+   "zh": "7 块对 8 块，摆法不一样，先猜再配对。"
+  },
+  "watch": {
+   "en": "Many children this age pick the spread-out plate. That's normal. Let the matching do the convincing, and play it again another day.",
+   "zh": "这个年龄很多孩子会选摊开的那盘，很正常。让配对的结果自己说话，过几天再玩一次。"
+  },
+  "materials": {
+   "en": [
+    "about 10 toy blocks or large crackers",
+    "2 plates"
+   ],
+   "zh": [
+    "10 块左右积木或大饼干",
+    "2 个盘子"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Put 5 blocks on one plate, close together.",
+    "Put 5 blocks on the other plate, spread far apart.",
+    "Ask which plate has more.",
+    "Take them off and match them in pairs, one from each plate."
+   ],
+   "zh": [
+    "一个盘子放 5 块，挤在一起。",
+    "另一个盘子也放 5 块，摊得开开的。",
+    "问孩子：哪个盘子的多？",
+    "拿下来，一边一块，两两配对。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Did any block end up without a partner?",
+    "So who has more?",
+    "Can you make my plate look bigger without adding any?"
+   ],
+   "zh": [
+    "有没有哪块没配上对？",
+    "那到底谁多？",
+    "不加积木，你能让我这盘看起来更多吗？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0C-2",
+  "unit": "0C",
+  "slug": "which-is-longer",
+  "seeds": [
+   "S-1",
+   "S-6"
+  ],
+  "age": "3–6",
+  "minutes": 5,
+  "title": {
+   "en": "Which Is Longer?",
+   "zh": "谁更长？"
+  },
+  "why": {
+   "en": "Lining things up from the same starting point teaches your child a fair way to compare length.",
+   "zh": "把东西的一头对齐再比，孩子学会怎样比长短才公平。"
+  },
+  "guess": {
+   "en": "Guess first: is the spoon or the shoe longer? Now let's line them up against the wall.",
+   "zh": "先猜：勺子长还是鞋长？好，我们靠着墙对齐比一比。"
+  },
+  "easier": {
+   "en": "Compare two things that are very different, like a pencil and a broom.",
+   "zh": "比两样差得很多的东西，比如铅笔和扫把。"
+  },
+  "harder": {
+   "en": "Order four things from shortest to longest, or measure with hand spans.",
+   "zh": "把四样东西从短到长排好，或者用手掌一拃一拃地量。"
+  },
+  "watch": {
+   "en": "A common slip is comparing without lining up the ends. Rather than saying it's wrong, slide one along and ask, \"Is it still longer now?\"",
+   "zh": "常见的情况是两头没对齐就比。不用说“错了”，把一样东西挪一挪，问：“现在还是它长吗？”"
+  },
+  "materials": {
+   "en": [
+    "a piece of string or ribbon",
+    "things to compare: a spoon, a shoe, a book, a sock"
+   ],
+   "zh": [
+    "一根毛线或丝带",
+    "几样要比的东西：勺子、鞋、书、袜子"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Pick two things and ask which is longer.",
+    "Lay them side by side with one end against a wall.",
+    "Look at the other end to see which sticks out.",
+    "For things that can't move, use the string to measure one and compare."
+   ],
+   "zh": [
+    "拿两样东西，问孩子哪个长。",
+    "并排放好，一头都顶着墙。",
+    "看另一头，谁伸得更远。",
+    "搬不动的东西，先用毛线量一量，再拿毛线去比。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Why do we put the ends together?",
+    "Can you find something longer than your arm?",
+    "Is the sofa longer than the door is tall?"
+   ],
+   "zh": [
+    "为什么要把一头对齐？",
+    "你能找到比你手臂还长的东西吗？",
+    "沙发的长和门的高，哪个长？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0C-3",
+  "unit": "0C",
+  "slug": "line-up-by-size",
+  "seeds": [
+   "S-1",
+   "S-5"
+  ],
+  "age": "3–6",
+  "minutes": 5,
+  "title": {
+   "en": "Line Up by Size",
+   "zh": "排排队"
+  },
+  "why": {
+   "en": "Putting things in order from smallest to biggest is the first step towards a number line.",
+   "zh": "从小到大排队，是数轴的第一步。"
+  },
+  "guess": {
+   "en": "Here's a new one. Where do you think it fits? Put it there, then we'll check its neighbours.",
+   "zh": "来了个新的，你猜它该排在哪？放进去，再看看它左右两个。"
+  },
+  "easier": {
+   "en": "Start with 3 things that are clearly different in size.",
+   "zh": "先用 3 样大小差得明显的东西。"
+  },
+  "harder": {
+   "en": "Use 6 or 7 things that are close in size, or line up family members by height.",
+   "zh": "用 6、7 样差不多大的东西，或者全家人按身高排队。"
+  },
+  "watch": {
+   "en": "Your child may get the ends right and the middle muddled. Comparing just two neighbours at a time usually sorts it out.",
+   "zh": "孩子常常两头排对了、中间乱了。让他一次只比挨着的两个，通常就能理顺。"
+  },
+  "materials": {
+   "en": [
+    "5 things of different sizes, such as shoes from family members or soft toys",
+    "a strip of masking tape on the floor (optional)"
+   ],
+   "zh": [
+    "5 样大小不同的东西，比如家里每个人的鞋或毛绒玩具",
+    "地上贴一条纸胶带（可选）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Put the 5 things in a jumble.",
+    "Your child lines them up from smallest to biggest along the tape.",
+    "Walk along the line together and check each step gets bigger.",
+    "Hide one, then ask where a new one should go."
+   ],
+   "zh": [
+    "5 样东西乱放在一起。",
+    "孩子沿着胶带，从小到大排成一队。",
+    "一起从头走到尾，看是不是一个比一个大。",
+    "拿走一个，再问：新来的这个该站哪？"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Who is in the middle?",
+    "Who is just bigger than this one?",
+    "Could we line them up from biggest to smallest too?"
+   ],
+   "zh": [
+    "谁站在正中间？",
+    "比它大一点点的是谁？",
+    "能不能倒过来，从大到小排？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0D-1",
+  "unit": "0D",
+  "slug": "two-triangles",
+  "seeds": [
+   "S-4",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Two Triangles",
+   "zh": "两个三角形"
+  },
+  "why": {
+   "en": "Cutting a square into two triangles and rebuilding new shapes shows your child that shapes can be taken apart and put back together.",
+   "zh": "一个正方形剪成两个三角形，再拼出新形状，孩子会看到形状可以拆开、换个样子拼回去。"
+  },
+  "guess": {
+   "en": "Can these two pieces make a big triangle? Guess yes or no, then try it.",
+   "zh": "这两块能拼成一个大三角形吗？先猜能还是不能，再拼拼看。"
+  },
+  "easier": {
+   "en": "Only rebuild the square.",
+   "zh": "只拼回正方形。"
+  },
+  "harder": {
+   "en": "Cut a square into 4 small triangles and see how many shapes you can make.",
+   "zh": "把正方形剪成 4 个小三角形，看能拼出多少种形状。"
+  },
+  "watch": {
+   "en": "Turning and flipping pieces until they fit is the point. Wrong tries are part of the game, so let your child fiddle before you help.",
+   "zh": "转来转去、翻过来翻过去才拼上，正是这个游戏要练的。试不对也是玩的一部分，先让孩子自己摆弄。"
+  },
+  "materials": {
+   "en": [
+    "a few square pieces of paper (or square napkins)",
+    "scissors for the adult"
+   ],
+   "zh": [
+    "几张正方形的纸（或方形餐巾纸）",
+    "一把剪刀（大人用）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Fold a square corner to corner and cut along the fold.",
+    "Give your child the two triangles.",
+    "Ask them to put the square back together.",
+    "Then try to make one big triangle, and then a slanted shape."
+   ],
+   "zh": [
+    "大人把正方形纸对角折，沿折线剪开。",
+    "把两个三角形交给孩子。",
+    "请他拼回正方形。",
+    "再试着拼一个大三角形，再拼一个斜斜的四边形。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Is there more paper now, or the same?",
+    "What did you have to do to that piece to make it fit?",
+    "What else can you make with the two pieces?"
+   ],
+   "zh": [
+    "纸变多了，还是一样多？",
+    "这块要怎么转一转、翻一翻才拼得上？",
+    "这两块还能拼出什么？"
+   ]
+  },
+  "safety": {
+   "en": "An adult does all the cutting and keeps the scissors out of reach. If your child wants to cut, use child safety scissors with an adult beside them.",
+   "zh": "剪的部分都由大人来做，剪刀放在孩子够不着的地方。孩子想剪的话，用儿童安全剪刀，大人在旁边。"
+  }
+ },
+ {
+  "id": "0D-2",
+  "unit": "0D",
+  "slug": "fold-and-cut",
+  "seeds": [
+   "S-4",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Fold, Cut, Guess",
+   "zh": "折一折，剪一剪"
+  },
+  "why": {
+   "en": "Guessing what a folded cut-out will look like when opened helps your child see that the two halves are mirror images.",
+   "zh": "猜一猜折着剪下来的纸打开是什么样，孩子会发现两边是一模一样、对着的。"
+  },
+  "guess": {
+   "en": "I've drawn half. What do you think it will look like when we open it? Draw your guess with your finger, then open it.",
+   "zh": "我只画了一半，打开会是什么样？用手指在桌上画出你猜的样子，再打开看。"
+  },
+  "easier": {
+   "en": "The adult cuts; your child only guesses and opens.",
+   "zh": "大人来剪，孩子只负责猜和打开。"
+  },
+  "harder": {
+   "en": "Fold twice and cut a notch at a corner, then guess how many holes you'll see.",
+   "zh": "对折两次，在角上剪个小口，猜打开有几个洞。"
+  },
+  "watch": {
+   "en": "Children often expect to see only the half that was drawn. When they're surprised, ask what happened. That surprise is where the learning is.",
+   "zh": "孩子常以为打开只有画的那一半。他吃惊时，问一句“怎么回事”，这一下吃惊正是在学。"
+  },
+  "materials": {
+   "en": [
+    "some paper",
+    "scissors (child safety scissors if your child cuts)",
+    "a pencil"
+   ],
+   "zh": [
+    "几张纸",
+    "剪刀（孩子自己剪就用儿童安全剪刀）",
+    "一支铅笔"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Fold a piece of paper in half.",
+    "Draw half a heart or half a tree against the fold.",
+    "Cut along the line, keeping the fold uncut.",
+    "Before opening, guess what it will look like, then open it."
+   ],
+   "zh": [
+    "把一张纸对折。",
+    "靠着折痕画半个爱心或半棵树。",
+    "沿线剪下来，折痕那边别剪断。",
+    "打开之前先猜是什么样，再打开。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Are the two sides the same?",
+    "Where is the fold now?",
+    "What shape would half a circle make?"
+   ],
+   "zh": [
+    "两边一样吗？",
+    "折痕现在在哪儿？",
+    "画半个圆，打开会是什么？"
+   ]
+  },
+  "safety": {
+   "en": "Scissors need an adult beside the child at all times. Use child safety scissors, and keep sharp scissors for the adult only.",
+   "zh": "用剪刀时大人必须一直在旁边。孩子用儿童安全剪刀，尖剪刀只给大人用。"
+  }
+ },
+ {
+  "id": "0D-3",
+  "unit": "0D",
+  "slug": "turn-it-around",
+  "seeds": [
+   "S-4",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Same or Different?",
+   "zh": "转一转还是它吗？"
+  },
+  "why": {
+   "en": "Your child learns that a shape turned around or flipped over is still the same shape.",
+   "zh": "孩子会明白：一个形状转个方向、翻个面，还是同一个形状。"
+  },
+  "guess": {
+   "en": "Same or different? Guess first, then turn the plate and find out.",
+   "zh": "一样还是不一样？先猜，再转盘子看看。"
+  },
+  "easier": {
+   "en": "Use 2 blocks in a line and turn them.",
+   "zh": "只用 2 块积木排成一条，转着玩。"
+  },
+  "harder": {
+   "en": "Use 4 blocks, and include a flipped shape that only matches if you lift and turn it over.",
+   "zh": "用 4 块，搭一个“翻过来”才对得上的形状，要拿起来翻面。"
+  },
+  "watch": {
+   "en": "Young children often say a turned shape is \"different\". Let them turn it themselves; doing it changes their mind more than being told.",
+   "zh": "小孩常说转过去的形状“不一样了”。让他自己动手转，比你告诉他更管用。"
+  },
+  "materials": {
+   "en": [
+    "4 large building blocks of the same size",
+    "a plate or tray"
+   ],
+   "zh": [
+    "4 块一样大的大积木",
+    "一个盘子或托盘"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Build an L shape with 3 blocks on the plate.",
+    "Build the same L on the table, but turned a different way.",
+    "Ask your child: same shape or different?",
+    "Turn the plate slowly to see if they match."
+   ],
+   "zh": [
+    "在盘子上用 3 块积木搭一个 L 形。",
+    "在桌上再搭一个一样的 L，但换个方向放。",
+    "问孩子：是一样的形状，还是不一样？",
+    "慢慢转动盘子，看能不能对上。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "What did we have to do to make them match?",
+    "Can you build one that will never match, however we turn it?",
+    "Is a square still a square if we turn it?"
+   ],
+   "zh": [
+    "要怎么做才对得上？",
+    "你能搭一个怎么转都对不上的吗？",
+    "正方形转一转，还是正方形吗？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0D-4",
+  "unit": "0D",
+  "slug": "build-my-half",
+  "seeds": [
+   "S-4",
+   "S-5"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Build My Other Half",
+   "zh": "搭另一半"
+  },
+  "why": {
+   "en": "Copying a shape as a mirror image across a line is your child's first feel for symmetry.",
+   "zh": "隔着一条线照镜子一样搭出另一半，是孩子对“对称”的第一次感受。"
+  },
+  "guess": {
+   "en": "Before you build: where do you think this block goes on your side? Point first, then place it.",
+   "zh": "搭之前先猜：这一块在你那边该放在哪？先指一指，再放。"
+  },
+  "easier": {
+   "en": "Use only 2 blocks, both touching the line.",
+   "zh": "只用 2 块，都贴着中间线。"
+  },
+  "harder": {
+   "en": "Put some blocks away from the line, or swap so your child builds first.",
+   "zh": "有的积木离开中间线摆，或者换孩子先搭、你来配。"
+  },
+  "watch": {
+   "en": "A very common slip is copying the half exactly instead of mirroring it. Ask, \"Which block is next to the line on my side? And on yours?\"",
+   "zh": "很常见的情况是照着原样搭，而不是对着搭。问一句：“我这边贴着线的是哪块？你那边呢？”"
+  },
+  "materials": {
+   "en": [
+    "about 10 building blocks",
+    "a chopstick, ribbon or strip of tape as the middle line"
+   ],
+   "zh": [
+    "10 块左右积木",
+    "一根筷子、丝带或胶带，当中间的线"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Lay the chopstick down as the middle line.",
+    "Put 3 or 4 blocks on your side, touching the line.",
+    "Your child builds the matching half on their side, like a mirror.",
+    "Look at the whole thing together: does it look balanced?"
+   ],
+   "zh": [
+    "把筷子放在中间，当分界线。",
+    "你在自己这边靠着线摆 3、4 块积木。",
+    "孩子在他那边像照镜子一样搭出另一半。",
+    "一起看整个图形，两边对不对称？"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How did you know where to put that one?",
+    "Which block is furthest from the line?",
+    "What could this shape be? A butterfly, a house?"
+   ],
+   "zh": [
+    "你怎么知道那块放这儿的？",
+    "离中间线最远的是哪一块？",
+    "拼出来像什么？蝴蝶，还是房子？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0D-5",
+  "unit": "0D",
+  "slug": "four-squares",
+  "seeds": [
+   "S-4",
+   "S-1"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Four Squares",
+   "zh": "四块方块"
+  },
+  "why": {
+   "en": "Four squares can make many different shapes, but there are always four squares' worth of space, an early feel for area.",
+   "zh": "四个方块能拼出好多形状，但占的地方始终是四块那么大。这是面积最早的样子。"
+  },
+  "guess": {
+   "en": "Which takes up more room, the long line or the big square? Guess, then lay one on top of the other.",
+   "zh": "一长条和大方块，哪个占的地方大？先猜，再叠起来比比。"
+  },
+  "easier": {
+   "en": "Use 3 squares.",
+   "zh": "用 3 个方块。"
+  },
+  "harder": {
+   "en": "Keep tracing until your child thinks every shape has been found, then check together for turned copies.",
+   "zh": "一直描，直到孩子觉得找齐了，再一起看看哪些其实是转过来的同一个。"
+  },
+  "watch": {
+   "en": "Your child may think the long line is bigger because it's longer. Counting the squares in each is a gentle way to check.",
+   "zh": "孩子可能觉得长条更大，因为它更长。一起数数各有几块，就能轻轻松松地验一验。"
+  },
+  "materials": {
+   "en": [
+    "4 sticky notes or 4 square crackers",
+    "paper and a pencil to trace (optional)"
+   ],
+   "zh": [
+    "4 张方形便利贴或 4 块方形饼干",
+    "纸和笔，用来描下来（可选）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Put the 4 squares together so whole sides touch.",
+    "Make a long line, then a big square.",
+    "Ask your child to find a new shape.",
+    "Trace each new shape on paper so you remember it."
+   ],
+   "zh": [
+    "4 个方块边贴着边拼在一起。",
+    "先拼成一长条，再拼成一个大方块。",
+    "请孩子拼一个新形状。",
+    "每拼出一个新的，就在纸上描下来。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "Is this a new shape, or one we had, just turned?",
+    "How many shapes do you think there are?",
+    "Did any shape need more than four squares?"
+   ],
+   "zh": [
+    "这是新形状，还是刚才那个转了个方向？",
+    "你猜一共能拼出几种？",
+    "有没有哪个形状用了不止四块？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0E-1",
+  "unit": "0E",
+  "slug": "pasta-necklace-pattern",
+  "seeds": [
+   "S-5",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 10,
+  "title": {
+   "en": "Pattern Necklace",
+   "zh": "串串项链"
+  },
+  "why": {
+   "en": "Making a repeating pattern and saying what comes next is your child's first step towards spotting and describing rules.",
+   "zh": "串出一个重复的花样、说出下一个是什么，是孩子发现规律、说出规律的第一步。"
+  },
+  "guess": {
+   "en": "What do you think comes next? Say it, thread it, then let's say the whole pattern out loud to check.",
+   "zh": "你猜下一个是什么？说出来、串上去，再从头念一遍看看对不对。"
+  },
+  "easier": {
+   "en": "Stick to red, blue, red, blue, and say the colours aloud as you go.",
+   "zh": "只玩红蓝红蓝，边串边念颜色。"
+  },
+  "harder": {
+   "en": "Try patterns like red, red, blue, yellow, or make a deliberate mistake for your child to find.",
+   "zh": "试试“红红蓝黄”这样的花样，或者故意串错一个，让孩子来找。"
+  },
+  "watch": {
+   "en": "Copying is easy; carrying on is harder; explaining the rule is hardest. Any of these steps is progress.",
+   "zh": "照着串最容易，接着串难一点，说出规律最难。走到哪一步都是进步。"
+  },
+  "materials": {
+   "en": [
+    "dried tube pasta or large wooden beads in two colours",
+    "a shoelace or string",
+    "felt-tip pens to colour pasta (optional)"
+   ],
+   "zh": [
+    "通心粉或大木珠，两种颜色",
+    "一根鞋带或绳子",
+    "彩笔，用来给通心粉涂色（可选）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Thread a pattern: red, blue, red, blue, red, blue.",
+    "Ask what comes next, and let your child add it.",
+    "Start a new pattern: red, blue, blue, red, blue, blue.",
+    "Let your child carry on, then make up a pattern of their own."
+   ],
+   "zh": [
+    "先串一段：红、蓝、红、蓝、红、蓝。",
+    "问孩子下一个串什么，让他串上去。",
+    "换个花样：红、蓝、蓝、红、蓝、蓝。",
+    "让孩子接着串，再自己编一个花样。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How would you tell a friend the rule?",
+    "What colour will the tenth one be?",
+    "Is it always blue after red? Always?"
+   ],
+   "zh": [
+    "这个规律你会怎么讲给小朋友听？",
+    "第 10 个是什么颜色？",
+    "红的后面一定是蓝的吗？一定吗？"
+   ]
+  },
+  "safety": {
+   "en": "Pasta and beads are a choking hazard for children under 3. Stay with your child while they play, and don't let a necklace be worn while sleeping.",
+   "zh": "通心粉、珠子对 3 岁以下孩子有窒息风险。孩子玩的时候大人一直在旁边，睡觉时不要戴串好的项链。"
+  }
+ },
+ {
+  "id": "0E-2",
+  "unit": "0E",
+  "slug": "clap-stomp-rhythm",
+  "seeds": [
+   "S-5",
+   "S-6"
+  ],
+  "age": "3–6",
+  "minutes": 3,
+  "title": {
+   "en": "Clap Clap Stomp",
+   "zh": "拍拍跺脚"
+  },
+  "why": {
+   "en": "Hearing and moving to a pattern helps your child notice what repeats, even without anything to look at.",
+   "zh": "用耳朵听、用身体做，孩子不看东西也能发现什么在重复。"
+  },
+  "guess": {
+   "en": "I'm stopping here. What do you think comes next, a clap or a stomp? Do it, then we'll do the whole thing together.",
+   "zh": "我停在这儿。你猜下一个是拍还是跺？做出来，我们再一起从头来一遍。"
+  },
+  "easier": {
+   "en": "Use clap, stomp, clap, stomp, and go slowly.",
+   "zh": "只用拍、跺、拍、跺，慢慢来。"
+  },
+  "harder": {
+   "en": "Use three moves, such as clap, stomp, jump, or try clap, clap, stomp, stomp.",
+   "zh": "用三个动作，比如拍、跺、跳，或者拍拍跺跺。"
+  },
+  "watch": {
+   "en": "Your child may speed up or lose the beat. That's fine: saying the moves out loud usually helps them get back on track.",
+   "zh": "孩子可能越做越快、乱了拍子，没关系。边做边念出来，一般就能跟上了。"
+  },
+  "materials": {
+   "en": [
+    "nothing needed, just space to move"
+   ],
+   "zh": [
+    "什么都不用，有地方动就行"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Do a rhythm: clap, clap, stomp, clap, clap, stomp.",
+    "Stop and let your child do the next part.",
+    "Try a new one: clap, stomp, stomp.",
+    "Let your child make up a rhythm for you to follow."
+   ],
+   "zh": [
+    "做一段节奏：拍、拍、跺，拍、拍、跺。",
+    "停下来，让孩子接下去。",
+    "换一个：拍、跺、跺。",
+    "让孩子编一段，你来跟。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "What part keeps coming back?",
+    "Can you turn our rhythm into words, like \"dog, dog, cat\"?",
+    "If we kept going forever, would it always end in a stomp?"
+   ],
+   "zh": [
+    "哪一段老是重复？",
+    "能把节奏换成说的吗？比如“猫、猫、狗”。",
+    "一直做下去，最后一定是跺脚吗？"
+   ]
+  },
+  "safety": null
+ },
+ {
+  "id": "0E-3",
+  "unit": "0E",
+  "slug": "spot-the-slip",
+  "seeds": [
+   "S-5",
+   "S-6"
+  ],
+  "age": "4–6",
+  "minutes": 5,
+  "title": {
+   "en": "Spot the Slip",
+   "zh": "哪里不对？"
+  },
+  "why": {
+   "en": "Finding a mistake in a pattern makes your child check the rule against every piece, which is what \"is it always?\" means.",
+   "zh": "找出规律里的错，孩子得拿规律一个一个去对。这就是“一定吗？”的意思。"
+  },
+  "guess": {
+   "en": "Guess where the mistake is just by looking. Now walk your finger along the row and check each one.",
+   "zh": "先看一眼，猜错在哪儿？再用手指从头一个一个点过去，验一验。"
+  },
+  "easier": {
+   "en": "Use a short row of 6 and make the mistake near the start.",
+   "zh": "只摆 6 个，错的那个放在前面。"
+  },
+  "harder": {
+   "en": "Use a pattern like cup, cup, spoon, and hide the mistake near the end.",
+   "zh": "用“杯、杯、勺”这样的规律，把错藏在后面。"
+  },
+  "watch": {
+   "en": "If your child says the mistake is \"a new pattern\", take it seriously and ask how it would carry on. That's real mathematical thinking, not a dodge.",
+   "zh": "孩子要是说“这是新规律”，认真对待，问他接下去会怎么排。这是真正的数学思考，不是耍赖。"
+  },
+  "materials": {
+   "en": [
+    "about 8 spoons and 8 cups (or socks in two colours)"
+   ],
+   "zh": [
+    "8 把左右勺子和 8 个杯子（或两种颜色的袜子）"
+   ]
+  },
+  "steps": {
+   "en": [
+    "Lay out a row: cup, spoon, cup, spoon, and so on.",
+    "Put one wrong on purpose, for example two spoons together.",
+    "Tell your child there's one sneaky mistake to find.",
+    "Let them fix it, then hide one for you to find."
+   ],
+   "zh": [
+    "摆一排：杯子、勺子、杯子、勺子……",
+    "故意摆错一个，比如两把勺子挨在一起。",
+    "跟孩子说：这里藏了一个小错误，你能找到吗？",
+    "让他改好，再换他藏一个错让你找。"
+   ]
+  },
+  "ask": {
+   "en": [
+    "How do you know that one is wrong?",
+    "Could it be a new pattern instead of a mistake?",
+    "If the row was really long, would every spoon have a cup after it?"
+   ],
+   "zh": [
+    "你怎么知道那个错了？",
+    "会不会它不是错，而是另一种规律？",
+    "这一排要是很长很长，每把勺子后面都一定是杯子吗？"
+   ]
+  },
+  "safety": null
+ }
+]

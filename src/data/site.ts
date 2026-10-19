@@ -1,5 +1,7 @@
 import episodesJson from "./episodes.json";
 import videosJson from "./videos.json";
+import unitsJson from "./units.json";
+import cardsJson from "./cards.json";
 
 export type Lang = "en" | "zh";
 export const LANGS: Lang[] = ["en", "zh"];
@@ -44,6 +46,22 @@ export const episodes = episodesJson as Episode[];
 export const byId = new Map(episodes.map((e) => [e.id, e]));
 
 /** Self-hosted videos (GitHub Release assets), written by peiyuMath site/tools/publish_videos.py. */
+
+/** Course map: every unit of every stage (exported by peiyuMath curriculum/tools/export_units.py). */
+export interface Unit {
+  id: string; stage: number; name: T; summary: T; form: T;
+  seeds: string[]; episodes: number[]; lessons: number; cards: string[];
+}
+/** Stage-0 parent game card (printable; the child does not use a screen). */
+export interface Card {
+  id: string; unit: string; slug: string; seeds: string[]; age: string; minutes: number;
+  title: T; why: T; guess: T; easier: T; harder: T; watch: T; safety: T | null;
+  materials: { en: string[]; zh: string[] }; steps: { en: string[]; zh: string[] }; ask: { en: string[]; zh: string[] };
+}
+export const units = unitsJson as Unit[];
+export const cards = cardsJson as Card[];
+export const cardBySlug = new Map(cards.map((c) => [c.slug, c]));
+
 export interface Video { src: string; poster: string; seconds: number }
 const videos = videosJson as Record<string, Partial<Record<Lang, Video>>>;
 /** The video for this language, falling back to the other language. */
@@ -242,6 +260,34 @@ export const UI: Record<string, T> = {
     zh: "视频制作中。在 GitHub 上关注，上线时就知道。",
   },
   allEpisodes: { en: "All videos in this stage", zh: "本阶段全部视频" },
+  units: { en: "Every unit in this stage", zh: "本阶段全部单元" },
+  unitsLead: {
+    en: "The whole map of this stage: units with a video link to it; the rest are planned and listed so you can see where they fit.",
+    zh: "这一阶段的完整地图：有视频的单元直接链过去；还没做的也列出来，看得见它在哪里。",
+  },
+  aboutLessons: { en: "about {n} lessons", zh: "约 {n} 课" },
+  gameCards: { en: "Game cards for parents", zh: "给家长的游戏卡" },
+  cardsLead: {
+    en: "Print a card, read it once, then play. The child plays with real things — no screen. Each card ends with a “guess first” moment.",
+    zh: "打印一张卡，读一遍就能玩。孩子玩的是真东西，不看屏幕。每张卡都有一个「先猜再看」。",
+  },
+  hasCards: { en: "Cards ready", zh: "有游戏卡" },
+  hasVideo: { en: "Has video", zh: "有视频" },
+  forParents: { en: "Game card for parents", zh: "家长游戏卡" },
+  minutes: { en: "{n} min", zh: "{n} 分钟" },
+  ages: { en: "Ages {a}", zh: "{a} 岁" },
+  whyThis: { en: "What it grows", zh: "这个游戏种下什么" },
+  materials: { en: "You need", zh: "准备" },
+  steps: { en: "How to play", zh: "怎么玩" },
+  guessFirst: { en: "Guess first", zh: "先猜一猜" },
+  askThree: { en: "Three things to ask", zh: "问孩子的三句话" },
+  easier: { en: "Easier", zh: "简单一点" },
+  harder: { en: "Harder", zh: "难一点" },
+  watchFor: { en: "Watch for", zh: "留意" },
+  safety: { en: "Safety", zh: "安全" },
+  printCard: { en: "Print this card", zh: "打印这张卡" },
+  backToStage: { en: "Back to Stage 0", zh: "回到阶段 0" },
+  unitLabel: { en: "Unit", zh: "单元" },
   license: {
     en: "Videos and text: CC BY 4.0, by Boxi Yu. Site code: MIT.",
     zh: "视频和文字：CC BY 4.0，作者 Boxi Yu。网站代码：MIT。",
@@ -257,6 +303,8 @@ export const GRADE_LABEL: Record<string, T> = {
 };
 
 export const t = (key: string, lang: Lang) => UI[key][lang];
+export const tf = (key: string, lang: Lang, vars: Record<string, string | number>) =>
+  UI[key][lang].replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 
 /** Text in the requested language, falling back to the other one. */
 export const pickText = (v: T, lang: Lang) => v[lang] || "";
