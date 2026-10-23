@@ -14,13 +14,13 @@ const prev = cards[i - 1];
 const next = cards[i + 1];
 ---
 
-<Base lang={lang} title={`${c.title[lang]} · ${t("forParents", lang)}`} description={c.why[lang]} path={`cards/${c.slug}/`}>
+<Base lang={lang} title={`${c.title[lang]} · ${t("cardForParents", lang)}`} description={c.why[lang]} path={`cards/${c.slug}/`}>
   <article class="gamecard-page narrow">
     <p class="crumbs noprint">
       <a href={`/${lang}/stages/0/`}>{t("backToStage", lang)}</a>
       {unit && <> / {t("unitLabel", lang)} {unit.id} · {unit.name[lang]}</>}
     </p>
-    <p class="eyebrow">{t("forParents", lang)} · {c.id} · {tf("ages", lang, { a: c.age })} · {tf("minutes", lang, { n: c.minutes })}</p>
+    <p class="eyebrow">{t("cardForParents", lang)} · {c.id} · {tf("ages", lang, { a: c.age })} · {tf("cardMinutes", lang, { n: c.minutes })}</p>
     <h1>{c.title[lang]}</h1>
     <p class="lead">{c.why[lang]}</p>
     <div class="chips">
@@ -33,7 +33,7 @@ const next = cards[i + 1];
     </section>
 
     <section class="box">
-      <h2>{t("steps", lang)}</h2>
+      <h2>{t("cardSteps", lang)}</h2>
       <ol>{c.steps[lang].map((s) => <li>{s}</li>)}</ol>
     </section>
 
