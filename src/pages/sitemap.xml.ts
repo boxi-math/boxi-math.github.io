@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { LANGS, STAGES, SEEDS, episodes } from "../data/site";
+import { LANGS, STAGES, SEEDS, episodes, cards } from "../data/site";
 
 // Every public page in both languages (the local review area is not listed).
 export const GET: APIRoute = ({ site }) => {
@@ -9,6 +9,7 @@ export const GET: APIRoute = ({ site }) => {
     ...STAGES.map((s) => `stages/${s.n}/`),
     ...SEEDS.map((s) => `seeds/${s.id}/`),
     ...episodes.map((e) => `ep/${e.slug}/`),
+    ...cards.map((c) => `cards/${c.slug}/`),
   ];
   const urls = LANGS.flatMap((lang) => paths.map((p) => new URL(`/${lang}/${p}`, site).href));
   const body =
