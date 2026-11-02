@@ -433,14 +433,14 @@
  },
  "37-conditional-probability": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/37-conditional-probability-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-02/37-conditional-probability-en.mp4",
    "poster": "/posters/37-conditional-probability-en.jpg",
    "seconds": 131
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/37-conditional-probability-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-02/37-conditional-probability-zh.mp4",
    "poster": "/posters/37-conditional-probability-zh.jpg",
-   "seconds": 117
+   "seconds": 118
   }
  },
  "38-galton-board": {
@@ -457,14 +457,14 @@
  },
  "39-finite-differences": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/39-finite-differences-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-02/39-finite-differences-en.mp4",
    "poster": "/posters/39-finite-differences-en.jpg",
-   "seconds": 170
+   "seconds": 171
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/39-finite-differences-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-02/39-finite-differences-zh.mp4",
    "poster": "/posters/39-finite-differences-zh.jpg",
-   "seconds": 143
+   "seconds": 144
   }
  }
 }
