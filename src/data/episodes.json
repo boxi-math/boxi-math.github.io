@@ -2870,8 +2870,8 @@
      "id": "ep09-compare-1",
      "type": "compare",
      "stem": {
-      "zh": "用两种方法算 5 ÷ 5/6：颠倒相乘；通分后分子相除。两种方法的结果一样吗？",
-      "en": "Work out 5 ÷ 5/6 two ways: flip and multiply, and rename with a common denominator then divide the tops. Do you get the same answer?"
+      "zh": "用两种方法算 5 ÷ 5/6：颠倒相乘；通分后分子相除。两种方法算出的结果都是多少？",
+      "en": "Work out 5 ÷ 5/6 two ways: flip and multiply, and rename with a common denominator then divide the tops. What answer do both ways give?"
      },
      "answer": {
       "kind": "number",
@@ -4083,8 +4083,8 @@
      "id": "ep13-space-2w-2",
      "type": "compare",
      "stem": {
-      "zh": "半径 3 和半径 6 的圆，面积相差几倍？",
-      "en": "Circles of radius 3 and 6: how many times bigger is the larger area?"
+      "zh": "半径 6 的圆的面积是半径 3 的圆的几倍？",
+      "en": "Circles of radius 3 and 6: the larger area is how many times the smaller one?"
      },
      "answer": {
       "kind": "number",
@@ -7936,7 +7936,7 @@
      "id": "ep27-before-1",
      "type": "explore",
      "stem": {
-      "zh": "2 要乘自己几次才得到 16？",
+      "zh": "几个 2 相乘得到 16？",
       "en": "How many 2s multiplied together make 16?"
      },
      "answer": {
@@ -10529,8 +10529,8 @@
      "id": "ep36-space-2w-1",
      "type": "transfer",
      "stem": {
-      "zh": "一个骰子掷了 600 次，掷出 6 的频率大约会是多少？",
-      "en": "A die is rolled 600 times. About what frequency of sixes do you expect?"
+      "zh": "一个骰子掷了 600 次，掷出 6 的次数大约占总次数的几分之几？",
+      "en": "A die is rolled 600 times. About what fraction of the rolls will be sixes?"
      },
      "answer": {
       "kind": "number",
