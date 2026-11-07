@@ -1,7 +1,7 @@
 {
  "01-make-ten": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/01-make-ten-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/01-make-ten-en.mp4",
    "poster": "/posters/01-make-ten-en.jpg",
    "seconds": 158
   },
@@ -13,24 +13,24 @@
  },
  "02-commutative-array": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/02-commutative-array-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/02-commutative-array-en.mp4",
    "poster": "/posters/02-commutative-array-en.jpg",
    "seconds": 165
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/02-commutative-array-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/02-commutative-array-zh.mp4",
    "poster": "/posters/02-commutative-array-zh.jpg",
    "seconds": 143
   }
  },
  "03-nines-pattern": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/03-nines-pattern-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/03-nines-pattern-en.mp4",
    "poster": "/posters/03-nines-pattern-en.jpg",
    "seconds": 161
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/03-nines-pattern-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/03-nines-pattern-zh.mp4",
    "poster": "/posters/03-nines-pattern-zh.jpg",
    "seconds": 140
   }
@@ -61,12 +61,12 @@
  },
  "06-equivalent-fractions": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/06-equivalent-fractions-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/06-equivalent-fractions-en.mp4",
    "poster": "/posters/06-equivalent-fractions-en.jpg",
    "seconds": 195
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/06-equivalent-fractions-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/06-equivalent-fractions-zh.mp4",
    "poster": "/posters/06-equivalent-fractions-zh.jpg",
    "seconds": 162
   }
@@ -85,7 +85,7 @@
  },
  "08-fraction-multiplication": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/08-fraction-multiplication-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/08-fraction-multiplication-en.mp4",
    "poster": "/posters/08-fraction-multiplication-en.jpg",
    "seconds": 195
   },
@@ -97,12 +97,12 @@
  },
  "09-fraction-division": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/09-fraction-division-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/09-fraction-division-en.mp4",
    "poster": "/posters/09-fraction-division-en.jpg",
    "seconds": 194
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/09-fraction-division-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/09-fraction-division-zh.mp4",
    "poster": "/posters/09-fraction-division-zh.jpg",
    "seconds": 161
   }
@@ -121,12 +121,12 @@
  },
  "11-parallelogram-area": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/11-parallelogram-area-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/11-parallelogram-area-en.mp4",
    "poster": "/posters/11-parallelogram-area-en.jpg",
    "seconds": 175
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/11-parallelogram-area-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/11-parallelogram-area-zh.mp4",
    "poster": "/posters/11-parallelogram-area-zh.jpg",
    "seconds": 160
   }
@@ -145,14 +145,14 @@
  },
  "13-circle-area": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/13-circle-area-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/13-circle-area-en.mp4",
    "poster": "/posters/13-circle-area-en.jpg",
    "seconds": 187
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/13-circle-area-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/13-circle-area-zh.mp4",
    "poster": "/posters/13-circle-area-zh.jpg",
-   "seconds": 161
+   "seconds": 164
   }
  },
  "14-cone-volume": {
@@ -217,12 +217,12 @@
  },
  "19-equation-balance": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/19-equation-balance-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/19-equation-balance-en.mp4",
    "poster": "/posters/19-equation-balance-en.jpg",
    "seconds": 148
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/19-equation-balance-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/19-equation-balance-zh.mp4",
    "poster": "/posters/19-equation-balance-zh.jpg",
    "seconds": 126
   }
@@ -277,12 +277,12 @@
  },
  "24-parabola-vertex": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/24-parabola-vertex-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/24-parabola-vertex-en.mp4",
    "poster": "/posters/24-parabola-vertex-en.jpg",
    "seconds": 165
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/24-parabola-vertex-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/24-parabola-vertex-zh.mp4",
    "poster": "/posters/24-parabola-vertex-zh.jpg",
    "seconds": 135
   }
@@ -313,12 +313,12 @@
  },
  "27-exp-log": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/27-exp-log-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/27-exp-log-en.mp4",
    "poster": "/posters/27-exp-log-en.jpg",
    "seconds": 155
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/27-exp-log-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/27-exp-log-zh.mp4",
    "poster": "/posters/27-exp-log-zh.jpg",
    "seconds": 131
   }
@@ -361,36 +361,36 @@
  },
  "31-derivative-x-squared": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/31-derivative-x-squared-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/31-derivative-x-squared-en.mp4",
    "poster": "/posters/31-derivative-x-squared-en.jpg",
-   "seconds": 158
+   "seconds": 159
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/31-derivative-x-squared-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/31-derivative-x-squared-zh.mp4",
    "poster": "/posters/31-derivative-x-squared-zh.jpg",
    "seconds": 135
   }
  },
  "32-vector-addition": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/32-vector-addition-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/32-vector-addition-en.mp4",
    "poster": "/posters/32-vector-addition-en.jpg",
    "seconds": 154
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/32-vector-addition-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/32-vector-addition-zh.mp4",
    "poster": "/posters/32-vector-addition-zh.jpg",
    "seconds": 133
   }
  },
  "33-multiply-by-i": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/33-multiply-by-i-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/33-multiply-by-i-en.mp4",
    "poster": "/posters/33-multiply-by-i-en.jpg",
    "seconds": 162
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/33-multiply-by-i-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/33-multiply-by-i-zh.mp4",
    "poster": "/posters/33-multiply-by-i-zh.jpg",
    "seconds": 138
   }
@@ -445,12 +445,12 @@
  },
  "38-galton-board": {
   "en": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/38-galton-board-en.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/38-galton-board-en.mp4",
    "poster": "/posters/38-galton-board-en.jpg",
    "seconds": 161
   },
   "zh": {
-   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-10-20-v2/38-galton-board-zh.mp4",
+   "src": "https://github.com/boxi-math/boxi-math.github.io/releases/download/videos-2026-11-07/38-galton-board-zh.mp4",
    "poster": "/posters/38-galton-board-zh.jpg",
    "seconds": 132
   }

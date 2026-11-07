@@ -4144,7 +4144,7 @@
     "en": "Sixty-four pieces, and it looks almost exactly like a rectangle."
    },
    {
-    "zh": "这个长方形的高，就是圆的半径 r。",
+    "zh": "这个长方形的高，就是圆的半径 r 那么长。",
     "en": "This rectangle's height is the circle's radius r."
    },
    {
@@ -4152,7 +4152,7 @@
     "en": "Each little wedge reaches from the centre to the edge, one radius long."
    },
    {
-    "zh": "长方形的长，是圆周的一半，也就是派乘 r。",
+    "zh": "长方形的长，是圆周的一半，也就是派乘 r 那么长。",
     "en": "The rectangle's length is half the circumference, which is pi times r."
    },
    {
@@ -9115,7 +9115,7 @@
    },
    {
     "zh": "边长五的时候，每把刷子长五，每秒刷十。",
-    "en": "When the side is five, each sweeps five: ten per second."
+    "en": "When the side is five, each sweeps five, so that's ten per second."
    },
    {
     "zh": "两把刷子，每把长 x，所以每秒刷二 x。",
@@ -11131,7 +11131,7 @@
    },
    {
     "zh": "要是七格机会一样，每格该有十八个左右，两边远远不到。",
-    "en": "If the seven slots were equally likely, each would hold about eighteen. The sides are nowhere near."
+    "en": "If the seven slots were equally likely, each would hold about eighteen balls. The sides are nowhere near."
    },
    {
     "zh": "所以钟形是数出来的：通向中间的路最多。",
